@@ -1,9 +1,17 @@
-/* ─── Week nav ──────────────────────────────────────────────────────── */
+/* ─── Controls row (nav + view selector) ────────────────────────────── */
+.planner-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
 .planner-week-nav {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-bottom: 16px;
 }
 
 .planner-nav-btn { padding: 0 8px; }
@@ -12,7 +20,7 @@
   font-size: 15px;
   font-weight: 600;
   color: var(--text-1);
-  min-width: 160px;
+  min-width: 180px;
   text-align: center;
 }
 
@@ -22,21 +30,58 @@
   font-size: 13px;
 }
 
-/* ─── Grid ──────────────────────────────────────────────────────────── */
+/* ─── View size selector ─────────────────────────────────────────────── */
+.planner-view-selector {
+  display: flex;
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 3px;
+  gap: 2px;
+}
+
+.planner-view-btn {
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: calc(var(--r-md) - 2px);
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--t-fast), color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.planner-view-btn:hover { color: var(--text-1); }
+
+.planner-view-btn--active {
+  background: var(--surface);
+  color: var(--text-1);
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* ─── Grid — one class per view size ────────────────────────────────── */
 .planner-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(155px, 1fr));
   gap: 8px;
   overflow-x: auto;
   padding-bottom: 4px;
 }
 
+.planner-grid--1 { grid-template-columns: minmax(320px, 560px); }
+.planner-grid--3 { grid-template-columns: repeat(3, minmax(220px, 1fr)); }
+.planner-grid--4 { grid-template-columns: repeat(4, minmax(190px, 1fr)); }
+.planner-grid--7 { grid-template-columns: repeat(7, minmax(145px, 1fr)); }
+
 @media (max-width: 700px) {
-  .planner-page .page { padding: 24px 12px; }
-  .planner-grid {
-    grid-template-columns: repeat(7, minmax(130px, 1fr));
-    padding-bottom: 8px;
-  }
+  .planner-controls { flex-direction: column; align-items: flex-start; }
+  .planner-grid--1 { grid-template-columns: minmax(280px, 1fr); }
+  .planner-grid--3 { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
+  .planner-grid--4 { grid-template-columns: repeat(4, minmax(130px, 1fr)); }
+  .planner-grid--7 { grid-template-columns: repeat(7, minmax(110px, 1fr)); }
 }
 
 /* ─── Day column ────────────────────────────────────────────────────── */
@@ -48,15 +93,13 @@
   min-width: 0;
 }
 
-.planner-day--today {
-  border-color: var(--accent);
-}
+.planner-day--today { border-color: var(--accent); }
 
 .planner-day-header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 4px 6px;
+  padding: 10px 4px 8px;
   border-bottom: 1px solid var(--border);
   gap: 2px;
 }
@@ -74,7 +117,7 @@
 .planner-day--today .planner-day-name { color: var(--accent); }
 
 .planner-day-date {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   font-family: var(--font-mono);
   color: var(--text-1);
@@ -83,22 +126,31 @@
 
 .planner-day--today .planner-day-date { color: var(--accent); }
 
+/* In 1-day view the date number can be bigger */
+.planner-grid--1 .planner-day-date { font-size: 28px; }
+.planner-grid--1 .planner-day-name { font-size: 12px; }
+
 /* ─── Slots ─────────────────────────────────────────────────────────── */
-.planner-slots {
-  display: flex;
-  flex-direction: column;
-}
+.planner-slots { display: flex; flex-direction: column; }
 
 .planner-slot {
   padding: 8px 10px;
   border-bottom: 1px solid var(--border);
-  min-height: 56px;
+  min-height: 58px;
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
 
 .planner-slot:last-child { border-bottom: none; }
+
+/* Slot top row: label + mode toggle */
+.planner-slot-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
 
 .planner-slot-label {
   font-size: 10px;
@@ -108,10 +160,36 @@
   color: var(--text-3);
 }
 
-/* Empty slot add button */
+/* Individual slot — no fixed min-height needed */
+.planner-slot--individual { min-height: unset; }
+
+/* Mode toggle button (shared ↔ individual) */
+.planner-mode-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast);
+}
+
+.planner-mode-btn:hover,
+.planner-mode-btn--active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+/* ─── Empty add button ───────────────────────────────────────────────── */
 .planner-slot-add {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--r-sm);
   border: 1px dashed var(--border-mid);
   background: transparent;
@@ -130,7 +208,7 @@
   background: var(--accent-dim);
 }
 
-/* Filled slot */
+/* ─── Filled recipe row ──────────────────────────────────────────────── */
 .planner-slot-recipe {
   display: flex;
   align-items: flex-start;
@@ -141,7 +219,7 @@
   font-size: 12px;
   font-weight: 500;
   color: var(--text-1);
-  line-height: 1.3;
+  line-height: 1.35;
   cursor: pointer;
   flex: 1;
   display: -webkit-box;
@@ -170,52 +248,11 @@
 
 .planner-slot-clear:hover { background: var(--danger); color: #fff; }
 
-/* ─── Slot top row (label + mode toggle) ────────────────────────────── */
-.planner-slot-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-}
-
-/* Mode toggle button (shared ↔ individual) */
-.planner-mode-btn {
-  width: 18px;
-  height: 18px;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast);
-}
-
-.planner-mode-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-dim);
-}
-
-.planner-mode-btn--active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-dim);
-}
-
-/* Individual slot variant */
-.planner-slot--individual {
-  min-height: unset;
-}
-
 /* ─── Per-member rows ────────────────────────────────────────────────── */
 .planner-member-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   margin-top: 2px;
 }
 
@@ -270,7 +307,7 @@
   background: var(--accent-dim);
 }
 
-/* ─── Recipe picker ─────────────────────────────────────────────────── */
+/* ─── Recipe picker overlay ──────────────────────────────────────────── */
 .picker-overlay {
   position: fixed;
   inset: 0;
@@ -314,15 +351,37 @@
   flex-shrink: 0;
 }
 
+.picker-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .picker-title {
   font-size: 15px;
   font-weight: 600;
   color: var(--text-1);
 }
 
-.picker-meal {
-  font-weight: 400;
-  color: var(--text-2);
+.picker-member-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mc, var(--text-2));
+  background: color-mix(in srgb, var(--mc, var(--accent)) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--mc, var(--accent)) 25%, transparent);
+  border-radius: 99px;
+  padding: 2px 8px 2px 5px;
+}
+
+.picker-member-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .picker-search-wrap {
@@ -373,9 +432,8 @@
   text-align: left;
 }
 
-.picker-item:hover  { background: var(--surface-2); }
-
-.picker-item--active { background: var(--accent-dim); }
+.picker-item:hover    { background: var(--surface-2); }
+.picker-item--active  { background: var(--accent-dim); }
 
 .picker-item-dot {
   width: 8px;
@@ -394,33 +452,5 @@
 .picker-item-cat {
   font-size: 12px;
   color: var(--text-3);
-  flex-shrink: 0;
-}
-
-/* ─── Picker header — member context ────────────────────────────────── */
-.picker-title-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.picker-member-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--mc, var(--text-2));
-  background: color-mix(in srgb, var(--mc, var(--accent)) 12%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--mc, var(--accent)) 25%, transparent);
-  border-radius: 99px;
-  padding: 2px 8px 2px 5px;
-}
-
-.picker-member-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
   flex-shrink: 0;
 }
