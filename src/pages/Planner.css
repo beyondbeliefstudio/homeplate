@@ -1,3 +1,8 @@
+/* ─── Override global .page max-width — planner fills full content area */
+.page.planner-page {
+  max-width: none;
+}
+
 /* ─── Controls row (nav + view selector) ────────────────────────────── */
 .planner-controls {
   display: flex;
