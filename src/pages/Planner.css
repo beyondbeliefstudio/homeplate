@@ -73,7 +73,9 @@
   display: grid;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  /* Fill remaining viewport height so slots stretch like a real calendar */
+  height: calc(100vh - 175px);
+  min-height: 480px;
 }
 
 .planner-grid--1 { grid-template-columns: minmax(320px, 560px); }
@@ -83,6 +85,7 @@
 
 @media (max-width: 700px) {
   .planner-controls { flex-direction: column; align-items: flex-start; }
+  .planner-grid { height: calc(100vh - 200px); }
   .planner-grid--1 { grid-template-columns: minmax(280px, 1fr); }
   .planner-grid--3 { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
   .planner-grid--4 { grid-template-columns: repeat(4, minmax(130px, 1fr)); }
@@ -96,6 +99,9 @@
   border-radius: var(--r-lg);
   overflow: hidden;
   min-width: 0;
+  /* Stretch to fill grid row height */
+  display: flex;
+  flex-direction: column;
 }
 
 .planner-day--today { border-color: var(--accent); }
@@ -136,15 +142,21 @@
 .planner-grid--1 .planner-day-name { font-size: 12px; }
 
 /* ─── Slots ─────────────────────────────────────────────────────────── */
-.planner-slots { display: flex; flex-direction: column; }
-
-.planner-slot {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border);
-  min-height: 58px;
+.planner-slots {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  flex: 1; /* fill remaining height of the day column */
+  min-height: 0;
+}
+
+.planner-slot {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  flex: 1; /* each meal slot gets equal share of the column height */
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .planner-slot:last-child { border-bottom: none; }
@@ -158,7 +170,7 @@
 }
 
 .planner-slot-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -193,8 +205,8 @@
 
 /* ─── Empty add button ───────────────────────────────────────────────── */
 .planner-slot-add {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--r-sm);
   border: 1px dashed var(--border-mid);
   background: transparent;
@@ -221,10 +233,10 @@
 }
 
 .planner-slot-name {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-1);
-  line-height: 1.35;
+  line-height: 1.4;
   cursor: pointer;
   flex: 1;
   display: -webkit-box;
@@ -237,8 +249,8 @@
 
 .planner-slot-clear {
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   border: none;
   background: var(--surface-3);
@@ -257,12 +269,12 @@
 .planner-member-list {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 7px;
   margin-top: 2px;
 }
 
 .planner-no-members {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-3);
   line-height: 1.4;
 }
@@ -270,31 +282,31 @@
 .planner-member-row {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .planner-member-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
 .planner-member-name {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 52px;
+  max-width: 64px;
   flex-shrink: 0;
   line-height: 1;
 }
 
 .planner-member-add {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   border-radius: var(--r-sm);
   border: 1px dashed var(--border-mid);
   background: transparent;
