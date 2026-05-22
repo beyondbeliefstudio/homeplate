@@ -168,6 +168,33 @@ export async function deleteStore(id) {
   return { error }
 }
 
+// ─── Household Members ────────────────────────────────────────────────────────
+
+export async function getHouseholdMembers(userId) {
+  const { data, error } = await supabase
+    .from('household_members')
+    .select('*')
+    .eq('user_id', userId)
+    .order('sort_order', { ascending: true })
+  return { data: data || [], error }
+}
+
+export async function saveHouseholdMember(userId, member) {
+  const payload = { user_id: userId, name: member.name, color: member.color, sort_order: member.sort_order ?? 0 }
+  if (member.id) {
+    const { data, error } = await supabase.from('household_members').update(payload).eq('id', member.id).select().single()
+    return { data, error }
+  } else {
+    const { data, error } = await supabase.from('household_members').insert(payload).select().single()
+    return { data, error }
+  }
+}
+
+export async function deleteHouseholdMember(id) {
+  const { error } = await supabase.from('household_members').delete().eq('id', id)
+  return { error }
+}
+
 // ─── Pantry Staples ───────────────────────────────────────────────────────────
 
 export async function getStaples(userId) {
