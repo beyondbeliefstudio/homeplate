@@ -187,8 +187,11 @@ export default function PlannerPage() {
                               return (
                                 <div key={member.id} className="planner-member-row">
                                   <span className="planner-member-dot" style={{ background: member.color }} />
+                                  <span className="planner-member-name" style={{ color: member.color }}>
+                                    {member.name.split(' ')[0]}
+                                  </span>
                                   {recipe ? (
-                                    <div className="planner-slot-recipe" style={{ flex: 1 }}>
+                                    <div className="planner-slot-recipe" style={{ flex: 1, minWidth: 0 }}>
                                       <span className="planner-slot-name"
                                         onClick={() => setPicker({ dayIndex, meal, memberId: member.id })}
                                         title={recipe.name}>
