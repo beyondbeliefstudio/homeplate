@@ -135,13 +135,13 @@ export default function PlannerPage() {
     } else {
       // New item — build a skeleton based on section
       if (section === 'breakfasts') {
-        addItem('breakfasts', { id: uid(), recipeId, isPantry: false, made: false, memberIds: [] })
+        addItem('breakfasts', { id: uid(), recipeId, isPantry: false, made: false, memberIds: [], note: '' })
       } else if (section === 'lunches') {
-        addItem('lunches', { id: uid(), recipeId, isPantry: false, made: false, kidsRecipeId: null, memberIds: [] })
+        addItem('lunches', { id: uid(), recipeId, isPantry: false, made: false, kidsRecipeId: null, memberIds: [], note: '' })
       } else if (section === 'dinners' && field === 'adultRecipeId') {
-        addItem('dinners', { id: uid(), adultRecipeId: recipeId, audience: 'everyone', multiplier: 1, madeCount: 0, kidsRecipeId: null, kidsMade: false, memberIds: [] })
+        addItem('dinners', { id: uid(), adultRecipeId: recipeId, audience: 'everyone', multiplier: 1, madeCount: 0, kidsRecipeId: null, kidsMade: false, memberIds: [], note: '' })
       } else if (section === 'snacks') {
-        addItem('snacks', { id: uid(), recipeId, multiplier: 1, made: false, memberIds: [] })
+        addItem('snacks', { id: uid(), recipeId, multiplier: 1, made: false, memberIds: [], note: '' })
       }
     }
     setPicker(null)
@@ -249,7 +249,7 @@ function BreakfastsSection({ plan, recipeMap, members, collapsed, toggleCollapse
           <Plus size={14} strokeWidth={2} /> Add recipe
         </button>
         <button className="btn btn-ghost btn-sm planner-add-btn planner-add-btn--muted"
-          onClick={() => addItem('breakfasts', { id: uid(), recipeId: null, isPantry: true, made: false, memberIds: [] })}>
+          onClick={() => addItem('breakfasts', { id: uid(), recipeId: null, isPantry: true, made: false, memberIds: [], note: '' })}>
           + Pantry / Whatever
         </button>
       </>}
@@ -266,6 +266,7 @@ function BreakfastsSection({ plan, recipeMap, members, collapsed, toggleCollapse
                 {recipeMap[item.recipeId]?.name ?? <em className="plan-card-unset">Pick a recipe…</em>}
               </span>
             )}
+            <NoteField note={item.note || ''} onChange={v => updateItem('breakfasts', item.id, { note: v })} />
           </div>
           {members.length > 0 && (
             <MemberTags memberIds={item.memberIds ?? []} members={members}
@@ -297,7 +298,7 @@ function LunchesSection({ plan, recipeMap, members, collapsed, toggleCollapsed, 
           <Plus size={14} strokeWidth={2} /> Add recipe
         </button>
         <button className="btn btn-ghost btn-sm planner-add-btn planner-add-btn--muted"
-          onClick={() => addItem('lunches', { id: uid(), recipeId: null, isPantry: true, made: false, kidsRecipeId: null, memberIds: [] })}>
+          onClick={() => addItem('lunches', { id: uid(), recipeId: null, isPantry: true, made: false, kidsRecipeId: null, memberIds: [], note: '' })}>
           + Pantry Raid
         </button>
       </>}
@@ -315,6 +316,7 @@ function LunchesSection({ plan, recipeMap, members, collapsed, toggleCollapsed, 
                   {recipeMap[item.recipeId]?.name ?? <em className="plan-card-unset">Pick a recipe…</em>}
                 </span>
               )}
+              <NoteField note={item.note || ''} onChange={v => updateItem('lunches', item.id, { note: v })} />
             </div>
             {members.length > 0 && (
               <MemberTags memberIds={item.memberIds ?? []} members={members}
@@ -411,6 +413,7 @@ function DinnersSection({ plan, recipeMap, members, collapsed, toggleCollapsed, 
                 <div className="plan-card-meta">
                   <AudienceBadge audience={sameRecipe ? 'everyone' : (item.audience ?? 'everyone')} />
                 </div>
+                <NoteField note={item.note || ''} onChange={v => updateItem('dinners', item.id, { note: v })} />
               </div>
 
               {members.length > 0 && (
@@ -496,6 +499,7 @@ function SnacksSection({ plan, recipeMap, members, collapsed, toggleCollapsed, a
                 onClick={() => setPicker({ section: 'snacks', itemId: item.id, field: 'recipeId', category: 'snack' })}>
                 {recipeMap[item.recipeId]?.name ?? <em className="plan-card-unset">Pick a recipe…</em>}
               </span>
+              <NoteField note={item.note || ''} onChange={v => updateItem('snacks', item.id, { note: v })} />
             </div>
             {members.length > 0 && (
               <MemberTags memberIds={item.memberIds ?? []} members={members}
@@ -551,6 +555,46 @@ function AudienceBadge({ audience }) {
     <span className="audience-badge" style={{ '--ab-color': cfg.color }}>
       {cfg.label}
     </span>
+  )
+}
+
+// ─── Note field ──────────────────────────────────────────────────────
+function NoteField({ note, onChange }) {
+  const [editing, setEditing] = useState(false)
+  const [draft,   setDraft]   = useState(note || '')
+
+  function handleBlur() {
+    setEditing(false)
+    if (draft.trim() !== (note || '').trim()) onChange(draft.trim())
+  }
+
+  if (editing) {
+    return (
+      <textarea
+        className="plan-card-note-input"
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={handleBlur}
+        onKeyDown={e => { if (e.key === 'Escape') { setDraft(note || ''); setEditing(false) } }}
+        autoFocus
+        rows={2}
+        placeholder="Add a note…"
+      />
+    )
+  }
+
+  if (note) {
+    return (
+      <p className="plan-card-note" onClick={() => { setDraft(note); setEditing(true) }}>
+        {note}
+      </p>
+    )
+  }
+
+  return (
+    <button className="plan-card-note-add" onClick={() => { setDraft(''); setEditing(true) }}>
+      + note
+    </button>
   )
 }
 
