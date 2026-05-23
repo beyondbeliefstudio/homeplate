@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUser } from '../hooks/useAuth.jsx'
-import { getMealPlan, saveMealPlan, getRecipes } from '../lib/supabase'
+import { getMealPlan, saveMealPlan, getRecipes, getHouseholdMembers } from '../lib/supabase'
 import { getCategoryMeta } from '../lib/categories'
 import { getWeekKey, shiftWeek, formatWeekOf } from '../lib/weeks'
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, X, Check, Search, Share2 } from 'lucide-react'
@@ -69,12 +69,19 @@ export default function PlannerPage() {
   const [recipes, setRecipes] = useState([])
   const [loading, setLoading] = useState(true)
   const [collapsed, setCollapsed] = useState({})
+  const [members, setMembers] = useState([])
   const [picker, setPicker]   = useState(null) // { section, itemId?, field, category, preferAudience? }
   const [shared, setShared]   = useState(false)
 
   useEffect(() => {
     if (!user) return
-    getRecipes(user.id).then(({ data }) => setRecipes(data || []))
+    Promise.all([
+      getRecipes(user.id),
+      getHouseholdMembers(user.id),
+    ]).then(([{ data: r }, { data: m }]) => {
+      setRecipes(r || [])
+      setMembers(m || [])
+    })
   }, [user])
 
   useEffect(() => {
@@ -128,19 +135,19 @@ export default function PlannerPage() {
     } else {
       // New item — build a skeleton based on section
       if (section === 'breakfasts') {
-        addItem('breakfasts', { id: uid(), recipeId, isPantry: false, made: false })
+        addItem('breakfasts', { id: uid(), recipeId, isPantry: false, made: false, memberIds: [] })
       } else if (section === 'lunches') {
-        addItem('lunches', { id: uid(), recipeId, isPantry: false, made: false, kidsRecipeId: null })
+        addItem('lunches', { id: uid(), recipeId, isPantry: false, made: false, kidsRecipeId: null, memberIds: [] })
       } else if (section === 'dinners' && field === 'adultRecipeId') {
-        addItem('dinners', { id: uid(), adultRecipeId: recipeId, audience: 'everyone', multiplier: 1, madeCount: 0, kidsRecipeId: null, kidsMade: false })
+        addItem('dinners', { id: uid(), adultRecipeId: recipeId, audience: 'everyone', multiplier: 1, madeCount: 0, kidsRecipeId: null, kidsMade: false, memberIds: [] })
       } else if (section === 'snacks') {
-        addItem('snacks', { id: uid(), recipeId, multiplier: 1, made: false })
+        addItem('snacks', { id: uid(), recipeId, multiplier: 1, made: false, memberIds: [] })
       }
     }
     setPicker(null)
   }
 
-  const sharedProps = { plan, recipeMap, recipes, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker }
+  const sharedProps = { plan, recipeMap, recipes, members, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker }
 
   return (
     <div className="page planner-page">
@@ -227,7 +234,7 @@ function SectionShell({ sectionKey, icon, label, count, collapsed, onToggle, chi
 }
 
 // ─── Breakfasts ──────────────────────────────────────────────────────
-function BreakfastsSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker }) {
+function BreakfastsSection({ plan, recipeMap, members, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker }) {
   const items = plan.breakfasts ?? []
 
   return (
@@ -242,7 +249,7 @@ function BreakfastsSection({ plan, recipeMap, collapsed, toggleCollapsed, addIte
           <Plus size={14} strokeWidth={2} /> Add recipe
         </button>
         <button className="btn btn-ghost btn-sm planner-add-btn planner-add-btn--muted"
-          onClick={() => addItem('breakfasts', { id: uid(), recipeId: null, isPantry: true, made: false })}>
+          onClick={() => addItem('breakfasts', { id: uid(), recipeId: null, isPantry: true, made: false, memberIds: [] })}>
           + Pantry / Whatever
         </button>
       </>}
@@ -260,6 +267,10 @@ function BreakfastsSection({ plan, recipeMap, collapsed, toggleCollapsed, addIte
               </span>
             )}
           </div>
+          {members.length > 0 && (
+            <MemberTags memberIds={item.memberIds ?? []} members={members}
+              onChange={ids => updateItem('breakfasts', item.id, { memberIds: ids })} />
+          )}
           <button className="plan-card-remove" onClick={() => removeItem('breakfasts', item.id)}>
             <X size={13} strokeWidth={2.5} />
           </button>
@@ -270,7 +281,7 @@ function BreakfastsSection({ plan, recipeMap, collapsed, toggleCollapsed, addIte
 }
 
 // ─── Lunches ─────────────────────────────────────────────────────────
-function LunchesSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker }) {
+function LunchesSection({ plan, recipeMap, members, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker }) {
   const items = plan.lunches ?? []
   const [kidsOpen, setKidsOpen] = useState({})
 
@@ -286,7 +297,7 @@ function LunchesSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, 
           <Plus size={14} strokeWidth={2} /> Add recipe
         </button>
         <button className="btn btn-ghost btn-sm planner-add-btn planner-add-btn--muted"
-          onClick={() => addItem('lunches', { id: uid(), recipeId: null, isPantry: true, made: false, kidsRecipeId: null })}>
+          onClick={() => addItem('lunches', { id: uid(), recipeId: null, isPantry: true, made: false, kidsRecipeId: null, memberIds: [] })}>
           + Pantry Raid
         </button>
       </>}
@@ -305,6 +316,10 @@ function LunchesSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, 
                 </span>
               )}
             </div>
+            {members.length > 0 && (
+              <MemberTags memberIds={item.memberIds ?? []} members={members}
+                onChange={ids => updateItem('lunches', item.id, { memberIds: ids })} />
+            )}
             {!item.isPantry && (
               <button className="plan-card-kids-toggle"
                 title="Kids eating something different?"
@@ -349,7 +364,7 @@ function LunchesSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, 
 }
 
 // ─── Dinners ─────────────────────────────────────────────────────────
-function DinnersSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker }) {
+function DinnersSection({ plan, recipeMap, members, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker }) {
   const items = plan.dinners ?? []
   const totalNights  = items.reduce((s, i) => s + (i.multiplier ?? 1), 0)
   const doneNights   = items.reduce((s, i) => s + (i.madeCount ?? 0), 0)
@@ -398,6 +413,10 @@ function DinnersSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, 
                 </div>
               </div>
 
+              {members.length > 0 && (
+                <MemberTags memberIds={item.memberIds ?? []} members={members}
+                  onChange={ids => updateItem('dinners', item.id, { memberIds: ids })} />
+              )}
               <MultiplierBtn value={multi}
                 onChange={v => updateItem('dinners', item.id, { multiplier: v, madeCount: Math.min(made, v) })} />
               <button className="plan-card-remove" onClick={() => removeItem('dinners', item.id)}>
@@ -451,7 +470,7 @@ function DinnersSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, 
 }
 
 // ─── Snacks ──────────────────────────────────────────────────────────
-function SnacksSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker }) {
+function SnacksSection({ plan, recipeMap, members, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker }) {
   const items = plan.snacks ?? []
 
   return (
@@ -478,6 +497,10 @@ function SnacksSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, r
                 {recipeMap[item.recipeId]?.name ?? <em className="plan-card-unset">Pick a recipe…</em>}
               </span>
             </div>
+            {members.length > 0 && (
+              <MemberTags memberIds={item.memberIds ?? []} members={members}
+                onChange={ids => updateItem('snacks', item.id, { memberIds: ids })} />
+            )}
             <MultiplierBtn value={multi}
               onChange={v => updateItem('snacks', item.id, { multiplier: v })} />
             <button className="plan-card-remove" onClick={() => removeItem('snacks', item.id)}>
@@ -528,6 +551,26 @@ function AudienceBadge({ audience }) {
     <span className="audience-badge" style={{ '--ab-color': cfg.color }}>
       {cfg.label}
     </span>
+  )
+}
+
+// ─── Member tags ────────────────────────────────────────────────────
+function MemberTags({ memberIds, members, onChange }) {
+  function toggle(id) {
+    onChange(memberIds.includes(id) ? memberIds.filter(x => x !== id) : [...memberIds, id])
+  }
+  return (
+    <div className="member-tags">
+      {members.map(m => (
+        <button key={m.id}
+          className={`member-tag ${memberIds.includes(m.id) ? 'member-tag--active' : ''}`}
+          style={{ '--mc': m.color }}
+          title={m.name}
+          onClick={() => toggle(m.id)}>
+          {m.name[0].toUpperCase()}
+        </button>
+      ))}
+    </div>
   )
 }
 

@@ -347,6 +347,39 @@
   background: var(--accent-dim);
 }
 
+/* ─── Member tags ───────────────────────────────────────────────────── */
+.member-tags {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.member-tag {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--mc, var(--border-mid));
+  background: transparent;
+  color: var(--mc, var(--text-3));
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast), transform var(--t-fast);
+}
+
+.member-tag:hover { transform: scale(1.1); }
+
+.member-tag--active {
+  background: var(--mc);
+  color: #fff;
+  border-color: var(--mc);
+}
+
 /* ─── Recipe picker ─────────────────────────────────────────────────── */
 .picker-overlay {
   position: fixed;
