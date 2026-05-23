@@ -209,10 +209,15 @@ function consolidate(raw) {
   const map = new Map()
 
   raw.forEach(({ name, quantity, unit }) => {
-    // Drop items with only vague quantities and no unit
-    if (isVagueQty(quantity) && !unit?.trim()) return
+    const norm = normalizeName(name)
+    const isPantryItem = PANTRY_CHECK_INGREDIENTS.has(norm) || PANTRY_CHECK_INGREDIENTS.has(name.toLowerCase().trim())
 
-    const key = normalizeName(name)
+    // Drop vague-quantity items from the shop list, but always keep pantry
+    // ingredients — they just need to appear in the "check your pantry" section
+    // regardless of how the recipe specified the quantity
+    if (isVagueQty(quantity) && !unit?.trim() && !isPantryItem) return
+
+    const key = norm
     const numQty = parseFloat(quantity)
     const normUnit = (unit || '').toLowerCase().trim()
 
