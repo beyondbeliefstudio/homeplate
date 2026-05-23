@@ -135,13 +135,13 @@ export default function PlannerPage() {
     } else {
       // New item — build a skeleton based on section
       if (section === 'breakfasts') {
-        addItem('breakfasts', { id: uid(), recipeId, isPantry: false, made: false, memberIds: [], note: '' })
+        addItem('breakfasts', { id: uid(), recipeId, isPantry: false, made: false, audience: 'everyone', memberIds: [], note: '' })
       } else if (section === 'lunches') {
-        addItem('lunches', { id: uid(), recipeId, isPantry: false, made: false, kidsRecipeId: null, memberIds: [], note: '' })
+        addItem('lunches', { id: uid(), recipeId, isPantry: false, made: false, audience: 'everyone', kidsRecipeId: null, memberIds: [], note: '' })
       } else if (section === 'dinners' && field === 'adultRecipeId') {
         addItem('dinners', { id: uid(), adultRecipeId: recipeId, audience: 'everyone', multiplier: 1, madeCount: 0, kidsRecipeId: null, kidsMade: false, memberIds: [], note: '' })
       } else if (section === 'snacks') {
-        addItem('snacks', { id: uid(), recipeId, multiplier: 1, made: false, memberIds: [], note: '' })
+        addItem('snacks', { id: uid(), recipeId, multiplier: 1, made: false, audience: 'everyone', memberIds: [], note: '' })
       }
     }
     setPicker(null)
@@ -249,32 +249,50 @@ function BreakfastsSection({ plan, recipeMap, members, collapsed, toggleCollapse
           <Plus size={14} strokeWidth={2} /> Add recipe
         </button>
         <button className="btn btn-ghost btn-sm planner-add-btn planner-add-btn--muted"
-          onClick={() => addItem('breakfasts', { id: uid(), recipeId: null, isPantry: true, made: false, memberIds: [], note: '' })}>
+          onClick={() => addItem('breakfasts', { id: uid(), recipeId: null, isPantry: true, made: false, audience: 'everyone', memberIds: [], note: '' })}>
           + Pantry / Whatever
         </button>
       </>}
     >
       {items.map(item => (
-        <div key={item.id} className={`plan-card ${item.made ? 'plan-card--made' : ''}`}>
-          <MadeToggle made={item.made} onToggle={() => updateItem('breakfasts', item.id, { made: !item.made })} />
-          <div className="plan-card-body">
-            {item.isPantry ? (
-              <span className="plan-card-pantry">Pantry / Whatever</span>
-            ) : (
-              <span className="plan-card-name"
-                onClick={() => setPicker({ section: 'breakfasts', itemId: item.id, field: 'recipeId', category: 'breakfast' })}>
-                {recipeMap[item.recipeId]?.name ?? <em className="plan-card-unset">Pick a recipe…</em>}
-              </span>
+        <div key={item.id} className={`plan-card plan-card--column ${item.made ? 'plan-card--made' : ''}`}>
+          <div className="plan-card-row">
+            <MadeToggle made={item.made} onToggle={() => updateItem('breakfasts', item.id, { made: !item.made })} />
+            <div className="plan-card-body">
+              {item.isPantry ? (
+                <span className="plan-card-pantry">Pantry / Whatever</span>
+              ) : (
+                <span className="plan-card-name"
+                  onClick={() => setPicker({ section: 'breakfasts', itemId: item.id, field: 'recipeId', category: 'breakfast' })}>
+                  {recipeMap[item.recipeId]?.name ?? <em className="plan-card-unset">Pick a recipe…</em>}
+                </span>
+              )}
+              {!item.isPantry && (
+                <div className="plan-card-meta">
+                  <AudienceBadge audience={item.audience ?? 'everyone'} />
+                </div>
+              )}
+              <NoteField note={item.note || ''} onChange={v => updateItem('breakfasts', item.id, { note: v })} />
+            </div>
+            {members.length > 0 && (
+              <MemberTags memberIds={item.memberIds ?? []} members={members}
+                onChange={ids => updateItem('breakfasts', item.id, { memberIds: ids })} />
             )}
-            <NoteField note={item.note || ''} onChange={v => updateItem('breakfasts', item.id, { note: v })} />
+            <button className="plan-card-remove" onClick={() => removeItem('breakfasts', item.id)}>
+              <X size={13} strokeWidth={2.5} />
+            </button>
           </div>
-          {members.length > 0 && (
-            <MemberTags memberIds={item.memberIds ?? []} members={members}
-              onChange={ids => updateItem('breakfasts', item.id, { memberIds: ids })} />
+          {!item.isPantry && (
+            <div className="plan-card-audience-row">
+              {['adults', 'everyone'].map(a => (
+                <button key={a}
+                  className={`audience-pill ${(item.audience ?? 'everyone') === a ? 'audience-pill--active' : ''}`}
+                  onClick={() => updateItem('breakfasts', item.id, { audience: a })}>
+                  {AUDIENCE[a].label}
+                </button>
+              ))}
+            </div>
           )}
-          <button className="plan-card-remove" onClick={() => removeItem('breakfasts', item.id)}>
-            <X size={13} strokeWidth={2.5} />
-          </button>
         </div>
       ))}
     </SectionShell>
@@ -298,7 +316,7 @@ function LunchesSection({ plan, recipeMap, members, collapsed, toggleCollapsed, 
           <Plus size={14} strokeWidth={2} /> Add recipe
         </button>
         <button className="btn btn-ghost btn-sm planner-add-btn planner-add-btn--muted"
-          onClick={() => addItem('lunches', { id: uid(), recipeId: null, isPantry: true, made: false, kidsRecipeId: null, memberIds: [], note: '' })}>
+          onClick={() => addItem('lunches', { id: uid(), recipeId: null, isPantry: true, made: false, audience: 'everyone', kidsRecipeId: null, memberIds: [], note: '' })}>
           + Pantry Raid
         </button>
       </>}
@@ -315,6 +333,11 @@ function LunchesSection({ plan, recipeMap, members, collapsed, toggleCollapsed, 
                   onClick={() => setPicker({ section: 'lunches', itemId: item.id, field: 'recipeId', category: 'lunch' })}>
                   {recipeMap[item.recipeId]?.name ?? <em className="plan-card-unset">Pick a recipe…</em>}
                 </span>
+              )}
+              {!item.isPantry && (
+                <div className="plan-card-meta">
+                  <AudienceBadge audience={item.audience ?? 'everyone'} />
+                </div>
               )}
               <NoteField note={item.note || ''} onChange={v => updateItem('lunches', item.id, { note: v })} />
             </div>
@@ -335,6 +358,18 @@ function LunchesSection({ plan, recipeMap, members, collapsed, toggleCollapsed, 
               <X size={13} strokeWidth={2.5} />
             </button>
           </div>
+
+          {!item.isPantry && (
+            <div className="plan-card-audience-row">
+              {['adults', 'everyone'].map(a => (
+                <button key={a}
+                  className={`audience-pill ${(item.audience ?? 'everyone') === a ? 'audience-pill--active' : ''}`}
+                  onClick={() => updateItem('lunches', item.id, { audience: a })}>
+                  {AUDIENCE[a].label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Kids override */}
           {!item.isPantry && kidsOpen[item.id] && (
@@ -492,24 +527,38 @@ function SnacksSection({ plan, recipeMap, members, collapsed, toggleCollapsed, a
       {items.map(item => {
         const multi = item.multiplier ?? 1
         return (
-          <div key={item.id} className={`plan-card ${item.made ? 'plan-card--made' : ''}`}>
-            <MadeToggle made={item.made} onToggle={() => updateItem('snacks', item.id, { made: !item.made })} />
-            <div className="plan-card-body">
-              <span className="plan-card-name"
-                onClick={() => setPicker({ section: 'snacks', itemId: item.id, field: 'recipeId', category: 'snack' })}>
-                {recipeMap[item.recipeId]?.name ?? <em className="plan-card-unset">Pick a recipe…</em>}
-              </span>
-              <NoteField note={item.note || ''} onChange={v => updateItem('snacks', item.id, { note: v })} />
+          <div key={item.id} className={`plan-card plan-card--column ${item.made ? 'plan-card--made' : ''}`}>
+            <div className="plan-card-row">
+              <MadeToggle made={item.made} onToggle={() => updateItem('snacks', item.id, { made: !item.made })} />
+              <div className="plan-card-body">
+                <span className="plan-card-name"
+                  onClick={() => setPicker({ section: 'snacks', itemId: item.id, field: 'recipeId', category: 'snack' })}>
+                  {recipeMap[item.recipeId]?.name ?? <em className="plan-card-unset">Pick a recipe…</em>}
+                </span>
+                <div className="plan-card-meta">
+                  <AudienceBadge audience={item.audience ?? 'everyone'} />
+                </div>
+                <NoteField note={item.note || ''} onChange={v => updateItem('snacks', item.id, { note: v })} />
+              </div>
+              {members.length > 0 && (
+                <MemberTags memberIds={item.memberIds ?? []} members={members}
+                  onChange={ids => updateItem('snacks', item.id, { memberIds: ids })} />
+              )}
+              <MultiplierBtn value={multi}
+                onChange={v => updateItem('snacks', item.id, { multiplier: v })} />
+              <button className="plan-card-remove" onClick={() => removeItem('snacks', item.id)}>
+                <X size={13} strokeWidth={2.5} />
+              </button>
             </div>
-            {members.length > 0 && (
-              <MemberTags memberIds={item.memberIds ?? []} members={members}
-                onChange={ids => updateItem('snacks', item.id, { memberIds: ids })} />
-            )}
-            <MultiplierBtn value={multi}
-              onChange={v => updateItem('snacks', item.id, { multiplier: v })} />
-            <button className="plan-card-remove" onClick={() => removeItem('snacks', item.id)}>
-              <X size={13} strokeWidth={2.5} />
-            </button>
+            <div className="plan-card-audience-row">
+              {['adults', 'everyone'].map(a => (
+                <button key={a}
+                  className={`audience-pill ${(item.audience ?? 'everyone') === a ? 'audience-pill--active' : ''}`}
+                  onClick={() => updateItem('snacks', item.id, { audience: a })}>
+                  {AUDIENCE[a].label}
+                </button>
+              ))}
+            </div>
           </div>
         )
       })}
