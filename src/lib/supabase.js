@@ -50,6 +50,7 @@ export async function saveRecipe(userId, recipe) {
     user_id:      userId,
     name:         recipe.name,
     category:     recipe.category || 'other',
+    audience:     recipe.audience || 'everyone',
     servings:     recipe.servings || 2,
     prep_time:    recipe.prepTime ?? recipe.prep_time ?? 0,
     cook_time:    recipe.cookTime ?? recipe.cook_time ?? 0,

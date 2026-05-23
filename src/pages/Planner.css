@@ -1,22 +1,12 @@
-/* ─── Override global .page max-width — planner fills full content area */
-.page.planner-page {
-  max-width: none;
-}
+/* ─── Page ───────────────────────────────────────────────────────────── */
+.planner-page { max-width: 680px; }
 
-/* ─── Controls row (nav + view selector) ────────────────────────────── */
-.planner-controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
+/* ─── Week nav ──────────────────────────────────────────────────────── */
 .planner-week-nav {
   display: flex;
   align-items: center;
   gap: 4px;
+  margin-bottom: 20px;
 }
 
 .planner-nav-btn { padding: 0 8px; }
@@ -35,296 +25,329 @@
   font-size: 13px;
 }
 
-/* ─── View size selector ─────────────────────────────────────────────── */
-.planner-view-selector {
+/* ─── Sections ──────────────────────────────────────────────────────── */
+.planner-sections {
   display: flex;
-  align-items: center;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  padding: 3px;
-  gap: 2px;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.planner-view-btn {
-  padding: 5px 12px;
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: calc(var(--r-md) - 2px);
-  border: none;
-  background: transparent;
-  color: var(--text-2);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background var(--t-fast), color var(--t-fast), box-shadow var(--t-fast);
-}
-
-.planner-view-btn:hover { color: var(--text-1); }
-
-.planner-view-btn--active {
-  background: var(--surface);
-  color: var(--text-1);
-  font-weight: 600;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-}
-
-/* ─── Grid — one class per view size ────────────────────────────────── */
-.planner-grid {
-  display: grid;
-  gap: 8px;
-  overflow-x: auto;
-  /* Fill remaining viewport height so slots stretch like a real calendar */
-  height: calc(100vh - 175px);
-  min-height: 480px;
-}
-
-.planner-grid--1 { grid-template-columns: minmax(320px, 560px); }
-.planner-grid--3 { grid-template-columns: repeat(3, minmax(220px, 1fr)); }
-.planner-grid--4 { grid-template-columns: repeat(4, minmax(190px, 1fr)); }
-.planner-grid--7 { grid-template-columns: repeat(7, minmax(145px, 1fr)); }
-
-@media (max-width: 700px) {
-  .planner-controls { flex-direction: column; align-items: flex-start; }
-  .planner-grid { height: calc(100vh - 200px); }
-  .planner-grid--1 { grid-template-columns: minmax(280px, 1fr); }
-  .planner-grid--3 { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
-  .planner-grid--4 { grid-template-columns: repeat(4, minmax(130px, 1fr)); }
-  .planner-grid--7 { grid-template-columns: repeat(7, minmax(110px, 1fr)); }
-}
-
-/* ─── Day column ────────────────────────────────────────────────────── */
-.planner-day {
+.planner-section {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   overflow: hidden;
-  min-width: 0;
-  /* Stretch to fill grid row height */
-  display: flex;
-  flex-direction: column;
 }
 
-.planner-day--today { border-color: var(--accent); }
-
-.planner-day-header {
+.planner-section-header {
+  width: 100%;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 10px 4px 8px;
-  border-bottom: 1px solid var(--border);
-  gap: 2px;
+  gap: 10px;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--t-fast);
 }
 
-.planner-day--today .planner-day-header { background: var(--accent-dim); }
+.planner-section-header:hover { background: var(--surface-2); }
 
-.planner-day-name {
-  font-size: 11px;
+.planner-section-icon { font-size: 18px; line-height: 1; }
+
+.planner-section-title {
+  flex: 1;
+  font-size: 15px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
-
-.planner-day--today .planner-day-name { color: var(--accent); }
-
-.planner-day-date {
-  font-size: 20px;
-  font-weight: 700;
-  font-family: var(--font-mono);
   color: var(--text-1);
-  line-height: 1;
 }
 
-.planner-day--today .planner-day-date { color: var(--accent); }
-
-/* In 1-day view the date number can be bigger */
-.planner-grid--1 .planner-day-date { font-size: 28px; }
-.planner-grid--1 .planner-day-name { font-size: 12px; }
-
-/* ─── Slots ─────────────────────────────────────────────────────────── */
-.planner-slots {
-  display: flex;
-  flex-direction: column;
-  flex: 1; /* fill remaining height of the day column */
-  min-height: 0;
-}
-
-.planner-slot {
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border);
-  flex: 1; /* each meal slot gets equal share of the column height */
-  min-height: 100px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.planner-slot:last-child { border-bottom: none; }
-
-/* Slot top row: label + mode toggle */
-.planner-slot-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-}
-
-.planner-slot-label {
-  font-size: 11px;
+.planner-section-count {
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--text-3);
+  background: var(--surface-3);
+  border-radius: 99px;
+  padding: 2px 7px;
 }
 
-/* Individual slot — no fixed min-height needed */
-.planner-slot--individual { min-height: unset; }
+.planner-section-chevron {
+  color: var(--text-3);
+  transition: transform var(--t-fast);
+}
 
-/* Mode toggle button (shared ↔ individual) */
-.planner-mode-btn {
-  width: 18px;
-  height: 18px;
-  border-radius: var(--r-sm);
+.planner-section-chevron--open { transform: rotate(180deg); }
+
+.planner-section-body {
+  border-top: 1px solid var(--border);
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Add row at bottom of each section */
+.planner-add-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.planner-add-btn { color: var(--accent); font-size: 13px; }
+.planner-add-btn--muted { color: var(--text-3); }
+.planner-add-btn--muted:hover { color: var(--text-1); }
+
+/* Dinner progress summary */
+.planner-dinner-summary {
+  font-size: 12px;
+  color: var(--text-3);
+  padding: 0 2px 2px;
+}
+
+/* ─── Plan card ─────────────────────────────────────────────────────── */
+.plan-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-2);
   border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-3);
+  border-radius: var(--r-md);
+  min-height: 48px;
+  transition: opacity var(--t-fast);
+}
+
+/* Column layout for cards with expandable sub-rows */
+.plan-card--column {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+.plan-card-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast);
+  gap: 10px;
+  min-height: 40px;
 }
 
-.planner-mode-btn:hover,
-.planner-mode-btn--active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-dim);
+/* Dinner card has a slight left border accent */
+.plan-card--dinner {
+  border-left: 3px solid var(--border-mid);
 }
 
-/* ─── Empty add button ───────────────────────────────────────────────── */
-.planner-slot-add {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--r-sm);
-  border: 1px dashed var(--border-mid);
-  background: transparent;
-  color: var(--text-3);
+/* Made state: dim without hiding */
+.plan-card--made {
+  opacity: 0.45;
+}
+
+.plan-card--made .plan-card-name {
+  text-decoration: line-through;
+  text-decoration-color: var(--text-3);
+}
+
+.plan-card-body {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast);
-  margin-top: 2px;
+  flex-direction: column;
+  gap: 3px;
 }
 
-.planner-slot-add:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-dim);
-}
-
-/* ─── Filled recipe row ──────────────────────────────────────────────── */
-.planner-slot-recipe {
-  display: flex;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-.planner-slot-name {
-  font-size: 13px;
+.plan-card-name {
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-1);
-  line-height: 1.4;
   cursor: pointer;
-  flex: 1;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
   overflow: hidden;
-}
-
-.planner-slot-name:hover { color: var(--accent); }
-
-.planner-slot-clear {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: none;
-  background: var(--surface-3);
-  color: var(--text-3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  margin-top: 1px;
-  transition: background var(--t-fast), color var(--t-fast);
-}
-
-.planner-slot-clear:hover { background: var(--danger); color: #fff; }
-
-/* ─── Per-member rows ────────────────────────────────────────────────── */
-.planner-member-list {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  margin-top: 2px;
-}
-
-.planner-no-members {
-  font-size: 11px;
-  color: var(--text-3);
+  text-overflow: ellipsis;
   line-height: 1.4;
 }
 
-.planner-member-row {
+.plan-card-name:hover { color: var(--accent); }
+
+.plan-card-name--sm {
+  font-size: 13px;
+}
+
+.plan-card-unset {
+  color: var(--text-3);
+  font-style: normal;
+}
+
+.plan-card-pantry {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+  font-style: italic;
+}
+
+.plan-card-meta {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.planner-member-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.planner-member-name {
+.plan-card-same-note {
   font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 64px;
-  flex-shrink: 0;
-  line-height: 1;
+  color: var(--text-3);
+  font-style: italic;
 }
 
-.planner-member-add {
+/* Kids row (inside column card) */
+.plan-card-kids-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 2px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+/* Audience toggle pills inside dinner card */
+.plan-card-audience-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0 0;
+}
+
+/* Kids expand toggle on lunch cards */
+.plan-card-kids-toggle {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-3);
+  padding: 4px 6px;
+  border-radius: var(--r-sm);
+  transition: color var(--t-fast), background var(--t-fast);
+}
+
+.plan-card-kids-toggle:hover { color: var(--text-1); background: var(--surface-3); }
+
+.plan-card-kids-label { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; }
+
+/* Remove button */
+.plan-card-remove {
+  flex-shrink: 0;
   width: 22px;
   height: 22px;
-  border-radius: var(--r-sm);
-  border: 1px dashed var(--border-mid);
+  border-radius: 50%;
+  border: none;
   background: transparent;
   color: var(--text-3);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+
+.plan-card-remove:hover { background: var(--danger); color: #fff; }
+
+.plan-card-remove--sm {
+  width: 18px;
+  height: 18px;
+}
+
+/* ─── Made toggle ───────────────────────────────────────────────────── */
+.made-toggle {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-mid);
+  background: transparent;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
+}
+
+.made-toggle:hover { border-color: var(--accent); }
+
+.made-toggle--done {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.made-toggle--partial {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.made-toggle-frac {
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+/* ─── Multiplier button ─────────────────────────────────────────────── */
+.multiplier-btn {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-mid);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  cursor: pointer;
   transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast);
 }
 
-.planner-member-add:hover {
+.multiplier-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-dim);
 }
 
-/* ─── Recipe picker overlay ──────────────────────────────────────────── */
+/* ─── Audience badge ────────────────────────────────────────────────── */
+.audience-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ab-color, var(--text-3));
+  background: color-mix(in srgb, var(--ab-color, currentColor) 12%, transparent);
+  border-radius: 99px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+/* Audience pills inside dinner card */
+.audience-pill {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--border-mid);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast);
+}
+
+.audience-pill--active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+/* ─── Recipe picker ─────────────────────────────────────────────────── */
 .picker-overlay {
   position: fixed;
   inset: 0;
@@ -336,9 +359,7 @@
   justify-content: center;
 }
 
-@media (min-width: 600px) {
-  .picker-overlay { align-items: center; }
-}
+@media (min-width: 600px) { .picker-overlay { align-items: center; } }
 
 .picker-sheet {
   background: var(--surface);
@@ -353,10 +374,7 @@
 }
 
 @media (min-width: 600px) {
-  .picker-sheet {
-    border-radius: var(--r-lg);
-    max-height: 60dvh;
-  }
+  .picker-sheet { border-radius: var(--r-lg); max-height: 60dvh; }
 }
 
 .picker-header {
@@ -368,38 +386,7 @@
   flex-shrink: 0;
 }
 
-.picker-title-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.picker-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-1);
-}
-
-.picker-member-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--mc, var(--text-2));
-  background: color-mix(in srgb, var(--mc, var(--accent)) 12%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--mc, var(--accent)) 25%, transparent);
-  border-radius: 99px;
-  padding: 2px 8px 2px 5px;
-}
-
-.picker-member-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
+.picker-title { font-size: 15px; font-weight: 600; color: var(--text-1); }
 
 .picker-search-wrap {
   position: relative;
@@ -417,24 +404,11 @@
   pointer-events: none;
 }
 
-.picker-search {
-  padding-left: 32px;
-  height: 36px;
-  font-size: 14px;
-}
+.picker-search { padding-left: 32px; height: 36px; font-size: 14px; }
 
-.picker-list {
-  overflow-y: auto;
-  flex: 1;
-  padding: 6px 0;
-}
+.picker-list { overflow-y: auto; flex: 1; padding: 6px 0; }
 
-.picker-empty {
-  padding: 24px;
-  text-align: center;
-  font-size: 14px;
-  color: var(--text-3);
-}
+.picker-empty { padding: 24px; text-align: center; font-size: 14px; color: var(--text-3); }
 
 .picker-item {
   width: 100%;
@@ -452,22 +426,6 @@
 .picker-item:hover    { background: var(--surface-2); }
 .picker-item--active  { background: var(--accent-dim); }
 
-.picker-item-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.picker-item-name {
-  flex: 1;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-1);
-}
-
-.picker-item-cat {
-  font-size: 12px;
-  color: var(--text-3);
-  flex-shrink: 0;
-}
+.picker-item-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.picker-item-name { flex: 1; font-size: 14px; font-weight: 500; color: var(--text-1); }
+.picker-item-cat  { font-size: 12px; color: var(--text-3); flex-shrink: 0; }

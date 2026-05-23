@@ -31,6 +31,11 @@ export function formatWeekRange(weekKey) {
   return `${s} – ${e}`
 }
 
+export function formatWeekOf(weekKey) {
+  const start = new Date(weekKey + 'T12:00:00')
+  return 'Week of ' + start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+}
+
 export const MEAL_TYPES  = ['breakfast', 'lunch', 'dinner', 'snack']
 export const MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' }
 export const DAY_LABELS  = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']

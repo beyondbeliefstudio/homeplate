@@ -11,7 +11,7 @@ const BLANK_INSTRUCTION = ''
 
 function blankForm() {
   return {
-    name: '', category: 'dinner', servings: 2,
+    name: '', category: 'dinner', audience: 'everyone', servings: 2,
     prep_time: 0, cook_time: 0, notes: '',
     ingredients: [{ ...BLANK_INGREDIENT }],
     instructions: [BLANK_INSTRUCTION],
@@ -37,6 +37,7 @@ export default function RecipeFormPage() {
       setForm({
         name:         data.name || '',
         category:     data.category || 'dinner',
+        audience:     data.audience || 'everyone',
         servings:     data.servings || 2,
         prep_time:    data.prep_time || 0,
         cook_time:    data.cook_time || 0,
@@ -128,12 +129,20 @@ export default function RecipeFormPage() {
             onChange={e => set('name', e.target.value)} />
         </div>
 
-        {/* Category + Servings */}
+        {/* Category + Audience + Servings */}
         <div className="form-row">
           <div className="form-field">
             <label className="form-label">Category</label>
             <select className="input" value={form.category} onChange={e => set('category', e.target.value)}>
               {CATEGORY_LIST.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Who eats this</label>
+            <select className="input" value={form.audience} onChange={e => set('audience', e.target.value)}>
+              <option value="everyone">Everyone</option>
+              <option value="adults">Adults only</option>
+              <option value="kids">Kids only</option>
             </select>
           </div>
           <div className="form-field">
