@@ -387,26 +387,31 @@ export default function GroceryPage() {
     return [...ids].sort().join(',')
   }, [plan])
 
-  const [refinedPantry, setRefinedPantry]     = useState(null)  // null = not yet resolved
-  const [pantryRefining, setPantryRefining]   = useState(false)
-  const lastFingerprintRef = useRef(null)
+  const [refinedPantry, setRefinedPantry]   = useState(null)
+  const [pantryRefining, setPantryRefining] = useState(false)
+
+  // Stable key derived from pantry ingredient names — changes when recipes load
+  // or when the plan's recipe set changes. Used as effect dependency so the AI
+  // call fires correctly even if recipes load after the plan.
+  const pantryKey = useMemo(
+    () => pantryCheck.map(i => i.name.toLowerCase()).sort().join('|'),
+    [pantryCheck]
+  )
 
   useEffect(() => {
     if (!plan) return
-    if (!pantryCheck.length) { setRefinedPantry([]); return }
+    // Nothing to refine — keep refinedPantry null so displayPantry falls back
+    // to pantryCheck (which may become non-empty once recipes finish loading)
+    if (!pantryCheck.length) return
 
-    // Use cached result if the plan recipes haven't changed
+    // Use cached AI result if the recipe set hasn't changed
     const cached = plan.groceryPantryAI
     if (cached?.fingerprint === planFingerprint && Array.isArray(cached.names) && cached.names.length) {
       setRefinedPantry(cached.names.map((name, i) => ({ id: `p-${i}`, name, quantity: '', unit: '' })))
       return
     }
 
-    // Avoid duplicate calls if fingerprint already in-flight
-    if (lastFingerprintRef.current === planFingerprint) return
-    lastFingerprintRef.current = planFingerprint
-
-    // Show rule-based list immediately while AI refines
+    // Show rule-based list immediately while AI refines in background
     setRefinedPantry(pantryCheck)
     setPantryRefining(true)
 
@@ -425,17 +430,14 @@ export default function GroceryPage() {
       .then(names => {
         if (!Array.isArray(names) || !names.length) return
         setRefinedPantry(names.map((name, i) => ({ id: `p-${i}`, name, quantity: '', unit: '' })))
-        // Cache so next page load skips the API call
         saveMealPlan(user.id, weekKey, { ...plan, groceryPantryAI: { fingerprint: fp, names } })
           .then(() => setPlan(p => ({ ...p, groceryPantryAI: { fingerprint: fp, names } })))
       })
-      .catch(() => {
-        // Leave the rule-based list showing — it's better than nothing
-      })
+      .catch(() => { /* rule-based list stays visible */ })
       .finally(() => setPantryRefining(false))
-  }, [planFingerprint]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [planFingerprint, pantryKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The pantry list we actually display
+  // Fall back to rule-based list while AI hasn't resolved yet
   const displayPantry = refinedPantry ?? pantryCheck
 
   const checkedGenerated      = useMemo(() => new Set(plan?.groceryChecked ?? []),         [plan])
