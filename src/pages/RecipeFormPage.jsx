@@ -1,13 +1,158 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useUser } from '../hooks/useAuth.jsx'
 import { getRecipeById, saveRecipe } from '../lib/supabase'
 import { CATEGORY_LIST } from '../lib/categories'
-import { ChevronLeft, Plus, Trash2, GripVertical } from 'lucide-react'
+import { ChevronLeft, Plus, Trash2, Camera, X, Sparkles } from 'lucide-react'
 import './Recipes.css'
+
+const LOADING_MESSAGES = [
+  'Reading your recipe…',
+  'Identifying ingredients…',
+  'Structuring the steps…',
+  'Almost done…',
+]
+
+async function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload  = () => resolve(reader.result.split(',')[1])
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
 
 const BLANK_INGREDIENT  = { name: '', quantity: '', unit: '' }
 const BLANK_INSTRUCTION = ''
+
+// ─── AI Recipe Builder ────────────────────────────────────────────────────────
+function AIRecipeBuilder({ onGenerate }) {
+  const [text, setText]           = useState('')
+  const [image, setImage]         = useState(null)   // { file, preview, mediaType }
+  const [parsing, setParsing]     = useState(false)
+  const [msgIdx, setMsgIdx]       = useState(0)
+  const [error, setError]         = useState(null)
+  const [done, setDone]           = useState(false)
+  const fileRef                   = useRef(null)
+  const intervalRef               = useRef(null)
+
+  function handleImagePick(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const preview   = URL.createObjectURL(file)
+    const mediaType = file.type || 'image/jpeg'
+    setImage({ file, preview, mediaType })
+    e.target.value = ''
+  }
+
+  function clearImage() {
+    if (image?.preview) URL.revokeObjectURL(image.preview)
+    setImage(null)
+  }
+
+  async function handleGenerate() {
+    if (!text.trim() && !image) return
+    setError(null)
+    setParsing(true)
+    setMsgIdx(0)
+
+    intervalRef.current = setInterval(() => {
+      setMsgIdx(i => (i + 1) % LOADING_MESSAGES.length)
+    }, 2800)
+
+    try {
+      const body = { text: text.trim() || undefined }
+      if (image) {
+        body.image = { mediaType: image.mediaType, data: await fileToBase64(image.file) }
+      }
+
+      const resp = await fetch('/.netlify/functions/parse-recipe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+
+      const data = await resp.json()
+      if (!resp.ok || data.error) throw new Error(data.error || 'Unexpected error')
+
+      onGenerate(data)
+      setDone(true)
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Try again.')
+    } finally {
+      clearInterval(intervalRef.current)
+      setParsing(false)
+    }
+  }
+
+  if (done) {
+    return (
+      <div className="ai-builder ai-builder--done">
+        <Sparkles size={16} strokeWidth={2} className="ai-builder-sparkle" />
+        <span>Recipe generated — review and edit the fields below, then save.</span>
+        <button className="btn btn-ghost btn-sm" onClick={() => { setDone(false); setText(''); clearImage() }}>
+          Try again
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="ai-builder">
+      <div className="ai-builder-header">
+        <Sparkles size={15} strokeWidth={2} className="ai-builder-sparkle" />
+        <span className="ai-builder-title">Generate with AI</span>
+        <span className="ai-builder-hint">Describe or photograph your recipe</span>
+      </div>
+
+      <textarea
+        className="input ai-builder-textarea"
+        placeholder={"Describe your recipe here — paste it from the web, type it out, or just say \"chicken stir fry with ginger and sesame, serves 4\"…"}
+        value={text}
+        rows={4}
+        onChange={e => setText(e.target.value)}
+        disabled={parsing}
+      />
+
+      <div className="ai-builder-footer">
+        <div className="ai-builder-photo-row">
+          <input ref={fileRef} type="file" accept="image/*" capture="environment"
+            style={{ display: 'none' }} onChange={handleImagePick} />
+          {image ? (
+            <div className="ai-builder-preview">
+              <img src={image.preview} alt="Recipe" />
+              <button className="ai-builder-preview-remove" onClick={clearImage} title="Remove photo">
+                <X size={12} strokeWidth={2.5} />
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="btn btn-secondary btn-sm ai-builder-photo-btn"
+              onClick={() => fileRef.current?.click()} disabled={parsing}>
+              <Camera size={14} strokeWidth={2} />
+              Add photo
+            </button>
+          )}
+        </div>
+
+        <div className="ai-builder-actions">
+          {error && <span className="ai-builder-error">{error}</span>}
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={handleGenerate}
+            disabled={parsing || (!text.trim() && !image)}
+          >
+            {parsing ? LOADING_MESSAGES[msgIdx] : 'Generate recipe'}
+          </button>
+        </div>
+      </div>
+
+      <div className="ai-builder-divider">
+        <span>or fill in manually below</span>
+      </div>
+    </div>
+  )
+}
 
 function blankForm() {
   return {
@@ -119,6 +264,30 @@ export default function RecipeFormPage() {
           {isEditing ? 'Edit recipe' : 'New recipe'}
         </h1>
       </div>
+
+      {/* AI builder — only on new recipes */}
+      {!isEditing && (
+        <AIRecipeBuilder onGenerate={data => {
+          setForm({
+            name:         data.name         || '',
+            category:     data.category     || 'dinner',
+            audience:     data.audience     || 'everyone',
+            servings:     data.servings     || 2,
+            prep_time:    data.prep_time    || 0,
+            cook_time:    data.cook_time    || 0,
+            notes:        data.notes        || '',
+            ingredients:  data.ingredients?.length  ? data.ingredients  : [{ name: '', quantity: '', unit: '' }],
+            instructions: data.instructions?.length ? data.instructions : [''],
+            nutrition: {
+              calories: data.nutrition?.calories ?? '',
+              protein:  data.nutrition?.protein  ?? '',
+              carbs:    data.nutrition?.carbs    ?? '',
+              fat:      data.nutrition?.fat      ?? '',
+              fiber:    data.nutrition?.fiber    ?? '',
+            },
+          })
+        }} />
+      )}
 
       <form className="recipe-form" onSubmit={handleSubmit}>
 

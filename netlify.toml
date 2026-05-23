@@ -5,10 +5,14 @@
 
 [dev]
   command    = "npm run dev"
-  targetPort = 8888
+  targetPort = 5173
+  port       = 8888
 
 [functions."consolidate-pantry"]
   timeout = 15
+
+[functions."parse-recipe"]
+  timeout = 26
 
 [[redirects]]
   from   = "/*"
