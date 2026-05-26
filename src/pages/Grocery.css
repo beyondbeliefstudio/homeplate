@@ -1,32 +1,113 @@
 /* ─── Page ───────────────────────────────────────────────────────────── */
-.grocery-page { max-width: 600px; }
+.grocery-page { max-width: 1000px; }
 
-/* ─── Week nav ──────────────────────────────────────────────────────── */
-.grocery-week-nav {
+/* ─── Hero header ────────────────────────────────────────────────────── */
+.grocery-hero {
   display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-.grocery-uncheck-btn {
-  color: var(--text-3);
-  font-size: 13px;
-  gap: 5px;
-}
+.grocery-hero-left { flex: 1; min-width: 0; }
 
-.grocery-uncheck-btn:hover { color: var(--text-1); }
-
-/* ─── View toggle + store selector row ───────────────────────────────── */
-.grocery-view-row {
+.grocery-hero-count {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
+  align-items: baseline;
+  gap: 14px;
+  margin: 6px 0 8px;
   flex-wrap: wrap;
 }
 
-/* All items / By store segmented toggle */
+.grocery-hero-num {
+  font-family: var(--hp-font-display);
+  font-size: 72px;
+  font-weight: 700;
+  line-height: .88;
+  letter-spacing: -.045em;
+  color: var(--hp-ink-900);
+}
+
+.grocery-hero-tag {
+  font-family: var(--hp-font-display);
+  font-size: 42px;
+  font-weight: 700;
+  line-height: .9;
+  letter-spacing: -.03em;
+  color: var(--hp-ink-900);
+}
+
+.grocery-hero-sub {
+  color: var(--hp-ink-500);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.grocery-hero-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding-top: 6px;
+}
+
+.grocery-hero-week {
+  color: var(--hp-ink-700);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* Inline uncheck button */
+.grocery-uncheck-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--hp-ink-400);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.grocery-uncheck-btn:hover { color: var(--hp-ink-900); }
+
+/* ─── Controls row ───────────────────────────────────────────────────── */
+.grocery-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.grocery-controls-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 160px;
+}
+
+.grocery-controls-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hp-ink-700);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.grocery-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ─── View toggle ────────────────────────────────────────────────────── */
 .grocery-view-toggle {
   display: flex;
   border: 1px solid var(--border);
@@ -48,16 +129,14 @@
   line-height: 1.4;
 }
 
-.grocery-view-btn:hover {
-  color: var(--text-1);
-}
+.grocery-view-btn:hover { color: var(--text-1); }
 
 .grocery-view-btn--active {
   background: var(--surface-3);
   color: var(--text-1);
 }
 
-/* Aisle-sort store selector (all-items mode only) */
+/* ─── Store selector pills ───────────────────────────────────────────── */
 .grocery-store-selector {
   display: flex;
   align-items: center;
@@ -90,7 +169,275 @@
   color: var(--accent);
 }
 
-/* ─── Per-item store chip (tap to open picker) ────────────────────────── */
+/* ─── Progress bar ───────────────────────────────────────────────────── */
+.grocery-progress-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--surface-3);
+  position: relative;
+  overflow: hidden;
+}
+
+.grocery-progress-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: var(--pct, 0%);
+  background: var(--hp-spring);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+
+.grocery-progress-label {
+  font-size: 12px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ─── Two-column body ────────────────────────────────────────────────── */
+.grocery-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* Side col shows below main on mobile, beside it on desktop */
+@media (min-width: 720px) {
+  .grocery-body {
+    grid-template-columns: 1.65fr 1fr;
+  }
+}
+
+/* By-store view: single column */
+.grocery-body--bystore {
+  grid-template-columns: 1fr;
+}
+
+/* Main column */
+.grocery-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Side column */
+.grocery-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ─── Side panel (Added for this week) ──────────────────────────────── */
+.grocery-side-panel {
+  background: var(--hp-paper);
+  border: 1px solid var(--hp-ink-100);
+  border-radius: var(--hp-r-xl);
+  padding: 18px 16px 12px;
+}
+
+.grocery-side-eyebrow {
+  color: var(--hp-ink-500);
+  margin-bottom: 10px;
+  letter-spacing: 0.10em;
+}
+
+/* ─── Card ───────────────────────────────────────────────────────────── */
+.grocery-card {
+  background: var(--hp-paper);
+  border: 1px solid var(--hp-ink-100);
+  border-radius: var(--hp-r-xl);
+  overflow: hidden;
+}
+
+.grocery-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.grocery-card-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.grocery-card-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+  background: var(--surface-3);
+  border-radius: 99px;
+  padding: 2px 8px;
+}
+
+.grocery-card-hint {
+  font-size: 13px;
+  color: var(--text-3);
+  padding: 10px 16px 0;
+  line-height: 1.5;
+}
+
+.grocery-card-body {
+  padding: 6px 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* ─── Pantry-check card variant ─────────────────────────────────────── */
+.grocery-card--pantry {
+  border-style: dashed;
+  background: var(--surface-2);
+}
+
+.grocery-card--pantry .grocery-card-header { border-bottom-style: dashed; }
+.grocery-card--pantry .grocery-card-title  { color: var(--text-2); }
+.grocery-card--pantry .grocery-card-hint   { color: var(--text-3); }
+.grocery-card--pantry .grocery-label       { color: var(--text-2); }
+
+/* Pulse while AI is consolidating */
+.grocery-card--pantry .grocery-card-hint--refining {
+  animation: hint-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes hint-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* ─── Always on my list — dark card ─────────────────────────────────── */
+.grocery-staples-card {
+  background: var(--hp-ink-900);
+  border-radius: var(--hp-r-xl);
+  padding: 22px 20px 18px;
+  color: #fff;
+}
+
+.grocery-staples-eyebrow {
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 10px;
+  letter-spacing: 0.10em;
+}
+
+.grocery-staples-names {
+  font-family: var(--hp-font-display);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.grocery-staples-names--empty {
+  opacity: 0.4;
+  font-size: 22px;
+}
+
+.grocery-staples-sub {
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 16px;
+}
+
+/* Individual staple rows inside dark card */
+.grocery-staples-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 12px;
+}
+
+.grocery-staple-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.grocery-staple-row:last-child { border-bottom: none; }
+
+.grocery-staple-row--checked { opacity: 0.45; }
+
+.grocery-staple-check {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  color: var(--hp-ink-900);
+}
+
+.grocery-staple-check:hover {
+  border-color: var(--hp-spring);
+  transform: scale(1.05);
+}
+
+.grocery-staple-check.grocery-check--done {
+  background: var(--hp-spring);
+  border-color: var(--hp-spring);
+  color: #fff;
+}
+
+.grocery-staple-label {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.grocery-staple-row--checked .grocery-staple-label {
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+}
+
+.grocery-staple-remove {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--t-fast), background var(--t-fast), color var(--t-fast);
+}
+
+.grocery-staple-row:hover .grocery-staple-remove { opacity: 1; }
+.grocery-staple-remove:hover { background: rgba(255,255,255,0.15); color: #fff; opacity: 1; }
+
+/* Add row inside dark card */
+.grocery-staples-add {
+  padding: 4px 0 0;
+  margin-top: 0;
+}
+
+.grocery-staples-input {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  height: 38px;
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.grocery-staples-input::placeholder { color: rgba(255, 255, 255, 0.4); }
+.grocery-staples-input:focus { border-color: rgba(255,255,255,0.5); border-width: 1px; }
+
+/* ─── Per-item store chip ─────────────────────────────────────────────── */
 .grocery-store-chip {
   flex-shrink: 0;
   font-size: 11px;
@@ -128,12 +475,12 @@
   color: var(--text-2);
 }
 
-/* ─── Inline store picker (pills that drop below the row) ─────────────── */
+/* ─── Inline store picker ────────────────────────────────────────────── */
 .grocery-store-picker {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 8px 10px 40px; /* indent past checkbox */
+  padding: 2px 8px 10px 40px;
   flex-wrap: wrap;
 }
 
@@ -185,114 +532,65 @@
   border-style: dashed;
 }
 
-/* ─── Aisle tag next to group label ──────────────────────────────────── */
+/* ─── Grocery groups ─────────────────────────────────────────────────── */
+.grocery-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.grocery-group + .grocery-group {
+  margin-top: 2px;
+  padding-top: 2px;
+  border-top: 1px solid var(--border);
+}
+
+/* New group label: dot · name · flex spacer · count */
+.grocery-group-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 8px 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  color: var(--hp-ink-500);
+}
+
+.grocery-group-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.grocery-group-name {
+  flex: 1;
+}
+
+.grocery-group-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--hp-ink-400);
+  font-family: var(--font-mono);
+}
+
 .grocery-group-aisle {
-  margin-left: 6px;
   font-size: 11px;
   font-weight: 400;
   color: var(--text-3);
   font-family: var(--font-mono);
 }
 
-/* ─── Progress ──────────────────────────────────────────────────────── */
-.grocery-progress {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.grocery-progress-bar {
-  flex: 1;
-  height: 4px;
-  border-radius: 99px;
-  background: var(--surface-3);
-  position: relative;
-  overflow: hidden;
-}
-
-.grocery-progress-bar::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  width: var(--pct, 0%);
-  background: var(--hp-spring);
-  border-radius: 99px;
-  transition: width 0.3s ease;
-}
-
-.grocery-progress-label {
-  font-size: 12px;
-  color: var(--text-3);
-  font-family: var(--font-mono);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-/* ─── Sections ──────────────────────────────────────────────────────── */
-.grocery-sections {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* ─── Card ───────────────────────────────────────────────────────────── */
-.grocery-card {
-  background: var(--hp-paper);
-  border: 1px solid var(--hp-ink-100);
-  border-radius: var(--hp-r-xl);
-  overflow: hidden;
-}
-
-.grocery-card-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px 12px;
-  border-bottom: 1px solid var(--border);
-}
-
-.grocery-card-title {
-  flex: 1;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-1);
-}
-
-.grocery-card-count {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-3);
-  background: var(--surface-3);
-  border-radius: 99px;
-  padding: 2px 8px;
-}
-
-.grocery-card-hint {
-  font-size: 13px;
-  color: var(--text-3);
-  padding: 10px 16px 0;
-  line-height: 1.5;
-}
-
-.grocery-card-body {
-  padding: 6px 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-/* ─── Row wrapper (handles hover bg + checked opacity) ───────────────── */
+/* ─── Row wrapper ────────────────────────────────────────────────────── */
 .grocery-row-wrap {
   border-radius: var(--r-md);
   transition: background var(--t-fast);
 }
 
 .grocery-row-wrap:hover { background: var(--surface-2); }
-
 .grocery-row-wrap--checked { opacity: 0.5; }
 
-/* ─── Row inner (flex layout) ─────────────────────────────────────────── */
+/* ─── Row inner ──────────────────────────────────────────────────────── */
 .grocery-row {
   display: flex;
   align-items: center;
@@ -301,7 +599,7 @@
   min-height: 44px;
 }
 
-/* Checkbox — rounded square matching reference spec */
+/* Checkbox */
 .grocery-check {
   flex-shrink: 0;
   width: 22px;
@@ -360,68 +658,6 @@
 .grocery-row:hover .grocery-remove { opacity: 1; }
 .grocery-remove:hover { background: var(--danger); color: #fff; opacity: 1; }
 
-/* ─── Pantry-check card variant ─────────────────────────────────────── */
-.grocery-card--pantry {
-  border-style: dashed;
-  background: var(--surface-2);
-}
-
-.grocery-card--pantry .grocery-card-header {
-  border-bottom-style: dashed;
-}
-
-.grocery-card--pantry .grocery-card-title {
-  color: var(--text-2);
-}
-
-.grocery-card--pantry .grocery-card-hint {
-  color: var(--text-3);
-}
-
-/* Pantry rows are a touch more muted */
-.grocery-card--pantry .grocery-label {
-  color: var(--text-2);
-}
-
-/* Pulse the hint text while AI is consolidating */
-.grocery-card--pantry .grocery-card-hint--refining {
-  animation: hint-pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes hint-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
-}
-
-/* ─── Grocery groups (category sections inside "From your plan") ─────── */
-.grocery-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.grocery-group + .grocery-group {
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid var(--border);
-}
-
-.grocery-group-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 8px 4px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.10em;
-  text-transform: uppercase;
-  color: var(--hp-ink-500);
-}
-
-.grocery-group-emoji {
-  font-size: 13px;
-  line-height: 1;
-}
-
 /* ─── Add item row ───────────────────────────────────────────────────── */
 .grocery-add-row {
   display: flex;
@@ -432,6 +668,18 @@
 }
 
 .grocery-add-input { flex: 1; }
+
+/* Cherry + button on add rows */
+.grocery-add-btn {
+  background: var(--hp-cherry);
+  color: #fff;
+  border-color: transparent;
+  border-radius: 10px;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+.grocery-add-btn:hover { background: var(--hp-cherry-600); }
 
 /* ─── Illustrated empty state ───────────────────────────────────────── */
 .grocery-empty-state {
@@ -448,4 +696,12 @@
   flex-direction: column;
   align-items: center;
   max-width: 300px;
+}
+
+/* ─── Mobile ─────────────────────────────────────────────────────────── */
+@media (max-width: 719px) {
+  .grocery-hero-num  { font-size: 52px; }
+  .grocery-hero-tag  { font-size: 32px; }
+  .grocery-controls  { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .grocery-controls-left { min-width: unset; width: 100%; }
 }

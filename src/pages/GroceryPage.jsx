@@ -127,6 +127,7 @@ const GROCERY_GROUPS = [
   {
     key: 'produce',
     label: 'Produce',
+    color: '#58CC02',  /* spring */
     emoji: '🥦',
     keywords: [
       'apple', 'banana', 'berry', 'berries', 'blueberr', 'strawberr', 'raspberr', 'grape',
@@ -148,6 +149,7 @@ const GROCERY_GROUPS = [
   {
     key: 'meat',
     label: 'Meat & Seafood',
+    color: '#E63957',  /* cherry */
     emoji: '🥩',
     keywords: [
       'chicken', 'beef', 'pork', 'lamb', 'turkey', 'duck', 'veal', 'bison',
@@ -163,6 +165,7 @@ const GROCERY_GROUPS = [
   {
     key: 'dairy',
     label: 'Dairy & Eggs',
+    color: '#FFC228',  /* marigold */
     emoji: '🥛',
     keywords: [
       'milk', 'whole milk', 'skim milk', 'almond milk', 'oat milk', 'soy milk',
@@ -178,6 +181,7 @@ const GROCERY_GROUPS = [
   {
     key: 'bakery',
     label: 'Bread & Bakery',
+    color: '#FF7733',  /* tangerine */
     emoji: '🍞',
     keywords: [
       'bread', 'loaf', 'baguette', 'roll', 'bun', 'bagel', 'english muffin',
@@ -189,6 +193,7 @@ const GROCERY_GROUPS = [
   {
     key: 'frozen',
     label: 'Frozen',
+    color: '#3DA002',  /* spring-700 */
     emoji: '🧊',
     keywords: [
       'frozen', 'ice cream', 'gelato', 'sorbet', 'popsicle',
@@ -199,6 +204,7 @@ const GROCERY_GROUPS = [
   {
     key: 'canned',
     label: 'Canned & Jarred',
+    color: '#C99100',  /* marigold-700 */
     emoji: '🥫',
     keywords: [
       'canned', 'can of', 'jar of',
@@ -217,6 +223,7 @@ const GROCERY_GROUPS = [
   {
     key: 'pantry',
     label: 'Pantry & Dry Goods',
+    color: '#8C9189',  /* ink-400 */
     emoji: '🌾',
     keywords: [
       'pasta', 'spaghetti', 'penne', 'linguine', 'fettuccine', 'rigatoni', 'orzo',
@@ -238,6 +245,7 @@ const GROCERY_GROUPS = [
   {
     key: 'beverages',
     label: 'Beverages',
+    color: '#5C625E',  /* ink-500 */
     emoji: '🥤',
     keywords: [
       'juice', 'orange juice', 'apple juice', 'lemonade',
@@ -736,48 +744,94 @@ export default function GroceryPage() {
     })
   }
 
+  const stillToGrab = Math.max(0, totalItems - totalChecked)
+  const pct = totalItems > 0 ? Math.round((totalChecked / totalItems) * 100) : 0
+  const stapleNames = staples.slice(0, 4).map(s => s.name).join('. ') + (staples.length > 0 ? '.' : '')
+
+  // Helper: render a category group label (dot + name + count)
+  function GroupLabel({ group }) {
+    const color = group.color || '#8C9189'
+    return (
+      <div className="grocery-group-label">
+        <span className="grocery-group-dot" style={{ background: color }} />
+        <span className="grocery-group-name">{group.label.toUpperCase()}</span>
+        {group.aisle_label && <span className="grocery-group-aisle">{group.aisle_label}</span>}
+        <span className="grocery-group-count">{group.items.length}</span>
+      </div>
+    )
+  }
+
   return (
     <div className="page grocery-page">
-      <div className="page-header">
-        <h1 className="page-title">Grocery</h1>
-        {totalChecked > 0 && (
-          <button className="btn btn-ghost btn-sm grocery-uncheck-btn" onClick={uncheckAll}>
-            <IconRefresh size={13} /> Uncheck all
-          </button>
-        )}
-      </div>
 
-      {/* Week nav */}
-      <div className="grocery-week-nav">
-        <button className="btn btn-ghost btn-sm" onClick={() => setWeekKey(k => shiftWeek(k, -1))}>
-          <IconChevronL size={16} />
-        </button>
-        <span className="planner-week-label">{formatWeekOf(weekKey)}</span>
-        <button className="btn btn-ghost btn-sm" onClick={() => setWeekKey(k => shiftWeek(k, 1))}>
-          <IconChevronR size={16} />
-        </button>
-        {weekKey !== getWeekKey() && (
-          <button className="btn btn-ghost btn-sm planner-today-btn" onClick={() => setWeekKey(getWeekKey())}>
-            This week
-          </button>
-        )}
-      </div>
-
-      {/* View toggle + store selector */}
-      {stores.length > 0 && (
-        <div className="grocery-view-row">
-          <div className="grocery-view-toggle">
-            <button
-              className={`grocery-view-btn ${!viewByStore ? 'grocery-view-btn--active' : ''}`}
-              onClick={() => setViewByStore(false)}
-            >All items</button>
-            <button
-              className={`grocery-view-btn ${viewByStore ? 'grocery-view-btn--active' : ''}`}
-              onClick={() => setViewByStore(true)}
-            >By store</button>
+      {/* ── Hero header ─────────────────────────────────────────────── */}
+      <div className="grocery-hero">
+        <div className="grocery-hero-left">
+          <div className="t-eyebrow" style={{ color: 'var(--hp-ink-500)' }}>
+            Grocery · {totalItems} item{totalItems !== 1 ? 's' : ''}
           </div>
-          {/* Aisle-sort selector — only relevant in all-items mode */}
-          {!viewByStore && (
+          {!loading && (
+            <div className="grocery-hero-count">
+              <span className="grocery-hero-num">{stillToGrab}</span>
+              <span className="grocery-hero-tag">
+                {stillToGrab === 0 && totalItems > 0 ? 'all grabbed.' : 'still to grab.'}
+              </span>
+            </div>
+          )}
+          {!loading && totalItems > 0 && (
+            <p className="t-body-sm grocery-hero-sub">
+              {totalChecked} already got · {totalItems} total
+              {totalChecked > 0 && (
+                <button className="grocery-uncheck-btn" onClick={uncheckAll}>
+                  · <IconRefresh size={11} /> uncheck all
+                </button>
+              )}
+            </p>
+          )}
+        </div>
+        <div className="grocery-hero-nav">
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setWeekKey(k => shiftWeek(k, -1))}>
+            <IconChevronL size={16} />
+          </button>
+          <span className="t-label grocery-hero-week">{formatWeekOf(weekKey)}</span>
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setWeekKey(k => shiftWeek(k, 1))}>
+            <IconChevronR size={16} />
+          </button>
+          {weekKey !== getWeekKey() && (
+            <button className="btn btn-ghost btn-sm" onClick={() => setWeekKey(getWeekKey())}>This week</button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Controls: progress + view toggle + store pills ─────────── */}
+      <div className="grocery-controls">
+        <div className="grocery-controls-left">
+          {!loading && totalItems > 0 ? (
+            <>
+              <span className="grocery-controls-label">{totalChecked} of {totalItems} got</span>
+              <div className="grocery-progress-bar" style={{ '--pct': `${pct}%` }} />
+              <span className="grocery-progress-label">{pct}%</span>
+            </>
+          ) : (
+            <span className="grocery-controls-label" style={{ color: 'var(--hp-ink-400)' }}>
+              {loading ? 'Loading…' : 'No items yet'}
+            </span>
+          )}
+        </div>
+        <div className="grocery-controls-right">
+          {stores.length > 0 && (
+            <div className="grocery-view-toggle">
+              <button
+                className={`grocery-view-btn ${!viewByStore ? 'grocery-view-btn--active' : ''}`}
+                onClick={() => setViewByStore(false)}
+              >All items</button>
+              <button
+                className={`grocery-view-btn ${viewByStore ? 'grocery-view-btn--active' : ''}`}
+                onClick={() => setViewByStore(true)}
+              >By store</button>
+            </div>
+          )}
+          {!viewByStore && stores.length > 0 && (
             <div className="grocery-store-selector">
               <button
                 className={`grocery-store-pill ${!activeStoreId ? 'grocery-store-pill--active' : ''}`}
@@ -795,188 +849,196 @@ export default function GroceryPage() {
             </div>
           )}
         </div>
-      )}
+      </div>
 
-      {/* Progress */}
-      {!loading && totalItems > 0 && (
-        <div className="grocery-progress">
-          <div className="grocery-progress-bar"
-            style={{ '--pct': `${Math.round((totalChecked / totalItems) * 100)}%` }} />
-          <span className="grocery-progress-label">
-            {totalChecked} of {totalItems} items
-          </span>
-        </div>
-      )}
-
+      {/* ── Body ────────────────────────────────────────────────────── */}
       {loading ? (
         <div className="page-placeholder"><p>Loading…</p></div>
       ) : (
-        <div className="grocery-sections">
+        <div className={`grocery-body ${viewByStore ? 'grocery-body--bystore' : ''}`}>
 
-          {viewByStore ? (
-            /* ── By-store view ── */
-            <>
-              {byStoreView?.length === 0 && (
+          {/* ── Main column ────────────────────────────────────────── */}
+          <div className="grocery-main">
+            {viewByStore ? (
+              /* By-store view fills main col */
+              <>
+                {byStoreView?.length === 0 && (
+                  <div className="grocery-card">
+                    <div className="grocery-card-body">
+                      <p className="grocery-card-hint">
+                        No items yet — add meals in the Planner, then tap the store chip on each item to assign it.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {byStoreView?.map(section => (
+                  <GroceryCard
+                    key={section.store?.id || 'unassigned'}
+                    title={section.store ? section.store.name : 'Unassigned'}
+                    count={section.count}
+                    hint={!section.store ? 'Tap the store chip on any item to assign it.' : null}
+                  >
+                    {section.aisleGroups.map(group => (
+                      <div key={group.key} className="grocery-group">
+                        <GroupLabel group={group} />
+                        {group.items.map(item => {
+                          const isExtra = item._type === 'extra'
+                          const checked = isExtra ? item.checked : checkedGenerated.has(genKey(item))
+                          const label   = isExtra ? item.name : getShopLabel(item)
+                          return (
+                            <GroceryRow
+                              key={item.id}
+                              checked={checked}
+                              label={label}
+                              onToggle={isExtra ? () => toggleExtra(item.id) : () => toggleGenerated(item)}
+                              onRemove={isExtra ? () => removeExtra(item.id) : undefined}
+                              storeId={item._storeId}
+                              stores={stores}
+                              onStoreChange={isExtra
+                                ? sid => setExtraStore(item.id, sid)
+                                : sid => setItemStore(item, sid)}
+                            />
+                          )
+                        })}
+                      </div>
+                    ))}
+                  </GroceryCard>
+                ))}
+              </>
+            ) : (
+              /* All-items view: "From your plan" */
+              generated.length === 0 ? (
                 <div className="grocery-card">
-                  <div className="grocery-card-body">
-                    <p className="grocery-card-hint">
-                      No items yet — add meals in the Planner, then tap the store chip on each item to assign it.
-                    </p>
+                  <div className="grocery-card-header">
+                    <span className="grocery-card-title">From your plan</span>
+                  </div>
+                  <div className="grocery-empty-state" style={{ padding: '24px 16px 20px' }}>
+                    <EmptyGrocery />
+                    <div className="grocery-empty-copy">
+                      <div className="t-h3">No list yet.</div>
+                      <p className="t-body-sm" style={{ color: 'var(--hp-ink-500)', marginTop: 8 }}>
+                        Plan some meals in the Planner and your grocery list will build itself.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              )}
-              {byStoreView?.map(section => (
-                <GroceryCard
-                  key={section.store?.id || 'unassigned'}
-                  title={section.store ? section.store.name : 'Unassigned'}
-                  count={section.count}
-                  hint={!section.store ? 'Tap the store chip on any item to assign it.' : null}
-                >
-                  {section.aisleGroups.map(group => (
+              ) : (
+                <GroceryCard title="From your plan" count={generated.length}>
+                  {groupedGenerated.map(group => (
                     <div key={group.key} className="grocery-group">
-                      <div className="grocery-group-label">
-                        <span className="grocery-group-emoji">{group.emoji}</span>
-                        <span>{group.label}</span>
-                        {group.aisle_label && <span className="grocery-group-aisle">{group.aisle_label}</span>}
-                      </div>
+                      <GroupLabel group={group} />
                       {group.items.map(item => {
-                        const isExtra = item._type === 'extra'
-                        const checked = isExtra ? item.checked : checkedGenerated.has(genKey(item))
-                        const label   = isExtra ? item.name : getShopLabel(item)
+                        const checked = checkedGenerated.has(genKey(item))
                         return (
                           <GroceryRow
                             key={item.id}
                             checked={checked}
-                            label={label}
-                            onToggle={isExtra ? () => toggleExtra(item.id) : () => toggleGenerated(item)}
-                            onRemove={isExtra ? () => removeExtra(item.id) : undefined}
-                            storeId={item._storeId}
+                            label={getShopLabel(item)}
+                            onToggle={() => toggleGenerated(item)}
+                            storeId={groceryStoreMap[genKey(item)]}
                             stores={stores}
-                            onStoreChange={isExtra
-                              ? sid => setExtraStore(item.id, sid)
-                              : sid => setItemStore(item, sid)}
+                            onStoreChange={sid => setItemStore(item, sid)}
                           />
                         )
                       })}
                     </div>
                   ))}
                 </GroceryCard>
+              )
+            )}
+          </div>
+
+          {/* ── Side column ─────────────────────────────────────────── */}
+          <div className="grocery-side">
+
+            {/* Added for this week — only in all-items view (in by-store view, extras appear mixed in) */}
+            {!viewByStore && <div className="grocery-side-panel">
+              <div className="t-eyebrow grocery-side-eyebrow">Added for this week</div>
+              {extras.map(item => (
+                <GroceryRow
+                  key={item.id}
+                  checked={item.checked}
+                  label={item.name}
+                  onToggle={() => toggleExtra(item.id)}
+                  onRemove={() => removeExtra(item.id)}
+                  storeId={item.storeId}
+                  stores={stores}
+                  onStoreChange={sid => setExtraStore(item.id, sid)}
+                />
               ))}
-            </>
-          ) : (
-            /* ── All-items view ── */
-            <>
-              {/* Illustrated empty state — nothing planned, nothing added */}
-              {generated.length === 0 && extras.length === 0 && (
-                <div className="grocery-empty-state">
-                  <EmptyGrocery />
-                  <div className="grocery-empty-copy">
-                    <div className="t-h3">No list yet.</div>
-                    <p className="t-body-sm" style={{ color: 'var(--hp-ink-500)', marginTop: 8 }}>
-                      Plan some meals in the Planner and your grocery list will build itself.
-                    </p>
-                  </div>
+              <AddItemRow
+                value={newExtra}
+                onChange={setNewExtra}
+                onAdd={addExtra}
+                placeholder="e.g. Paper towels, sparkling water…"
+              />
+            </div>}
+
+            {/* Check your pantry */}
+            {(displayPantry.length > 0 || pantryRefining) && (
+              <GroceryCard
+                title="Check your pantry"
+                count={displayPantry.length}
+                hint={pantryRefining
+                  ? 'Consolidating…'
+                  : "Recipes call for these — make sure you're stocked up."}
+                hintRefining={pantryRefining}
+                pantry
+              >
+                {displayPantry.map(item => {
+                  const checked = checkedPantry.has(genKey(item))
+                  const label   = [item.quantity, item.unit, item.name].filter(Boolean).join(' ')
+                  return (
+                    <GroceryRow key={item.id} checked={checked} label={label}
+                      onToggle={() => togglePantry(item)} />
+                  )
+                })}
+              </GroceryCard>
+            )}
+
+            {/* Always on my list — dark card */}
+            <div className="grocery-staples-card">
+              <div className="t-eyebrow grocery-staples-eyebrow">Always on my list</div>
+              {staples.length > 0 ? (
+                <div className="grocery-staples-names">{stapleNames}</div>
+              ) : (
+                <div className="grocery-staples-names grocery-staples-names--empty">
+                  Nothing yet.
                 </div>
               )}
-              {/* From your plan */}
-              <GroceryCard
-                title="From your plan"
-                count={generated.length}
-                hint={generated.length === 0 && extras.length > 0
-                  ? `No recipes planned for ${formatWeekOf(weekKey)} yet — add meals in the Planner first.`
-                  : null}
-              >
-                {groupedGenerated.map(group => (
-                  <div key={group.key} className="grocery-group">
-                    <div className="grocery-group-label">
-                      <span className="grocery-group-emoji">{group.emoji}</span>
-                      <span>{group.label}</span>
-                      {group.aisle_label && <span className="grocery-group-aisle">{group.aisle_label}</span>}
-                    </div>
-                    {group.items.map(item => {
-                      const checked = checkedGenerated.has(genKey(item))
-                      return (
-                        <GroceryRow
-                          key={item.id}
-                          checked={checked}
-                          label={getShopLabel(item)}
-                          onToggle={() => toggleGenerated(item)}
-                          storeId={groceryStoreMap[genKey(item)]}
-                          stores={stores}
-                          onStoreChange={sid => setItemStore(item, sid)}
-                        />
-                      )
-                    })}
+              <p className="t-body-sm grocery-staples-sub">Saved staples auto-add each week.</p>
+              <div className="grocery-staples-list">
+                {staples.map(s => (
+                  <div key={s.id} className={`grocery-staple-row ${checkedStapleIds.has(s.id) ? 'grocery-staple-row--checked' : ''}`}>
+                    <button
+                      className={`grocery-check grocery-staple-check ${checkedStapleIds.has(s.id) ? 'grocery-check--done' : ''}`}
+                      onClick={() => toggleStaple(s.id)}
+                      aria-label={checkedStapleIds.has(s.id) ? 'Uncheck' : 'Check'}
+                    >
+                      {checkedStapleIds.has(s.id) && <IconCheck size={12} />}
+                    </button>
+                    <span className="grocery-staple-label">{s.name}</span>
+                    <button className="grocery-staple-remove" onClick={() => handleDeleteStaple(s.id)} aria-label="Remove">
+                      <IconClose size={12} />
+                    </button>
                   </div>
                 ))}
-              </GroceryCard>
-
-              {/* Added for this week */}
-              <GroceryCard title="Added for this week" count={extras.length}>
-                {extras.map(item => (
-                  <GroceryRow
-                    key={item.id}
-                    checked={item.checked}
-                    label={item.name}
-                    onToggle={() => toggleExtra(item.id)}
-                    onRemove={() => removeExtra(item.id)}
-                    storeId={item.storeId}
-                    stores={stores}
-                    onStoreChange={sid => setExtraStore(item.id, sid)}
-                  />
-                ))}
-                <AddItemRow
-                  value={newExtra}
-                  onChange={setNewExtra}
-                  onAdd={addExtra}
-                  placeholder="e.g. Paper towels, sparkling water…"
+              </div>
+              <div className="grocery-add-row grocery-staples-add">
+                <input
+                  className="grocery-add-input grocery-staples-input"
+                  placeholder="e.g. Eggs, milk, bread…"
+                  value={newStaple}
+                  onChange={e => setNewStaple(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddStaple()}
                 />
-              </GroceryCard>
-            </>
-          )}
+                <button className="btn btn-sm grocery-add-btn" onClick={handleAddStaple}>
+                  <IconPlus size={14} />
+                </button>
+              </div>
+            </div>
 
-          {/* ── Always visible: pantry check + staples ── */}
-
-          {(displayPantry.length > 0 || pantryRefining) && (
-            <GroceryCard
-              title="Check your pantry"
-              count={displayPantry.length}
-              hint={pantryRefining
-                ? 'Consolidating…'
-                : "Your recipes call for these — make sure you're stocked up."}
-              hintRefining={pantryRefining}
-              pantry
-            >
-              {displayPantry.map(item => {
-                const checked = checkedPantry.has(genKey(item))
-                const label   = [item.quantity, item.unit, item.name].filter(Boolean).join(' ')
-                return (
-                  <GroceryRow key={item.id} checked={checked} label={label}
-                    onToggle={() => togglePantry(item)} />
-                )
-              })}
-            </GroceryCard>
-          )}
-
-          <GroceryCard
-            title="Always on my list"
-            count={staples.length}
-            hint="Items saved here appear every week."
-          >
-            {staples.map(s => (
-              <GroceryRow key={s.id} checked={checkedStapleIds.has(s.id)} label={s.name}
-                onToggle={() => toggleStaple(s.id)}
-                onRemove={() => handleDeleteStaple(s.id)}
-                isStaple />
-            ))}
-            <AddItemRow
-              value={newStaple}
-              onChange={setNewStaple}
-              onAdd={handleAddStaple}
-              placeholder="e.g. Eggs, milk, bread…"
-            />
-          </GroceryCard>
-
+          </div>
         </div>
       )}
     </div>
@@ -1076,7 +1138,7 @@ function AddItemRow({ value, onChange, onAdd, placeholder }) {
         onChange={e => onChange(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') onAdd() }}
       />
-      <button className="btn btn-secondary btn-sm" onClick={onAdd} disabled={!value.trim()}>
+      <button className="btn btn-sm grocery-add-btn" onClick={onAdd} disabled={!value.trim()}>
         <IconPlus size={14} />
       </button>
     </div>
