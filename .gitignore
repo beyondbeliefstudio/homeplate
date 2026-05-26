@@ -24,3 +24,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Design reference files — not part of the app
+design_handoff_homeplate_rebrand/
+
+# Claude Code internals
+.claude/
