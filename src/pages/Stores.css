@@ -237,7 +237,7 @@
 }
 
 .store-delete-btn:hover {
-  color: #d94040;
+  color: var(--hp-cherry);
 }
 
 /* ─── Add store ──────────────────────────────────────────────────────── */
