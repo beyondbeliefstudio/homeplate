@@ -1,11 +1,15 @@
+// Category colour values match the HomePlate brand token system.
+// Hex literals are used so they work in both CSS color-mix() and as
+// direct SVG/background values without requiring CSS custom-property resolution.
+
 export const CATEGORIES = {
-  breakfast: { label: 'Breakfast', color: '#F5A84A' },
-  lunch:     { label: 'Lunch',     color: '#4CAF7D' },
-  dinner:    { label: 'Dinner',    color: '#6B8FF5' },
-  dessert:   { label: 'Dessert',   color: '#D47AA0' },
-  snack:     { label: 'Snack',     color: '#C97B4B' },
-  side:      { label: 'Side',      color: '#4BBFC4' },
-  other:     { label: 'Other',     color: '#7A7A7A' },
+  breakfast: { label: 'Breakfast', color: '#FFC228' },  // --hp-marigold
+  lunch:     { label: 'Lunch',     color: '#58CC02' },  // --hp-spring
+  dinner:    { label: 'Dinner',    color: '#0E1212' },  // --hp-ink-900
+  dessert:   { label: 'Dessert',   color: '#E63957' },  // --hp-cherry
+  snack:     { label: 'Snack',     color: '#FF7733' },  // --hp-tangerine
+  side:      { label: 'Side',      color: '#3DA002' },  // --hp-spring-700
+  other:     { label: 'Other',     color: '#5C625E' },  // --hp-ink-500
 }
 
 export const CATEGORY_LIST = Object.entries(CATEGORIES).map(([value, meta]) => ({

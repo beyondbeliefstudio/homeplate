@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useUser } from '../hooks/useAuth.jsx'
 import { getRecipeById, deleteRecipe } from '../lib/supabase'
 import { getCategoryMeta } from '../lib/categories'
-import { ChevronLeft, Clock, Flame, Users, Pencil, Trash2 } from 'lucide-react'
+import { IconChevronL, IconClock, IconFire, IconServes, IconEdit, IconTrash } from '../components/icons'
 import './Recipes.css'
 
 export default function RecipeDetailPage() {
@@ -41,14 +41,14 @@ export default function RecipeDetailPage() {
       {/* Header */}
       <div className="recipe-detail-header">
         <button className="btn btn-ghost btn-sm recipe-back-btn" onClick={() => navigate('/recipes')}>
-          <ChevronLeft size={16} strokeWidth={2} /> Back
+          <IconChevronL size={16} /> Back
         </button>
         <div className="recipe-detail-actions">
           <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/recipes/${id}/edit`)}>
-            <Pencil size={14} strokeWidth={2} /> Edit
+            <IconEdit size={14} /> Edit
           </button>
           <button className="btn btn-danger btn-sm" onClick={handleDelete} disabled={deleting}>
-            <Trash2 size={14} strokeWidth={2} />
+            <IconTrash size={14} />
           </button>
         </div>
       </div>
@@ -61,28 +61,28 @@ export default function RecipeDetailPage() {
         <div className="recipe-detail-stats">
           {recipe.prep_time > 0 && (
             <div className="recipe-stat">
-              <Clock size={14} strokeWidth={1.75} />
+              <IconClock size={14} />
               <span className="recipe-stat-label">Prep</span>
               <span className="recipe-stat-value">{recipe.prep_time}m</span>
             </div>
           )}
           {recipe.cook_time > 0 && (
             <div className="recipe-stat">
-              <Flame size={14} strokeWidth={1.75} />
+              <IconFire size={14} />
               <span className="recipe-stat-label">Cook</span>
               <span className="recipe-stat-value">{recipe.cook_time}m</span>
             </div>
           )}
           {totalTime > 0 && (
             <div className="recipe-stat">
-              <Clock size={14} strokeWidth={1.75} />
+              <IconClock size={14} />
               <span className="recipe-stat-label">Total</span>
               <span className="recipe-stat-value">{totalTime}m</span>
             </div>
           )}
           {recipe.servings > 0 && (
             <div className="recipe-stat">
-              <Users size={14} strokeWidth={1.75} />
+              <IconServes size={14} />
               <span className="recipe-stat-label">Serves</span>
               <span className="recipe-stat-value">{recipe.servings}</span>
             </div>

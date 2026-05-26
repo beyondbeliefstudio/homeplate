@@ -1,32 +1,34 @@
-/* ─── Google Fonts ─────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=DM+Mono:wght@400;500&display=swap');
+/* ─── Design tokens (includes Google Fonts @import) ────────────────── */
+@import './tokens.css';
 
-/* ─── Design Tokens ────────────────────────────────────────────────── */
+/* ─── Theme tokens — light is now the default ───────────────────────── */
+/* Legacy aliases mapped to --hp-* so all existing component CSS works.  */
+/* Replace usages with --hp-* directly in later steps.                   */
 :root {
-  /* Backgrounds */
-  --bg:          #0F0F0F;
-  --surface:     #1A1A1A;
-  --surface-2:   #222222;
-  --surface-3:   #2A2A2A;
+  /* Surfaces (light default) */
+  --bg:          var(--hp-bg-app);      /* #F4F6EE cool mist              */
+  --surface:     var(--hp-paper);        /* #FFFFFF white cards            */
+  --surface-2:   var(--hp-paper-off);    /* #F8FAF2 nested surface         */
+  --surface-3:   var(--hp-ink-50);       /* #EEF1E5 tints                  */
 
-  /* Accent */
-  --accent:      #E8732A;
-  --accent-dim:  rgba(232, 115, 42, 0.12);
-  --accent-mid:  rgba(232, 115, 42, 0.35);
+  /* Accent — Cherry replaces orange */
+  --accent:      var(--hp-cherry);       /* #E63957                        */
+  --accent-dim:  var(--hp-cherry-50);    /* #FEE9ED focus ring bg          */
+  --accent-mid:  var(--hp-cherry-100);   /* #FCD9DF focus ring border      */
 
-  /* Text */
-  --text-1:      #F5F5F3;
-  --text-2:      #A0A0A0;
-  --text-3:      #5A5A5A;
+  /* Text (light) */
+  --text-1:      var(--hp-ink-900);      /* #0E1212                        */
+  --text-2:      var(--hp-ink-500);      /* #5C625E                        */
+  --text-3:      var(--hp-ink-400);      /* #8C9189                        */
 
-  /* Borders */
-  --border:      #2A2A2A;
-  --border-mid:  #383838;
+  /* Borders (light) */
+  --border:      var(--hp-ink-100);      /* #E5E8DE                        */
+  --border-mid:  var(--hp-ink-200);      /* #D4D7CC                        */
 
   /* Semantic */
-  --success:     #4CAF7D;
-  --warning:     #E8B842;
-  --danger:      #E85442;
+  --success:     var(--hp-spring);       /* #58CC02                        */
+  --warning:     var(--hp-marigold);     /* #FFC228                        */
+  --danger:      var(--hp-cherry);       /* #E63957                        */
 
   /* Layout */
   --sidebar-width:      232px;
@@ -40,26 +42,66 @@
   --r-lg:   16px;
   --r-full: 999px;
 
-  /* Typography */
-  --font-sans: 'DM Sans', system-ui, sans-serif;
-  --font-mono: 'DM Mono', 'Menlo', monospace;
+  /* Typography — aliases for the new --hp-font-* tokens */
+  --font-sans: var(--hp-font-body);
+  --font-mono: var(--hp-font-mono);
 
   /* Transitions */
   --t-fast:   120ms ease;
   --t-normal: 200ms ease;
   --t-slow:   320ms ease;
+
+  /* ─── Semantic colour aliases (match brand reference vars) ──────── */
+  /* These let component code use the same token names as design refs.  */
+  --hot:       var(--hp-cherry);
+  --hot-600:   var(--hp-cherry-600);
+  --hot-100:   var(--hp-cherry-100);
+  --hot-50:    var(--hp-cherry-50);
+  --leaf:      var(--hp-spring);
+  --leaf-700:  var(--hp-spring-700);
+  --leaf-100:  var(--hp-spring-100);
+  --leaf-50:   var(--hp-spring-50);
+  --sun:       var(--hp-marigold);
+  --sun-700:   var(--hp-marigold-700);
+  --sun-100:   var(--hp-marigold-100);
+  --sun-50:    var(--hp-marigold-50);
+  --orange:    var(--hp-tangerine);
+  --orange-100:var(--hp-tangerine-100);
+  --paper:     var(--hp-paper);
+  --paper-off: var(--hp-paper-off);
+  --bg-app:    var(--hp-bg-app);
+  --bg-app-warm: var(--hp-bg-app-warm);
+  --ink-900:   var(--hp-ink-900);
+  --ink-700:   var(--hp-ink-700);
+  --ink-500:   var(--hp-ink-500);
+  --ink-400:   var(--hp-ink-400);
+  --ink-300:   var(--hp-ink-300);
+  --ink-200:   var(--hp-ink-200);
+  --ink-100:   var(--hp-ink-100);
+  --ink-50:    var(--hp-ink-50);
+  --font-display: var(--hp-font-display);
+  --font-body:    var(--hp-font-body);
+  /* text-soft = tertiary text */
+  --text-soft: var(--hp-ink-400);
 }
 
-.light {
-  --bg:          #F7F7F5;
-  --surface:     #FFFFFF;
-  --surface-2:   #F0F0EE;
-  --surface-3:   #E8E8E5;
-  --text-1:      #0F0F0F;
-  --text-2:      #5A5A5A;
-  --text-3:      #A0A0A0;
-  --border:      #E5E5E2;
-  --border-mid:  #D5D5D2;
+/* Dark mode — opt-in via .dark on <html> (light is the shipping default) */
+.dark {
+  --bg:          #0F0F0F;
+  --surface:     #1A1A1A;
+  --surface-2:   #222222;
+  --surface-3:   #2A2A2A;
+  --accent:      var(--hp-dark-cherry);    /* #FF5575 */
+  --accent-dim:  rgba(255, 85, 117, 0.12);
+  --accent-mid:  rgba(255, 85, 117, 0.35);
+  --text-1:      #F5F5F3;
+  --text-2:      #A0A0A0;
+  --text-3:      #5A5A5A;
+  --border:      #2A2A2A;
+  --border-mid:  #383838;
+  --success:     var(--hp-dark-spring);    /* #7AE020 */
+  --warning:     var(--hp-dark-marigold);  /* #FFD562 */
+  --danger:      var(--hp-dark-cherry);    /* #FF5575 */
 }
 
 /* ─── Reset ────────────────────────────────────────────────────────── */
@@ -98,7 +140,8 @@ a { color: inherit; text-decoration: none; }
 .main-content {
   flex: 1;
   min-width: 0;
-  padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom));
+  /* Floating tab bar: ~72px tall + 16px bottom margin + 8px buffer */
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
 @media (min-width: 980px) {
@@ -147,95 +190,131 @@ a { color: inherit; text-decoration: none; }
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 0 16px;
-  height: 38px;
-  border-radius: var(--r-md);
+  padding: 0 18px;
+  height: 42px;
+  border-radius: 14px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
+  font-family: var(--font-sans);
   border: 1px solid transparent;
-  transition: background var(--t-fast), border-color var(--t-fast), opacity var(--t-fast);
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
   white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
 }
 
+/* Variants */
 .btn-primary {
-  background: var(--accent);
+  background: var(--hp-cherry);
   color: #fff;
-}
-.btn-primary:hover { opacity: 0.88; }
-
-.btn-secondary {
-  background: var(--surface-2);
-  color: var(--text-1);
-  border-color: var(--border);
-}
-.btn-secondary:hover { background: var(--surface-3); }
-
-.btn-ghost {
-  background: transparent;
-  color: var(--text-2);
-}
-.btn-ghost:hover { background: var(--surface-2); color: var(--text-1); }
-
-.btn-danger {
-  background: transparent;
-  color: var(--danger);
   border-color: transparent;
 }
-.btn-danger:hover { background: rgba(232, 84, 66, 0.1); }
+.btn-primary:hover:not(:disabled) { background: var(--hp-cherry-600); }
 
-.btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
-.btn-lg { height: 46px; padding: 0 22px; font-size: 15px; }
+.btn-secondary {
+  background: var(--hp-ink-900);
+  color: #fff;
+  border-color: transparent;
+}
+.btn-secondary:hover:not(:disabled) { background: #000; }
+
+.btn-ghost {
+  background: var(--hp-paper);
+  color: var(--hp-ink-900);
+  border-color: var(--hp-ink-200);
+}
+.btn-ghost:hover:not(:disabled) { background: var(--hp-ink-50); }
+
+.btn-danger,
+.btn-destructive {
+  background: transparent;
+  color: var(--hp-cherry);
+  border-color: var(--hp-cherry-100);
+}
+.btn-danger:hover:not(:disabled),
+.btn-destructive:hover:not(:disabled) { background: var(--hp-cherry-50); }
+
+/* Sizes */
+.btn-sm { height: 34px; padding: 0 14px; font-size: 13px; }
+.btn-md { height: 38px; padding: 0 16px; font-size: 13px; border-radius: 12px; }
+.btn-lg { height: 52px; padding: 0 22px; font-size: 15px; }
+
+/* Icon-only: square, 12px radius */
+.btn-icon {
+  padding: 0;
+  width: 42px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+.btn-icon.btn-sm { width: 34px; }
+.btn-icon.btn-lg { width: 52px; }
+
+/* States */
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--hp-cherry-100);
+}
+.btn:active:not(:disabled) { opacity: 0.92; }
+.btn:disabled,
+.btn[disabled] {
+  background: var(--hp-ink-200) !important;
+  color: var(--hp-ink-500) !important;
+  border-color: transparent !important;
+  cursor: default;
+  pointer-events: none;
+}
 
 /* ─── Inputs ───────────────────────────────────────────────────────── */
 .input {
   width: 100%;
-  height: 40px;
-  padding: 0 12px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  color: var(--text-1);
+  height: 52px;
+  padding: 0 18px;
+  background: var(--hp-paper);
+  border: 1px solid var(--hp-ink-200);
+  border-radius: 14px;
+  color: var(--hp-ink-900);
   font-size: 14px;
-  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+  font-family: var(--font-sans);
+  transition: border-color var(--t-fast);
   outline: none;
 }
 
-.input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-dim);
-}
+.input:focus { border-width: 2px; border-color: var(--hp-ink-900); }
+.input::placeholder { color: var(--hp-ink-400); }
+.input--error { border-width: 2px; border-color: var(--hp-cherry); }
+.input--error + .input-hint { color: var(--hp-cherry); }
 
-.input::placeholder { color: var(--text-3); }
+.input-hint {
+  font-size: 12px;
+  color: var(--hp-ink-500);
+  margin-top: 5px;
+}
 
 textarea.input {
   height: auto;
-  padding: 10px 12px;
+  padding: 14px 18px;
   resize: vertical;
   line-height: 1.5;
 }
 
 select.input {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235A5A5A' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235C625E' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 32px;
+  background-position: right 16px center;
+  padding-right: 40px;
+  cursor: pointer;
 }
 
 /* ─── Cards ────────────────────────────────────────────────────────── */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: 20px;
-}
-
-/* ─── Divider ──────────────────────────────────────────────────────── */
-.divider {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 0;
+.card,
+.card-out {
+  background: var(--hp-paper);
+  border: 1px solid var(--hp-ink-100);
+  border-radius: var(--hp-r-xl);   /* 28px */
+  padding: 24px;
 }
 
 /* ─── Empty / placeholder ──────────────────────────────────────────── */
@@ -251,13 +330,272 @@ select.input {
   font-size: 14px;
 }
 
-/* ─── Badge ────────────────────────────────────────────────────────── */
+/* ─── Chips ────────────────────────────────────────────────────────── */
+/* 28px tall · 10px radius · Geist 12px/600 */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px;
+  height: 28px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  flex-shrink: 0;
+  /* Default: neutral */
+  background: var(--hp-ink-50);
+  color: var(--hp-ink-700);
+  border: 1px solid transparent;
+}
+
+/* Active filter chip (inverted) */
+.chip-on {
+  background: var(--hp-ink-900);
+  color: #fff;
+}
+
+/* Cherry — primary accent */
+.chip-cherry,
+.chip-hot {
+  background: var(--hp-cherry);
+  color: #fff;
+}
+
+/* Spring — success / made */
+.chip-spring,
+.chip-leaf {
+  background: var(--hp-spring-50);
+  color: var(--hp-spring-700);
+}
+
+/* Marigold — kids / highlight */
+.chip-marigold,
+.chip-sun {
+  background: var(--hp-marigold-50);
+  color: #7F5A00;
+}
+
+/* Tangerine — snacks */
+.chip-tangerine,
+.chip-orange {
+  background: var(--hp-tangerine-100);
+  color: #9A3A00;
+}
+
+/* ─── Segmented control (Multiplier 1× 2× 3×) ─────────────────────── */
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  background: var(--hp-ink-50);
+  border-radius: 10px;
+  gap: 0;
+}
+
+.segmented-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  color: var(--hp-ink-500);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+
+.segmented-item--active {
+  background: var(--hp-ink-900);
+  color: #fff;
+}
+
+/* ─── Badge (legacy — keep for backward compat) ────────────────────── */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
-  border-radius: var(--r-full);
+  padding: 0 10px;
+  height: 24px;
+  border-radius: 99px;
   font-size: 12px;
+  font-weight: 600;
+  background: var(--hp-ink-50);
+  color: var(--hp-ink-700);
+}
+
+/* ─── Typography utilities ─────────────────────────────────────────── */
+/* Used from Step 5 onward when rebuilding pages & components.         */
+/* All Funnel Display headlines use var(--hp-font-display).           */
+
+.t-display {
+  font-family: var(--hp-font-display);
+  font-size: 96px;
+  font-weight: 700;
+  line-height: .98;
+  letter-spacing: -.035em;
+}
+.t-h1 {
+  font-family: var(--hp-font-display);
+  font-size: 60px;
+  font-weight: 700;
+  line-height: 1.0;
+  letter-spacing: -.03em;
+}
+.t-h2 {
+  font-family: var(--hp-font-display);
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -.025em;
+}
+.t-h3 {
+  font-family: var(--hp-font-display);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -.02em;
+}
+.t-h4 {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -.01em;
+}
+.t-body-lg {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.t-body {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.t-body-sm {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+.t-label {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.005em;
+}
+.t-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.0;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+}
+.t-caption {
+  font-family: var(--font-sans);
+  font-size: 11px;
   font-weight: 500;
+  line-height: 1.3;
+}
+.t-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+/* tabular numbers utility */
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Display-number utilities — Funnel Display large numerals */
+.t-num-lg {
+  font-family: var(--hp-font-display);
+  font-size: 72px;
+  font-weight: 700;
+  line-height: .88;
+  letter-spacing: -.045em;
+}
+.t-num-md {
+  font-family: var(--hp-font-display);
+  font-size: 42px;
+  font-weight: 700;
+  line-height: .9;
+  letter-spacing: -.03em;
+}
+
+/* ─── Divider ──────────────────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--hp-ink-100);
+  margin: 0;
+}
+
+/* ─── Modal ────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 18, 18, 0.48);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  padding: 24px;
+  animation: modal-fade-in 240ms ease-out both;
+}
+
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal {
+  background: var(--hp-paper);
+  border-radius: var(--hp-r-xl);   /* 28px */
+  box-shadow: var(--hp-shadow-4);
+  width: 100%;
+  max-width: 540px;
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  animation: modal-enter 240ms ease-out both;
+}
+
+@keyframes modal-enter {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.modal-header {
+  padding: 26px 26px 0;
+}
+
+.modal-title {
+  font-family: var(--hp-font-display);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  color: var(--hp-ink-900);
+}
+
+.modal-body {
+  padding: 16px 26px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--hp-ink-500);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 26px 26px;
 }

@@ -1,14 +1,17 @@
+/* Floating card — 16px from bottom + sides, 28px radius */
 .bottom-nav {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: calc(var(--nav-height) + env(safe-area-inset-bottom));
-  padding-bottom: env(safe-area-inset-bottom);
-  background: var(--surface);
-  border-top: 1px solid var(--border);
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  left: 16px;
+  right: 16px;
+  background: var(--hp-paper);
+  border-radius: 28px;
+  border: 1px solid var(--hp-ink-100);
+  box-shadow: var(--hp-shadow-2);
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  padding: 8px;
+  gap: 4px;
   z-index: 100;
 }
 
@@ -16,6 +19,7 @@
   .bottom-nav { display: none; }
 }
 
+/* ─── Tab item ───────────────────────────────────────────────────────── */
 .bottom-nav-link {
   flex: 1;
   display: flex;
@@ -23,12 +27,27 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
+  padding: 10px 12px;
+  border-radius: 16px;
   font-size: 10px;
-  font-weight: 500;
-  color: var(--text-3);
-  letter-spacing: 0.02em;
-  transition: color var(--t-fast);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--hp-ink-500);
+  transition: background var(--t-fast), color var(--t-fast);
+  text-decoration: none;
 }
 
-.bottom-nav-link:hover { color: var(--text-2); }
-.bottom-nav-link--active { color: var(--accent); }
+.bottom-nav-link:hover {
+  background: var(--hp-ink-50);
+  color: var(--hp-ink-900);
+}
+
+.bottom-nav-link--active {
+  background: var(--hp-ink-900);
+  color: #fff;
+}
+
+.bottom-nav-link--active:hover {
+  background: var(--hp-ink-900);
+  color: #fff;
+}

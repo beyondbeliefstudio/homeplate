@@ -1,16 +1,18 @@
 import { NavLink } from 'react-router-dom'
 import {
-  UtensilsCrossed, CalendarDays, ShoppingCart,
-  Store, Settings, Sun, Moon
-} from 'lucide-react'
+  IconHome, IconPlanner, IconRecipes, IconGrocery,
+  IconStore, IconSettings, IconSun, IconMoon,
+} from '../icons'
+import { Wordmark, Mark } from '../Wordmark'
 import { useDarkMode } from '../../hooks/useDarkMode'
 import './Sidebar.css'
 
 const NAV_ITEMS = [
-  { to: '/recipes',  icon: UtensilsCrossed, label: 'Recipes' },
-  { to: '/planner',  icon: CalendarDays,    label: 'Planner' },
-  { to: '/grocery',  icon: ShoppingCart,    label: 'Grocery' },
-  { to: '/stores',   icon: Store,           label: 'Stores'  },
+  { to: '/dashboard', icon: IconHome,     label: 'Dashboard' },
+  { to: '/planner',   icon: IconPlanner,  label: 'Planner'   },
+  { to: '/recipes',   icon: IconRecipes,  label: 'Recipes'   },
+  { to: '/grocery',   icon: IconGrocery,  label: 'Grocery'   },
+  { to: '/stores',    icon: IconStore,    label: 'Stores'    },
 ]
 
 export default function Sidebar({ isCompressed }) {
@@ -19,11 +21,10 @@ export default function Sidebar({ isCompressed }) {
   return (
     <aside className={`sidebar ${isCompressed ? 'sidebar--compressed' : ''}`}>
       <div className="sidebar-wordmark">
-        {isCompressed ? (
-          <span className="sidebar-mark">H</span>
-        ) : (
-          <span className="sidebar-logo">HomePlate</span>
-        )}
+        {isCompressed
+          ? <Mark size={32} />
+          : <Wordmark height={20} />
+        }
       </div>
 
       <nav className="sidebar-nav">
@@ -35,7 +36,7 @@ export default function Sidebar({ isCompressed }) {
               `sidebar-link ${isActive ? 'sidebar-link--active' : ''}`
             }
           >
-            <Icon size={18} strokeWidth={1.75} />
+            <Icon size={18} />
             {!isCompressed && <span>{label}</span>}
           </NavLink>
         ))}
@@ -45,17 +46,21 @@ export default function Sidebar({ isCompressed }) {
         <NavLink
           to="/settings"
           className={({ isActive }) =>
-            `sidebar-link ${isActive ? 'sidebar-link--active' : ''}`
+            `sidebar-link sidebar-link--settings ${isActive ? 'sidebar-link--active' : ''}`
           }
         >
-          <Settings size={18} strokeWidth={1.75} />
+          <IconSettings size={18} />
           {!isCompressed && <span>Settings</span>}
         </NavLink>
 
-        <button className="sidebar-link sidebar-theme-toggle" onClick={toggle} title="Toggle theme">
+        <button
+          className="sidebar-link sidebar-link--settings sidebar-theme-toggle"
+          onClick={toggle}
+          title="Toggle theme"
+        >
           {isDark
-            ? <Sun size={18} strokeWidth={1.75} />
-            : <Moon size={18} strokeWidth={1.75} />
+            ? <IconSun size={18} />
+            : <IconMoon size={18} />
           }
           {!isCompressed && <span>{isDark ? 'Light mode' : 'Dark mode'}</span>}
         </button>

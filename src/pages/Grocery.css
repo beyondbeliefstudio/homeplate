@@ -17,6 +17,183 @@
 
 .grocery-uncheck-btn:hover { color: var(--text-1); }
 
+/* ─── View toggle + store selector row ───────────────────────────────── */
+.grocery-view-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+/* All items / By store segmented toggle */
+.grocery-view-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.grocery-view-btn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 13px;
+  background: none;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.grocery-view-btn:hover {
+  color: var(--text-1);
+}
+
+.grocery-view-btn--active {
+  background: var(--surface-3);
+  color: var(--text-1);
+}
+
+/* Aisle-sort store selector (all-items mode only) */
+.grocery-store-selector {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.grocery-store-pill {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.grocery-store-pill:hover {
+  border-color: var(--text-3);
+  color: var(--text-1);
+}
+
+.grocery-store-pill--active {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent);
+}
+
+/* ─── Per-item store chip (tap to open picker) ────────────────────────── */
+.grocery-store-chip {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px dashed var(--border);
+  background: none;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.6;
+}
+
+.grocery-store-chip:hover {
+  border-color: var(--text-2);
+  color: var(--text-2);
+  border-style: solid;
+}
+
+.grocery-store-chip--set {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  border-style: solid;
+  color: var(--accent);
+}
+
+.grocery-store-chip--open {
+  border-style: solid;
+  border-color: var(--text-3);
+  color: var(--text-2);
+}
+
+/* ─── Inline store picker (pills that drop below the row) ─────────────── */
+.grocery-store-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px 10px 40px; /* indent past checkbox */
+  flex-wrap: wrap;
+}
+
+.grocery-store-picker-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 11px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.grocery-store-picker-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.grocery-store-picker-pill--active {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent);
+}
+
+.grocery-picker-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.grocery-store-picker-pill--clear {
+  color: var(--text-3);
+  border-style: dashed;
+  font-weight: 400;
+}
+
+.grocery-store-picker-pill--clear:hover {
+  border-color: var(--text-3);
+  color: var(--text-2);
+  border-style: dashed;
+}
+
+/* ─── Aisle tag next to group label ──────────────────────────────────── */
+.grocery-group-aisle {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+
 /* ─── Progress ──────────────────────────────────────────────────────── */
 .grocery-progress {
   display: flex;
@@ -39,7 +216,7 @@
   position: absolute;
   inset: 0;
   width: var(--pct, 0%);
-  background: var(--accent);
+  background: var(--hp-spring);
   border-radius: 99px;
   transition: width 0.3s ease;
 }
@@ -61,9 +238,9 @@
 
 /* ─── Card ───────────────────────────────────────────────────────────── */
 .grocery-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
+  background: var(--hp-paper);
+  border: 1px solid var(--hp-ink-100);
+  border-radius: var(--hp-r-xl);
   overflow: hidden;
 }
 
@@ -105,28 +282,32 @@
   gap: 1px;
 }
 
-/* ─── Row ────────────────────────────────────────────────────────────── */
+/* ─── Row wrapper (handles hover bg + checked opacity) ───────────────── */
+.grocery-row-wrap {
+  border-radius: var(--r-md);
+  transition: background var(--t-fast);
+}
+
+.grocery-row-wrap:hover { background: var(--surface-2); }
+
+.grocery-row-wrap--checked { opacity: 0.5; }
+
+/* ─── Row inner (flex layout) ─────────────────────────────────────────── */
 .grocery-row {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 8px;
-  border-radius: var(--r-md);
-  transition: background var(--t-fast);
   min-height: 44px;
 }
 
-.grocery-row:hover { background: var(--surface-2); }
-
-.grocery-row--checked { opacity: 0.5; }
-
-/* Checkbox */
+/* Checkbox — rounded square matching reference spec */
 .grocery-check {
   flex-shrink: 0;
   width: 22px;
   height: 22px;
-  border-radius: 50%;
-  border: 1.5px solid var(--border-mid);
+  border-radius: 7px;
+  border: 1.5px solid var(--hp-ink-300);
   background: transparent;
   color: #fff;
   display: flex;
@@ -137,13 +318,13 @@
 }
 
 .grocery-check:hover {
-  border-color: var(--accent);
+  border-color: var(--hp-spring);
   transform: scale(1.05);
 }
 
 .grocery-check--done {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--hp-spring);
+  border-color: var(--hp-spring);
 }
 
 /* Label */
@@ -154,7 +335,7 @@
   line-height: 1.4;
 }
 
-.grocery-row--checked .grocery-label {
+.grocery-row-wrap--checked .grocery-label {
   text-decoration: line-through;
   text-decoration-color: var(--text-3);
 }
@@ -228,12 +409,12 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 8px 2px;
+  padding: 8px 8px 4px;
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-weight: 600;
+  letter-spacing: 0.10em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--hp-ink-500);
 }
 
 .grocery-group-emoji {
@@ -251,3 +432,20 @@
 }
 
 .grocery-add-input { flex: 1; }
+
+/* ─── Illustrated empty state ───────────────────────────────────────── */
+.grocery-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 32px 20px 24px;
+  text-align: center;
+}
+
+.grocery-empty-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 300px;
+}

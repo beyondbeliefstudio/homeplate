@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth.jsx'
 import Layout from './components/layout/Layout'
 import AuthPage from './pages/AuthPage'
+import DashboardPage from './pages/DashboardPage'
 import RecipesPage from './pages/RecipesPage'
 import RecipeDetailPage from './pages/RecipeDetailPage'
 import RecipeFormPage from './pages/RecipeFormPage'
@@ -36,7 +37,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route index element={<Navigate to="/recipes" replace />} />
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard"        element={<DashboardPage />} />
         <Route path="/recipes"          element={<RecipesPage />} />
         <Route path="/recipes/new"      element={<RecipeFormPage />} />
         <Route path="/recipes/:id"      element={<RecipeDetailPage />} />

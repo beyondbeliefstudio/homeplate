@@ -1,12 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { UtensilsCrossed, CalendarDays, ShoppingCart, Store } from 'lucide-react'
+import { IconHome, IconPlanner, IconRecipes, IconGrocery } from '../icons'
 import './BottomNav.css'
 
 const NAV_ITEMS = [
-  { to: '/recipes',  icon: UtensilsCrossed, label: 'Recipes' },
-  { to: '/planner',  icon: CalendarDays,    label: 'Planner' },
-  { to: '/grocery',  icon: ShoppingCart,    label: 'Grocery' },
-  { to: '/stores',   icon: Store,           label: 'Stores'  },
+  { to: '/dashboard', icon: IconHome,    label: 'Home'    },
+  { to: '/planner',   icon: IconPlanner, label: 'Planner' },
+  { to: '/recipes',   icon: IconRecipes, label: 'Recipes' },
+  { to: '/grocery',   icon: IconGrocery, label: 'Grocery' },
 ]
 
 export default function BottomNav() {
@@ -20,7 +20,7 @@ export default function BottomNav() {
             `bottom-nav-link ${isActive ? 'bottom-nav-link--active' : ''}`
           }
         >
-          <Icon size={20} strokeWidth={1.75} />
+          <Icon size={20} />
           <span>{label}</span>
         </NavLink>
       ))}

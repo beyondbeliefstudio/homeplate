@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useUser } from '../hooks/useAuth.jsx'
 import { getRecipeById, saveRecipe } from '../lib/supabase'
 import { CATEGORY_LIST } from '../lib/categories'
-import { ChevronLeft, Plus, Trash2, Camera, X, Sparkles } from 'lucide-react'
+import { IconChevronL, IconPlus, IconTrash, IconCamera, IconClose, IconSparkle } from '../components/icons'
 import './Recipes.css'
 
 const LOADING_MESSAGES = [
@@ -12,6 +12,18 @@ const LOADING_MESSAGES = [
   'Structuring the steps…',
   'Almost done…',
 ]
+
+const LOADING_MESSAGES_URL = [
+  'Fetching the recipe page…',
+  'Reading ingredients…',
+  'Structuring the steps…',
+  'Almost done…',
+]
+
+function looksLikeURL(str) {
+  const s = str.trim()
+  return s.startsWith('http://') || s.startsWith('https://')
+}
 
 async function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -50,6 +62,9 @@ function AIRecipeBuilder({ onGenerate }) {
     setImage(null)
   }
 
+  const isURL = looksLikeURL(text)
+  const messages = isURL ? LOADING_MESSAGES_URL : LOADING_MESSAGES
+
   async function handleGenerate() {
     if (!text.trim() && !image) return
     setError(null)
@@ -57,7 +72,7 @@ function AIRecipeBuilder({ onGenerate }) {
     setMsgIdx(0)
 
     intervalRef.current = setInterval(() => {
-      setMsgIdx(i => (i + 1) % LOADING_MESSAGES.length)
+      setMsgIdx(i => (i + 1) % messages.length)
     }, 2800)
 
     try {
@@ -88,7 +103,7 @@ function AIRecipeBuilder({ onGenerate }) {
   if (done) {
     return (
       <div className="ai-builder ai-builder--done">
-        <Sparkles size={16} strokeWidth={2} className="ai-builder-sparkle" />
+        <IconSparkle size={16} className="ai-builder-sparkle" />
         <span>Recipe generated — review and edit the fields below, then save.</span>
         <button className="btn btn-ghost btn-sm" onClick={() => { setDone(false); setText(''); clearImage() }}>
           Try again
@@ -100,19 +115,24 @@ function AIRecipeBuilder({ onGenerate }) {
   return (
     <div className="ai-builder">
       <div className="ai-builder-header">
-        <Sparkles size={15} strokeWidth={2} className="ai-builder-sparkle" />
+        <IconSparkle size={15} className="ai-builder-sparkle" />
         <span className="ai-builder-title">Generate with AI</span>
-        <span className="ai-builder-hint">Describe or photograph your recipe</span>
+        <span className="ai-builder-hint">Paste a URL, describe, or photograph your recipe</span>
       </div>
 
       <textarea
         className="input ai-builder-textarea"
-        placeholder={"Describe your recipe here — paste it from the web, type it out, or just say \"chicken stir fry with ginger and sesame, serves 4\"…"}
+        placeholder={"Paste a recipe URL, describe it, or type it out — e.g. \"chicken stir fry with ginger and sesame, serves 4\"…"}
         value={text}
         rows={4}
         onChange={e => setText(e.target.value)}
         disabled={parsing}
       />
+      {isURL && !parsing && (
+        <p className="ai-builder-url-hint">
+          🔗 Recipe URL detected — will fetch the page automatically
+        </p>
+      )}
 
       <div className="ai-builder-footer">
         <div className="ai-builder-photo-row">
@@ -122,13 +142,13 @@ function AIRecipeBuilder({ onGenerate }) {
             <div className="ai-builder-preview">
               <img src={image.preview} alt="Recipe" />
               <button className="ai-builder-preview-remove" onClick={clearImage} title="Remove photo">
-                <X size={12} strokeWidth={2.5} />
+                <IconClose size={12} />
               </button>
             </div>
           ) : (
             <button type="button" className="btn btn-secondary btn-sm ai-builder-photo-btn"
               onClick={() => fileRef.current?.click()} disabled={parsing}>
-              <Camera size={14} strokeWidth={2} />
+              <IconCamera size={14} />
               Add photo
             </button>
           )}
@@ -142,7 +162,7 @@ function AIRecipeBuilder({ onGenerate }) {
             onClick={handleGenerate}
             disabled={parsing || (!text.trim() && !image)}
           >
-            {parsing ? LOADING_MESSAGES[msgIdx] : 'Generate recipe'}
+            {parsing ? messages[msgIdx] : 'Generate recipe'}
           </button>
         </div>
       </div>
@@ -257,7 +277,7 @@ export default function RecipeFormPage() {
       <div className="recipe-detail-header">
         <button className="btn btn-ghost btn-sm recipe-back-btn"
           onClick={() => navigate(isEditing ? `/recipes/${id}` : '/recipes')}>
-          <ChevronLeft size={16} strokeWidth={2} />
+          <IconChevronL size={16} />
           {isEditing ? 'Cancel' : 'Back'}
         </button>
         <h1 className="page-title" style={{ fontSize: 20 }}>
@@ -352,14 +372,14 @@ export default function RecipeFormPage() {
                   onChange={e => setIngredient(i, 'name', e.target.value)} />
                 <button type="button" className="btn btn-ghost btn-sm form-remove-btn"
                   onClick={() => removeIngredient(i)} disabled={form.ingredients.length === 1}>
-                  <Trash2 size={13} strokeWidth={2} />
+                  <IconTrash size={13} />
                 </button>
               </div>
             ))}
           </div>
           <button type="button" className="btn btn-ghost btn-sm" onClick={addIngredient}
             style={{ marginTop: 8, color: 'var(--accent)' }}>
-            <Plus size={14} strokeWidth={2} /> Add ingredient
+            <IconPlus size={14} /> Add ingredient
           </button>
         </div>
 
@@ -374,14 +394,14 @@ export default function RecipeFormPage() {
                   value={step} onChange={e => setInstruction(i, e.target.value)} />
                 <button type="button" className="btn btn-ghost btn-sm form-remove-btn"
                   onClick={() => removeInstruction(i)} disabled={form.instructions.length === 1}>
-                  <Trash2 size={13} strokeWidth={2} />
+                  <IconTrash size={13} />
                 </button>
               </div>
             ))}
           </div>
           <button type="button" className="btn btn-ghost btn-sm" onClick={addInstruction}
             style={{ marginTop: 8, color: 'var(--accent)' }}>
-            <Plus size={14} strokeWidth={2} /> Add step
+            <IconPlus size={14} /> Add step
           </button>
         </div>
 

@@ -33,9 +33,9 @@
 }
 
 .planner-section {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
+  background: var(--hp-paper);
+  border: 1px solid var(--hp-ink-100);
+  border-radius: var(--hp-r-xl);  /* 28px */
   overflow: hidden;
 }
 
@@ -95,9 +95,11 @@
   padding-top: 4px;
 }
 
-.planner-add-btn { color: var(--accent); font-size: 13px; }
-.planner-add-btn--muted { color: var(--text-3); }
-.planner-add-btn--muted:hover { color: var(--text-1); }
+.planner-add-btn { color: var(--hp-cherry); font-size: 13px; }
+.planner-add-btn--muted { color: var(--hp-ink-400); }
+.planner-add-btn--muted:hover { color: var(--hp-ink-900); }
+.planner-add-btn--diningout { color: var(--hp-marigold-700); }
+.planner-add-btn--diningout:hover { color: var(--hp-ink-900); }
 
 /* Dinner progress summary */
 .planner-dinner-summary {
@@ -112,9 +114,9 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
+  background: var(--hp-paper-off);
+  border: 1px solid var(--hp-ink-100);
+  border-radius: 18px;
   min-height: 48px;
   transition: opacity var(--t-fast);
 }
@@ -133,9 +135,61 @@
   min-height: 40px;
 }
 
-/* Dinner card has a slight left border accent */
+/* Dinner card */
 .plan-card--dinner {
   border-left: 3px solid var(--border-mid);
+}
+
+/* Sides subtitle — compact read-only line in collapsed view */
+.plan-card-sides-subtitle {
+  font-size: 12px;
+  color: var(--text-3);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Expand/collapse chevron */
+.plan-card-expand {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color var(--t-fast), transform var(--t-fast);
+  padding: 0;
+}
+.plan-card-expand:hover { color: var(--text-1); }
+.plan-card-expand--open { transform: rotate(180deg); }
+
+/* Expanded details panel */
+.plan-card-details {
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Members row inside expanded panel */
+.plan-card-members-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Dining-out card — warm amber accent */
+.plan-card--dining-out {
+  border-left: 3px solid var(--warning);
+  background: color-mix(in srgb, var(--warning) 6%, var(--surface-2));
 }
 
 /* Made state: dim without hiding */
@@ -167,7 +221,7 @@
   line-height: 1.4;
 }
 
-.plan-card-name:hover { color: var(--accent); }
+.plan-card-name:hover { color: var(--hp-cherry); }
 
 .plan-card-name--sm {
   font-size: 13px;
@@ -182,7 +236,6 @@
   font-size: 14px;
   font-weight: 500;
   color: var(--text-2);
-  font-style: italic;
 }
 
 .plan-card-meta {
@@ -241,17 +294,122 @@
 .plan-card-same-note {
   font-size: 12px;
   color: var(--text-3);
-  font-style: italic;
 }
 
-/* Kids row (inside column card) */
+/* ─── Dining-out input row ──────────────────────────────────────────── */
+.plan-card-diningout-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.plan-card-diningout-icon {
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.plan-card-diningout-input {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-1);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  min-width: 0;
+  font-family: inherit;
+}
+
+.plan-card-diningout-input::placeholder {
+  color: var(--text-3);
+  font-weight: 400;
+}
+
+.plan-card-diningout-input:focus {
+  border-bottom: 1px solid var(--warning);
+}
+
+/* Sides row (inside dinner card) */
+.plan-card-sides-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+.plan-card-sides-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
+.plan-card-side-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px 3px 9px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-mid);
+  border-radius: 99px;
+  font-size: 12px;
+}
+
+.plan-card-side-chip-name {
+  color: var(--text-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--t-fast);
+}
+
+.plan-card-side-chip-name:hover { color: var(--accent); }
+
+.plan-card-side-chip-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+
+.plan-card-side-chip-remove:hover { background: var(--danger); color: #fff; }
+
+.plan-card-sides-add {
+  font-size: 12px;
+  color: var(--text-3);
+  padding: 2px 6px;
+}
+
+.plan-card-sides-add:hover { color: var(--accent); }
+
+/* Kids row (inside expanded details panel — border/margin handled by parent) */
 .plan-card-kids-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 0 2px;
+  padding: 6px 0 2px;
   border-top: 1px solid var(--border);
-  margin-top: 8px;
+}
+
+/* Audience pills row inside expanded panel */
+.plan-card-details .plan-card-audience-row {
+  padding-top: 0;
 }
 
 /* Audience toggle pills inside dinner card */
@@ -306,12 +464,12 @@
 /* ─── Made toggle ───────────────────────────────────────────────────── */
 .made-toggle {
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 1.5px solid var(--border-mid);
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  border: 1.75px solid var(--hp-ink-300);
   background: transparent;
-  color: var(--text-3);
+  color: var(--hp-ink-400);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -319,18 +477,18 @@
   transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
 }
 
-.made-toggle:hover { border-color: var(--accent); }
+.made-toggle:hover { border-color: var(--hp-spring); }
 
 .made-toggle--done {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--hp-spring);
+  border-color: var(--hp-spring);
   color: #fff;
 }
 
 .made-toggle--partial {
-  border-color: var(--accent);
-  background: var(--accent-dim);
-  color: var(--accent);
+  border-color: var(--hp-spring);
+  background: var(--hp-spring-50);
+  color: var(--hp-spring-700);
 }
 
 .made-toggle-frac {
@@ -431,7 +589,7 @@
 .picker-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(14, 18, 18, 0.5);
   backdrop-filter: blur(2px);
   z-index: 200;
   display: flex;
@@ -442,9 +600,9 @@
 @media (min-width: 600px) { .picker-overlay { align-items: center; } }
 
 .picker-sheet {
-  background: var(--surface);
-  border: 1px solid var(--border-mid);
-  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  background: var(--hp-paper);
+  border: 1px solid var(--hp-ink-200);
+  border-radius: var(--hp-r-xl) var(--hp-r-xl) 0 0;
   width: 100%;
   max-width: 480px;
   max-height: 70dvh;
@@ -454,7 +612,7 @@
 }
 
 @media (min-width: 600px) {
-  .picker-sheet { border-radius: var(--r-lg); max-height: 60dvh; }
+  .picker-sheet { border-radius: var(--hp-r-xl); max-height: 60dvh; }
 }
 
 .picker-header {

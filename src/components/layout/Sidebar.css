@@ -4,8 +4,8 @@
   left: 0;
   bottom: 0;
   width: var(--sidebar-width);
-  background: var(--surface);
-  border-right: 1px solid var(--border);
+  background: var(--hp-paper);
+  border-right: 1px solid var(--hp-ink-100);
   display: flex;
   flex-direction: column;
   z-index: 100;
@@ -25,59 +25,53 @@
   }
 }
 
-.sidebar--compressed {
-  width: var(--sidebar-rail-width);
-}
-
-/* Wordmark */
+/* ─── Wordmark area ──────────────────────────────────────────────────── */
 .sidebar-wordmark {
-  padding: 20px 16px 12px;
   display: flex;
   align-items: center;
   min-height: 64px;
+  padding: 20px 14px 14px;
 }
 
-.sidebar-logo {
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: var(--text-1);
-  white-space: nowrap;
+/* Compress: always center the Mark */
+.sidebar--compressed .sidebar-wordmark {
+  justify-content: center;
 }
 
-.sidebar-mark {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--accent);
-  margin: 0 auto;
+/* Full: left-align */
+@media (min-width: 1240px) {
+  .sidebar:not(.sidebar--compressed) .sidebar-wordmark {
+    justify-content: flex-start;
+  }
 }
 
-/* Nav */
+/* ─── Nav ────────────────────────────────────────────────────────────── */
 .sidebar-nav {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 4px 8px;
+  padding: 4px 10px;
 }
 
 .sidebar-footer {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 4px 8px 16px;
-  border-top: 1px solid var(--border);
+  padding: 4px 10px 18px;
+  border-top: 1px solid var(--hp-ink-100);
 }
 
+/* ─── Nav link ───────────────────────────────────────────────────────── */
 .sidebar-link {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
-  border-radius: var(--r-md);
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 12px;
   font-size: 14px;
-  font-weight: 500;
-  color: var(--text-2);
+  font-weight: 600;
+  color: var(--hp-ink-900);
   transition: background var(--t-fast), color var(--t-fast);
   white-space: nowrap;
   border: none;
@@ -85,33 +79,35 @@
   width: 100%;
   text-align: left;
   cursor: pointer;
+  text-decoration: none;
 }
 
-.sidebar-link:hover {
-  background: var(--surface-2);
-  color: var(--text-1);
+.sidebar-link:hover:not(.sidebar-link--active) {
+  background: var(--hp-ink-50);
 }
 
 .sidebar-link--active {
-  color: var(--accent);
-  background: var(--accent-dim);
+  background: var(--hp-cherry);
+  color: #fff;
 }
 
 .sidebar-link--active:hover {
-  background: var(--accent-dim);
-  color: var(--accent);
+  background: var(--hp-cherry-600);
+  color: #fff;
 }
 
-/* Compressed: center icons */
-@media (min-width: 980px) {
-  .sidebar:not(.sidebar--compressed) .sidebar-wordmark,
-  .sidebar.sidebar--compressed .sidebar-wordmark {
-    justify-content: center;
-  }
+/* Settings + theme toggle in footer: muted color, slightly smaller */
+.sidebar-link--settings {
+  color: var(--hp-ink-500);
+  font-size: 13px;
+}
+.sidebar-link--settings:hover:not(.sidebar-link--active) {
+  background: var(--hp-ink-50);
+  color: var(--hp-ink-900);
 }
 
-@media (min-width: 1240px) {
-  .sidebar .sidebar-wordmark {
-    justify-content: flex-start;
-  }
+/* ─── Compressed (rail) — center icons ──────────────────────────────── */
+.sidebar--compressed .sidebar-link {
+  justify-content: center;
+  padding: 11px;
 }
