@@ -5,7 +5,7 @@
 export const CATEGORIES = {
   breakfast: { label: 'Breakfast', color: '#FFC228' },  // --hp-marigold
   lunch:     { label: 'Lunch',     color: '#58CC02' },  // --hp-spring
-  dinner:    { label: 'Dinner',    color: '#0E1212' },  // --hp-ink-900
+  dinner:    { label: 'Dinner',    color: '#E63957' },  // --hp-cherry
   dessert:   { label: 'Dessert',   color: '#E63957' },  // --hp-cherry
   snack:     { label: 'Snack',     color: '#FF7733' },  // --hp-tangerine
   side:      { label: 'Side',      color: '#3DA002' },  // --hp-spring-700

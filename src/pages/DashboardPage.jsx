@@ -135,24 +135,32 @@ export default function DashboardPage() {
   return (
     <div className="page dash-page">
 
-      {/* ── Eyebrow + display headline ── */}
-      <div className="dash-header">
-        <div className="t-eyebrow" style={{ color: 'var(--hp-ink-500)' }}>{formatWeekOf(weekKey)}</div>
-        <div className="dash-header-actions">
-          <button className="btn btn-icon btn-ghost btn-sm" onClick={() => setWeekKey(k => shiftWeek(k, -1))}>
-            <IconChevronL size={16} />
-          </button>
-          <button className="btn btn-icon btn-ghost btn-sm" onClick={() => setWeekKey(k => shiftWeek(k, 1))}>
-            <IconChevronR size={16} />
-          </button>
-          <button className="btn btn-ghost btn-sm" onClick={handleShare}>
-            <IconShare size={14} /> {shared ? 'Copied!' : 'Share'}
-          </button>
+      {/* ── Hero ── */}
+      <div className="page-hero">
+        <div className="page-hero-top">
+          <span className="t-eyebrow" style={{ color: 'var(--ink-400)' }}>Home</span>
+          <div className="week-nav">
+            <button className="btn btn-icon btn-ghost btn-sm" onClick={() => setWeekKey(k => shiftWeek(k, -1))}>
+              <IconChevronL size={16} />
+            </button>
+            <span className="week-nav-label">{formatWeekOf(weekKey)}</span>
+            <button className="btn btn-icon btn-ghost btn-sm" onClick={() => setWeekKey(k => shiftWeek(k, 1))}>
+              <IconChevronR size={16} />
+            </button>
+            {weekKey !== getWeekKey() && (
+              <button className="btn btn-ghost btn-sm week-nav-today" onClick={() => setWeekKey(getWeekKey())}>
+                This week
+              </button>
+            )}
+            <button className="btn btn-ghost btn-sm" onClick={handleShare}>
+              <IconShare size={14} /> {shared ? 'Copied!' : 'Share'}
+            </button>
+          </div>
         </div>
+        <h1 className="page-hero-title">
+          {weekKey === getWeekKey() ? 'This week.' : 'The week.'}
+        </h1>
       </div>
-      <h1 className="t-display dash-headline">
-        {weekKey === getWeekKey() ? 'This week.' : 'The week.'}
-      </h1>
 
       {/* ── Row A: tonight + 3 stats ── */}
       <div className="dash-row-a">

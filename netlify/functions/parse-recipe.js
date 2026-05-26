@@ -1,9 +1,49 @@
-// Parses a recipe from a text description, a photo, or both.
+// Parses a recipe from a URL, text description, a photo, or both.
 // Input:  { text?: string, image?: { mediaType: string, data: string } }
 // Output: structured recipe JSON matching the RecipeFormPage schema
 
 const VALID_CATEGORIES = ['breakfast', 'lunch', 'dinner', 'snack', 'dessert', 'side', 'other']
 const VALID_AUDIENCES  = ['everyone', 'adults', 'kids']
+
+// ── URL detection ────────────────────────────────────────────────────────────
+function isURL(str) {
+  try {
+    const url = new URL(str.trim())
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch { return false }
+}
+
+// ── JSON-LD recipe extractor ─────────────────────────────────────────────────
+// Most recipe sites embed schema.org/Recipe in a <script type="application/ld+json">
+// block. This survives server-side fetching even on JavaScript-rendered pages.
+function extractJSONLD(html) {
+  const re = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+  let m
+  while ((m = re.exec(html)) !== null) {
+    try {
+      const data = JSON.parse(m[1])
+      const items = Array.isArray(data['@graph']) ? data['@graph'] : [data]
+      const recipe = items.find(item => {
+        const t = item['@type']
+        return t === 'Recipe' || (Array.isArray(t) && t.includes('Recipe'))
+      })
+      if (recipe) return JSON.stringify(recipe)
+    } catch { /* try next block */ }
+  }
+  return null
+}
+
+// ── HTML → readable text (fallback) ─────────────────────────────────────────
+function extractText(html) {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -24,6 +64,33 @@ exports.handler = async (event) => {
   const apiKey = process.env.ANTHROPIC_KEY
   if (!apiKey) {
     return { statusCode: 500, body: JSON.stringify({ error: 'Missing ANTHROPIC_KEY' }) }
+  }
+
+  // ── If text is a URL, fetch and extract the page content ─────────────────
+  let recipeText = text?.trim() || ''
+  if (recipeText && isURL(recipeText)) {
+    try {
+      const pageResp = await fetch(recipeText, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; HomePlate/1.0 recipe importer)',
+          'Accept': 'text/html,application/xhtml+xml',
+        },
+        redirect: 'follow',
+      })
+      if (pageResp.ok) {
+        const html = await pageResp.text()
+        // Prefer JSON-LD structured data — survives JS-rendered pages
+        const jsonld = extractJSONLD(html)
+        if (jsonld) {
+          recipeText = `Schema.org Recipe data:\n${jsonld}`
+        } else {
+          // Fall back to stripped HTML text, capped at ~12k chars
+          recipeText = extractText(html).slice(0, 12000)
+        }
+      }
+    } catch {
+      // Fall through — Claude will receive the raw URL and do its best
+    }
   }
 
   const systemPrompt = `You are a recipe parser for a meal planning app. Given a recipe (as text, a photo, or both), extract and structure the full recipe.
@@ -63,7 +130,7 @@ Rules:
 - notes is a plain string (tips, variations, storage); empty string if none
 - If reading from a photo, decode any abbreviated or handwritten text carefully`
 
-  // Build message content — support text + image or either alone
+  // Build message content — support text/URL + image or either alone
   const content = []
   if (image?.data && image?.mediaType) {
     content.push({
@@ -73,8 +140,8 @@ Rules:
   }
   content.push({
     type: 'text',
-    text: text?.trim()
-      ? `Parse this recipe:\n\n${text.trim()}`
+    text: recipeText
+      ? `Parse this recipe:\n\n${recipeText}`
       : 'Parse the recipe shown in this image.',
   })
 
@@ -102,7 +169,8 @@ Rules:
   const raw  = data.content?.[0]?.text?.trim() || '{}'
 
   try {
-    const recipe = JSON.parse(raw)
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+    const recipe = JSON.parse(cleaned)
 
     // Sanitize / coerce values
     if (!VALID_CATEGORIES.includes(recipe.category)) recipe.category = 'dinner'

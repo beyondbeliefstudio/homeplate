@@ -517,6 +517,53 @@ select.input {
 /* tabular numbers utility */
 .tabular { font-variant-numeric: tabular-nums; }
 
+/* ─── Shared page hero — consistent across all tabs ──────────── */
+.page-hero {
+  margin-bottom: 20px;
+}
+
+.page-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.page-hero-title {
+  font-family: var(--font-display);
+  font-size: 52px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--ink-900);
+  margin: 0;
+}
+
+@media (max-width: 639px) {
+  .page-hero-title { font-size: 36px; }
+}
+
+/* ─── Week nav (← label →) — used on Dashboard, Planner, Grocery */
+.week-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.week-nav-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-700);
+  padding: 0 4px;
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+.week-nav-today {
+  color: var(--hp-cherry);
+  margin-left: 2px;
+}
+
 /* Display-number utilities — Funnel Display large numerals */
 .t-num-lg {
   font-family: var(--hp-font-display);

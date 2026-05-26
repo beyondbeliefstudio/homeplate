@@ -6,9 +6,28 @@ import { CATEGORY_LIST, getCategoryMeta } from '../lib/categories'
 import {
   IconClock, IconServes, IconSearch, IconPlus,
   IconAdults, IconKids, IconEveryone,
+  IconBreakfast, IconLunch, IconDinner, IconSnack, IconSide, IconDessert,
 } from '../components/icons'
+
 import { EmptyRecipes } from '../components/EmptyStates'
 import './Recipes.css'
+
+// Map each category value to its illustration icon
+const CATEGORY_ICONS = {
+  breakfast: IconBreakfast,
+  lunch:     IconLunch,
+  dinner:    IconDinner,
+  snack:     IconSnack,
+  dessert:   IconDessert,
+  side:      IconSide,
+  other:     null,
+}
+
+const AUDIENCE_FILTERS = [
+  { value: 'everyone', label: 'Everyone', Icon: IconEveryone },
+  { value: 'adults',   label: 'Adults',   Icon: IconAdults },
+  { value: 'kids',     label: 'Kids',     Icon: IconKids },
+]
 
 export default function RecipesPage() {
   const user = useUser()
@@ -17,6 +36,7 @@ export default function RecipesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('all')
+  const [activeAudience, setActiveAudience] = useState('all')
 
   useEffect(() => {
     if (!user) return
@@ -29,49 +49,79 @@ export default function RecipesPage() {
   const filtered = recipes.filter(r => {
     const matchesSearch = r.name.toLowerCase().includes(search.toLowerCase())
     const matchesCategory = activeCategory === 'all' || r.category === activeCategory
-    return matchesSearch && matchesCategory
+    const matchesAudience = activeAudience === 'all' || r.audience === activeAudience
+    return matchesSearch && matchesCategory && matchesAudience
   })
 
   return (
-    <div className="page">
-      <div className="page-header">
-        <h1 className="page-title">Recipes</h1>
-        <button className="btn btn-primary btn-sm" onClick={() => navigate('/recipes/new')}>
-          <IconPlus size={15} /> Add recipe
-        </button>
+    <div className="page recipes-page">
+
+      {/* ── Hero ── */}
+      <div className="page-hero">
+        <div className="page-hero-top">
+          <span className="t-eyebrow" style={{ color: 'var(--ink-400)' }}>Cookbook · {recipes.length} recipes</span>
+          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/recipes/new')}>
+            <IconPlus size={15} /> Add recipe
+          </button>
+        </div>
+        <h1 className="page-hero-title">The cookbook.</h1>
       </div>
 
-      {/* Search */}
+      {/* ── Search ── */}
       <div className="recipes-search-row">
         <div className="recipes-search-wrap">
           <IconSearch size={18} className="recipes-search-icon" />
           <input
             className="input recipes-search-input"
-            placeholder="Search recipes…"
+            placeholder="Search recipes, ingredients, audience…"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
       </div>
 
-      {/* Category filter */}
+      {/* ── Filters: category + audience ── */}
       <div className="recipes-filter-row">
+        {/* Category chips */}
         <button
-          className={`chip recipes-filter-chip ${activeCategory === 'all' ? 'chip-on' : ''}`}
+          className={`chip recipes-filter-chip ${activeCategory === 'all' ? 'recipes-filter-chip--on' : ''}`}
           onClick={() => setActiveCategory('all')}
         >
           All
         </button>
-        {CATEGORY_LIST.map(cat => (
-          <button
-            key={cat.value}
-            className={`chip recipes-filter-chip ${activeCategory === cat.value ? 'recipes-filter-chip--active' : ''}`}
-            style={activeCategory === cat.value ? { '--chip-cat': cat.color } : {}}
-            onClick={() => setActiveCategory(cat.value)}
-          >
-            {cat.label}
-          </button>
-        ))}
+        {CATEGORY_LIST.map(cat => {
+          const CatIcon = CATEGORY_ICONS[cat.value]
+          const isActive = activeCategory === cat.value
+          return (
+            <button
+              key={cat.value}
+              className={`chip recipes-filter-chip ${isActive ? 'recipes-filter-chip--active' : ''}`}
+              style={isActive ? { '--chip-cat': cat.color } : {}}
+              onClick={() => setActiveCategory(cat.value)}
+            >
+              {CatIcon && <CatIcon size={13} />}
+              {cat.label}
+            </button>
+          )
+        })}
+
+        {/* Divider */}
+        <span className="recipes-filter-divider" />
+
+        {/* Audience chips */}
+        {AUDIENCE_FILTERS.map(({ value, label, Icon }) => {
+          const isActive = activeAudience === value
+          return (
+            <button
+              key={value}
+              className={`chip recipes-filter-chip ${isActive ? 'recipes-filter-chip--audience-on' : ''}`}
+              onClick={() => setActiveAudience(isActive ? 'all' : value)}
+            >
+              <Icon size={13} />
+              {label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Grid */}
@@ -111,23 +161,26 @@ function RecipeCard({ recipe, onClick }) {
   const meta = getCategoryMeta(recipe.category)
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0)
   const audience = recipe.audience || 'everyone'
+  const CatIcon = CATEGORY_ICONS[recipe.category]
+  const audienceLabel = audience === 'kids' ? 'Kids' : audience === 'adults' ? 'Adults' : 'Everyone'
+
+  // Pastel tint: 14% of category colour mixed with paper white
+  const headerBg = `color-mix(in oklab, ${meta.color} 14%, var(--paper))`
 
   return (
     <div className="recipe-card" onClick={onClick}>
-      {/* Coloured header strip */}
-      <div className="recipe-card-header" style={{ background: meta.color }}>
-        {/* Watermark circle */}
-        <svg className="recipe-card-watermark" width="80" height="80" viewBox="0 0 80 80" aria-hidden="true">
-          <circle cx="40" cy="40" r="34" fill="#fff" opacity=".18" />
-        </svg>
-        {/* Category chip */}
-        <span className="recipe-card-badge">{meta.label}</span>
-        {/* Audience badge */}
-        <span className="recipe-card-audience">
-          {audience === 'kids'   ? <IconKids size={16} />
-           : audience === 'adults' ? <IconAdults size={16} />
-           : <IconEveryone size={16} />}
+      {/* Pastel header */}
+      <div className="recipe-card-header" style={{ background: headerBg }}>
+        {/* Category label — uppercase, coloured, no chip */}
+        <span className="recipe-card-cat-label" style={{ color: meta.color }}>
+          {meta.label}
         </span>
+        {/* Category icon — large, right side, faint */}
+        {CatIcon && (
+          <div className="recipe-card-icon-bg" style={{ color: meta.color }} aria-hidden="true">
+            <CatIcon size={160} />
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -146,6 +199,7 @@ function RecipeCard({ recipe, onClick }) {
               {recipe.servings}
             </span>
           )}
+          <span className="recipe-card-meta-audience">{audienceLabel}</span>
         </div>
       </div>
     </div>

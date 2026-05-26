@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
-  IconHome, IconPlanner, IconRecipes, IconGrocery,
-  IconStore, IconSettings, IconSun, IconMoon,
+  IconHome, IconRecipes, IconPlanner, IconGrocery,
+  IconSettings, IconSun, IconMoon,
 } from '../icons'
 import { Wordmark, Mark } from '../Wordmark'
 import { useDarkMode } from '../../hooks/useDarkMode'
@@ -9,10 +9,9 @@ import './Sidebar.css'
 
 const NAV_ITEMS = [
   { to: '/dashboard', icon: IconHome,     label: 'Dashboard' },
-  { to: '/planner',   icon: IconPlanner,  label: 'Planner'   },
   { to: '/recipes',   icon: IconRecipes,  label: 'Recipes'   },
+  { to: '/planner',   icon: IconPlanner,  label: 'Planner'   },
   { to: '/grocery',   icon: IconGrocery,  label: 'Grocery'   },
-  { to: '/stores',    icon: IconStore,    label: 'Stores'    },
 ]
 
 export default function Sidebar({ isCompressed }) {

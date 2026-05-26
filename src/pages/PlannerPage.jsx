@@ -5,6 +5,8 @@ import { getCategoryMeta } from '../lib/categories'
 import { getWeekKey, shiftWeek, formatWeekOf } from '../lib/weeks'
 import {
   IconChevronL, IconChevronR, IconChevronD, IconPlus, IconClose, IconCheck, IconSearch, IconShare,
+  IconBreakfast, IconLunch, IconDinner, IconSnack,
+  IconAdults, IconKids, IconEveryone,
 } from '../components/icons'
 import './Planner.css'
 
@@ -12,9 +14,9 @@ import './Planner.css'
 const EMPTY_PLAN = { breakfasts: [], lunches: [], dinners: [], snacks: [] }
 
 const AUDIENCE = {
-  adults:   { label: 'Adults only', color: '#5C625E' },   // ink-500 neutral
-  everyone: { label: 'Everyone',    color: '#E63957' },   // cherry (--hot)
-  kids:     { label: 'Kids only',   color: '#C99100' },   // marigold-700 (--sun-700)
+  adults:   { label: 'Adults only', color: '#5C625E', accent: '#8C9189' },
+  everyone: { label: 'Everyone',    color: '#E63957', accent: '#E63957' },
+  kids:     { label: 'Kids only',   color: '#C99100', accent: '#C99100' },
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -168,34 +170,68 @@ export default function PlannerPage() {
 
   const sharedProps = { plan, recipeMap, recipes, members, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker }
 
+  // Stats for tiles
+  const dinnerNights = plan.dinners?.reduce((s, i) => s + (i.multiplier ?? 1), 0) ?? 0
+  const dinnerMade   = plan.dinners?.reduce((s, i) => s + (i.isDiningOut ? (i.made ? (i.multiplier ?? 1) : 0) : (i.madeCount ?? 0)), 0) ?? 0
+  const bfCount      = plan.breakfasts?.length ?? 0
+  const bfMade       = plan.breakfasts?.filter(i => i.made).length ?? 0
+  const luCount      = plan.lunches?.length ?? 0
+  const luMade       = plan.lunches?.filter(i => i.made).length ?? 0
+  const snCount      = plan.snacks?.length ?? 0
+  const snMade       = plan.snacks?.filter(i => i.made).length ?? 0
+
+  const statTiles = [
+    { key: 'dinners',    label: 'DINNERS',    icon: <IconDinner size={18} />,    color: '#E63957', count: dinnerNights, made: dinnerMade,  featured: true },
+    { key: 'breakfasts', label: 'BREAKFASTS', icon: <IconBreakfast size={18} />, color: '#FFC228', count: bfCount,      made: bfMade },
+    { key: 'lunches',    label: 'LUNCHES',    icon: <IconLunch size={18} />,     color: '#58CC02', count: luCount,      made: luMade },
+    { key: 'snacks',     label: 'SNACKS',     icon: <IconSnack size={18} />,     color: '#FF7733', count: snCount,      made: snMade },
+  ]
+
   return (
     <div className="page planner-page">
-      <div className="page-header">
-        <h1 className="page-title">Planner</h1>
-        <button className="btn btn-secondary btn-sm" onClick={handleShare}>
-          <IconShare size={14} />
-          {shared ? 'Copied!' : 'Share week'}
-        </button>
+
+      {/* ── Hero ── */}
+      <div className="page-hero">
+        <div className="page-hero-top">
+          <span className="t-eyebrow" style={{ color: 'var(--ink-400)' }}>Planner</span>
+          <div className="week-nav">
+            <button className="btn btn-icon btn-ghost btn-sm" onClick={() => setWeekKey(k => shiftWeek(k, -1))}>
+              <IconChevronL size={16} />
+            </button>
+            <span className="week-nav-label">{formatWeekOf(weekKey)}</span>
+            <button className="btn btn-icon btn-ghost btn-sm" onClick={() => setWeekKey(k => shiftWeek(k, 1))}>
+              <IconChevronR size={16} />
+            </button>
+            {weekKey !== getWeekKey() && (
+              <button className="btn btn-ghost btn-sm week-nav-today" onClick={() => setWeekKey(getWeekKey())}>
+                This week
+              </button>
+            )}
+            <button className="btn btn-ghost btn-sm" onClick={handleShare}>
+              <IconShare size={14} /> {shared ? 'Copied!' : 'Share week'}
+            </button>
+          </div>
+        </div>
+        <h1 className="page-hero-title">This week's lineup.</h1>
       </div>
 
-      {/* Week navigation */}
-      <div className="planner-week-nav">
-        <button className="btn btn-ghost btn-sm planner-nav-btn"
-          onClick={() => setWeekKey(k => shiftWeek(k, -1))}>
-          <IconChevronL size={16} />
-        </button>
-        <span className="planner-week-label">{formatWeekOf(weekKey)}</span>
-        <button className="btn btn-ghost btn-sm planner-nav-btn"
-          onClick={() => setWeekKey(k => shiftWeek(k, 1))}>
-          <IconChevronR size={16} />
-        </button>
-        {weekKey !== getWeekKey() && (
-          <button className="btn btn-ghost btn-sm planner-today-btn"
-            onClick={() => setWeekKey(getWeekKey())}>
-            This week
-          </button>
-        )}
-      </div>
+      {/* ── Stats tiles ── */}
+      {!loading && (
+        <div className="planner-stats-row">
+          {statTiles.map(tile => (
+            <div key={tile.key}
+              className={`planner-stat-tile ${tile.featured ? 'planner-stat-tile--on' : ''}`}
+              style={tile.featured ? { '--tile-color': tile.color } : {}}>
+              <span className="planner-stat-icon" style={{ color: tile.featured ? 'rgba(255,255,255,0.75)' : tile.color }}>
+                {tile.icon}
+              </span>
+              <span className="planner-stat-label">{tile.label}</span>
+              <span className="planner-stat-num">{tile.count}</span>
+              <span className="planner-stat-sub">{tile.count === 0 ? 'planned' : `${tile.made} made`}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div className="page-placeholder"><p>Loading…</p></div>
@@ -231,13 +267,16 @@ export default function PlannerPage() {
 }
 
 // ─── Section shell ───────────────────────────────────────────────────
-function SectionShell({ sectionKey, icon, label, count, collapsed, onToggle, children, addActions }) {
+function SectionShell({ icon, iconColor, label, madeCount, totalCount, collapsed, onToggle, children, addActions }) {
+  const madeLabel = totalCount > 0 ? `${madeCount} of ${totalCount} made` : null
   return (
     <div className="planner-section">
       <button className="planner-section-header" onClick={onToggle}>
-        <span className="planner-section-icon">{icon}</span>
+        <span className="planner-section-icon-wrap" style={{ '--icon-bg': iconColor }}>
+          {icon}
+        </span>
         <span className="planner-section-title">{label}</span>
-        {count > 0 && <span className="planner-section-count">{count}</span>}
+        {madeLabel && <span className="planner-section-badge">{madeLabel}</span>}
         <IconChevronD size={16}
           className={`planner-section-chevron ${collapsed ? '' : 'planner-section-chevron--open'}`} />
       </button>
@@ -258,8 +297,8 @@ function BreakfastsSection({ plan, recipeMap, members, collapsed, toggleCollapse
 
   return (
     <SectionShell
-      sectionKey="breakfasts" icon="🍳" label="Breakfasts"
-      count={items.length}
+      icon={<IconBreakfast size={16} />} iconColor="#FFC228" label="Breakfasts"
+      madeCount={items.filter(i => i.made).length} totalCount={items.length}
       collapsed={collapsed.breakfasts}
       onToggle={() => toggleCollapsed('breakfasts')}
       addActions={<>
@@ -306,7 +345,7 @@ function BreakfastsSection({ plan, recipeMap, members, collapsed, toggleCollapse
                 <MemberTags memberIds={item.memberIds ?? []} members={members}
                   onChange={ids => updateItem('breakfasts', item.id, { memberIds: ids })} />
               )}
-              <MultiplierBtn value={multi}
+              <MultiplierBtns value={multi}
                 onChange={v => updateItem('breakfasts', item.id, { multiplier: v })} />
               <button className="plan-card-remove" onClick={() => removeItem('breakfasts', item.id)}>
                 <IconClose size={13} />
@@ -360,8 +399,8 @@ function LunchesSection({ plan, recipeMap, members, collapsed, toggleCollapsed, 
 
   return (
     <SectionShell
-      sectionKey="lunches" icon="🥗" label="Lunches"
-      count={items.length}
+      icon={<IconLunch size={16} />} iconColor="#58CC02" label="Lunches"
+      madeCount={items.filter(i => i.made).length} totalCount={items.length}
       collapsed={collapsed.lunches}
       onToggle={() => toggleCollapsed('lunches')}
       addActions={<>
@@ -408,7 +447,7 @@ function LunchesSection({ plan, recipeMap, members, collapsed, toggleCollapsed, 
                 <MemberTags memberIds={item.memberIds ?? []} members={members}
                   onChange={ids => updateItem('lunches', item.id, { memberIds: ids })} />
               )}
-              <MultiplierBtn value={multi}
+              <MultiplierBtns value={multi}
                 onChange={v => updateItem('lunches', item.id, { multiplier: v })} />
               <button className="plan-card-remove" onClick={() => removeItem('lunches', item.id)}>
                 <IconClose size={13} />
@@ -465,13 +504,19 @@ function DinnerCard({ item, recipeMap, members, removeItem, updateItem, setPicke
   const sides      = item.sides ?? []
   const sideNames  = sides.map(s => recipeMap[s.recipeId]?.name).filter(Boolean)
 
+  const accentColor = (AUDIENCE[item.audience ?? 'everyone'] ?? AUDIENCE.everyone).accent
+
   return (
-    <div className={`plan-card plan-card--column plan-card--dinner ${fullDone ? 'plan-card--made' : ''}`}>
+    <div className={`plan-card plan-card--column plan-card--dinner ${fullDone ? 'plan-card--made' : ''}`}
+      style={{ '--dinner-accent': accentColor }}>
 
       {/* ── Always-visible summary row ── */}
       <div className="plan-card-row">
         <DinnerMadeToggle made={made} total={multi}
           onToggle={() => updateItem('dinners', item.id, { madeCount: made >= multi ? 0 : made + 1 })} />
+
+        {/* Audience accent pill — standalone, no border-left */}
+        <div className="plan-card-accent" style={{ background: accentColor }} />
 
         <div className="plan-card-body">
           <span className="plan-card-name"
@@ -483,12 +528,13 @@ function DinnerCard({ item, recipeMap, members, removeItem, updateItem, setPicke
           )}
         </div>
 
-        <button className={`plan-card-expand ${expanded ? 'plan-card-expand--open' : ''}`}
-          onClick={() => setExpanded(e => !e)} title={expanded ? 'Collapse' : 'Edit details'}>
-          <IconChevronD size={13} />
-        </button>
-        <MultiplierBtn value={multi}
+        <AudienceBadge audience={item.audience ?? 'everyone'} />
+        <MultiplierBtns value={multi}
           onChange={v => updateItem('dinners', item.id, { multiplier: v, madeCount: Math.min(made, v) })} />
+        <button className={`plan-card-expand ${expanded ? 'plan-card-expand--open' : ''}`}
+          onClick={() => setExpanded(e => !e)} title={expanded ? 'Collapse' : 'Expand'}>
+          <IconChevronD size={14} />
+        </button>
         <button className="plan-card-remove" onClick={() => removeItem('dinners', item.id)}>
           <IconClose size={13} />
         </button>
@@ -582,8 +628,8 @@ function DinnersSection({ plan, recipeMap, members, collapsed, toggleCollapsed, 
 
   return (
     <SectionShell
-      sectionKey="dinners" icon="🍽" label="Dinners"
-      count={items.length}
+      icon={<IconDinner size={16} />} iconColor="#E63957" label="Dinners"
+      madeCount={doneNights} totalCount={totalNights}
       collapsed={collapsed.dinners}
       onToggle={() => toggleCollapsed('dinners')}
       addActions={<>
@@ -597,12 +643,6 @@ function DinnersSection({ plan, recipeMap, members, collapsed, toggleCollapsed, 
         </button>
       </>}
     >
-      {items.length > 0 && (
-        <p className="planner-dinner-summary">
-          {doneNights} of {totalNights} night{totalNights !== 1 ? 's' : ''} done this week
-        </p>
-      )}
-
       {items.map(item => {
         if (item.isDiningOut) {
           return <DiningOutCard key={item.id} item={item} section="dinners" members={members} removeItem={removeItem} updateItem={updateItem} />
@@ -622,8 +662,8 @@ function SnacksSection({ plan, recipeMap, members, collapsed, toggleCollapsed, a
 
   return (
     <SectionShell
-      sectionKey="snacks" icon="🍪" label="Snacks & Bakes"
-      count={items.length}
+      icon={<IconSnack size={16} />} iconColor="#FF7733" label="Snacks & Bakes"
+      madeCount={items.filter(i => i.made).length} totalCount={items.length}
       collapsed={collapsed.snacks}
       onToggle={() => toggleCollapsed('snacks')}
       addActions={<>
@@ -660,7 +700,7 @@ function SnacksSection({ plan, recipeMap, members, collapsed, toggleCollapsed, a
                 <MemberTags memberIds={item.memberIds ?? []} members={members}
                   onChange={ids => updateItem('snacks', item.id, { memberIds: ids })} />
               )}
-              <MultiplierBtn value={multi}
+              <MultiplierBtns value={multi}
                 onChange={v => updateItem('snacks', item.id, { multiplier: v })} />
               <button className="plan-card-remove" onClick={() => removeItem('snacks', item.id)}>
                 <IconClose size={13} />
@@ -705,7 +745,7 @@ function DiningOutCard({ item, section, members, removeItem, updateItem }) {
           <MemberTags memberIds={item.memberIds ?? []} members={members}
             onChange={ids => updateItem(section, item.id, { memberIds: ids })} />
         )}
-        <MultiplierBtn value={multi} onChange={v => updateItem(section, item.id, { multiplier: v })} />
+        <MultiplierBtns value={multi} onChange={v => updateItem(section, item.id, { multiplier: v })} />
         <button className="plan-card-remove" onClick={() => removeItem(section, item.id)}>
           <IconClose size={13} />
         </button>
@@ -735,21 +775,26 @@ function DinnerMadeToggle({ made, total, onToggle }) {
   )
 }
 
-function MultiplierBtn({ value, onChange }) {
-  const cycle = [1, 2, 3]
-  const next  = cycle[(cycle.indexOf(value) + 1) % cycle.length]
+function MultiplierBtns({ value, onChange }) {
   return (
-    <button className="multiplier-btn" onClick={() => onChange(next)}
-      title="Tap to change nights / batch size">
-      {value}×
-    </button>
+    <div className="multiplier-btns">
+      {[1, 2, 3].map(n => (
+        <button key={n}
+          className={`multiplier-btn ${value === n ? 'multiplier-btn--on' : ''}`}
+          onClick={() => onChange(n)}>
+          {n}×
+        </button>
+      ))}
+    </div>
   )
 }
 
 function AudienceBadge({ audience }) {
   const cfg = AUDIENCE[audience] ?? AUDIENCE.everyone
+  const Icon = audience === 'kids' ? IconKids : audience === 'adults' ? IconAdults : IconEveryone
   return (
     <span className="audience-badge" style={{ '--ab-color': cfg.color }}>
+      <Icon size={13} />
       {cfg.label}
     </span>
   )

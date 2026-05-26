@@ -130,6 +130,35 @@ export function IconSnack(p) {
   )
 }
 
+// Side — fork & spoon
+export function IconSide(p) {
+  return (
+    <Icon {...p}>
+      {/* fork */}
+      <path d="M7 2v4.5M5 2v3h4V2M7 6.5V21" />
+      {/* spoon */}
+      <ellipse cx="17" cy="5.5" rx="2.5" ry="3.5" />
+      <path d="M17 9V21" />
+    </Icon>
+  )
+}
+
+// Dessert — cupcake
+export function IconDessert(p) {
+  return (
+    <Icon {...p}>
+      {/* wrapper */}
+      <path d="M8 13h8l-1.5 8h-5Z" />
+      {/* frosting dome */}
+      <path d="M5.5 13a6.5 6.5 0 0 1 13 0" />
+      {/* swirl peak */}
+      <path d="M12 6.5V13" />
+      {/* cherry */}
+      <circle cx="12" cy="4.5" r="2" />
+    </Icon>
+  )
+}
+
 // ─── Audience ─────────────────────────────────────────────────────────────────
 
 // Adults — two figures, taller

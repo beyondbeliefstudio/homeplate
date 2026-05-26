@@ -4,8 +4,8 @@ import './BottomNav.css'
 
 const NAV_ITEMS = [
   { to: '/dashboard', icon: IconHome,    label: 'Home'    },
-  { to: '/planner',   icon: IconPlanner, label: 'Planner' },
   { to: '/recipes',   icon: IconRecipes, label: 'Recipes' },
+  { to: '/planner',   icon: IconPlanner, label: 'Planner' },
   { to: '/grocery',   icon: IconGrocery, label: 'Grocery' },
 ]
 

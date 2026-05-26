@@ -1,28 +1,18 @@
 /* ─── Page ───────────────────────────────────────────────────────────── */
-.grocery-page { max-width: 1000px; }
+.grocery-page { max-width: none; }
 
-/* ─── Hero header ────────────────────────────────────────────────────── */
-.grocery-hero {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.grocery-hero-left { flex: 1; min-width: 0; }
-
+/* ─── Hero count block (below the shared page-hero-title) ────────── */
 .grocery-hero-count {
   display: flex;
   align-items: baseline;
   gap: 14px;
-  margin: 6px 0 8px;
+  margin: 6px 0 6px;
   flex-wrap: wrap;
 }
 
 .grocery-hero-num {
   font-family: var(--hp-font-display);
-  font-size: 72px;
+  font-size: 60px;
   font-weight: 700;
   line-height: .88;
   letter-spacing: -.045em;
@@ -31,7 +21,7 @@
 
 .grocery-hero-tag {
   font-family: var(--hp-font-display);
-  font-size: 42px;
+  font-size: 36px;
   font-weight: 700;
   line-height: .9;
   letter-spacing: -.03em;
@@ -44,20 +34,7 @@
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
-}
-
-.grocery-hero-nav {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  padding-top: 6px;
-}
-
-.grocery-hero-week {
-  color: var(--hp-ink-700);
-  font-size: 13px;
-  white-space: nowrap;
+  margin-bottom: 16px;
 }
 
 /* Inline uncheck button */
@@ -700,8 +677,8 @@
 
 /* ─── Mobile ─────────────────────────────────────────────────────────── */
 @media (max-width: 719px) {
-  .grocery-hero-num  { font-size: 52px; }
-  .grocery-hero-tag  { font-size: 32px; }
+  .grocery-hero-num  { font-size: 44px; }
+  .grocery-hero-tag  { font-size: 28px; }
   .grocery-controls  { flex-direction: column; align-items: flex-start; gap: 10px; }
   .grocery-controls-left { min-width: unset; width: 100%; }
 }

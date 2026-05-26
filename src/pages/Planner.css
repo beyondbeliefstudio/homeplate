@@ -1,29 +1,63 @@
 /* ─── Page ───────────────────────────────────────────────────────────── */
-.planner-page { max-width: 680px; }
+.planner-page { max-width: none; }
 
-/* ─── Week nav ──────────────────────────────────────────────────────── */
-.planner-week-nav {
+
+/* ─── Stats tiles ────────────────────────────────────────────────────── */
+.planner-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 639px) {
+  .planner-stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+.planner-stat-tile {
+  background: var(--hp-paper);
+  border: 1px solid var(--hp-ink-100);
+  border-radius: var(--hp-r-xl);
+  padding: 16px 18px 18px;
   display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 20px;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.planner-nav-btn { padding: 0 8px; }
-
-.planner-week-label {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-1);
-  min-width: 180px;
-  text-align: center;
+.planner-stat-tile--on {
+  background: var(--tile-color, var(--hp-cherry));
+  border-color: transparent;
 }
 
-.planner-today-btn {
-  margin-left: 4px;
-  color: var(--accent);
-  font-size: 13px;
+.planner-stat-icon { line-height: 1; margin-bottom: 6px; }
+
+.planner-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--hp-ink-400);
 }
+
+.planner-stat-tile--on .planner-stat-label { color: rgba(255,255,255,0.65); }
+
+.planner-stat-num {
+  font-family: var(--hp-font-display);
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--hp-ink-900);
+  margin: 4px 0 2px;
+}
+
+.planner-stat-tile--on .planner-stat-num { color: #fff; }
+
+.planner-stat-sub {
+  font-size: 12px;
+  color: var(--hp-ink-400);
+}
+
+.planner-stat-tile--on .planner-stat-sub { color: rgba(255,255,255,0.65); }
 
 /* ─── Sections ──────────────────────────────────────────────────────── */
 .planner-sections {
@@ -54,22 +88,33 @@
 
 .planner-section-header:hover { background: var(--surface-2); }
 
-.planner-section-icon { font-size: 18px; line-height: 1; }
+.planner-section-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--icon-bg, var(--hp-ink-200));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
 
 .planner-section-title {
   flex: 1;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-1);
 }
 
-.planner-section-count {
+.planner-section-badge {
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-3);
-  background: var(--surface-3);
+  color: var(--hp-ink-400);
+  background: var(--hp-ink-50);
   border-radius: 99px;
-  padding: 2px 7px;
+  padding: 3px 10px;
+  border: 1px solid var(--hp-ink-100);
 }
 
 .planner-section-chevron {
@@ -101,23 +146,17 @@
 .planner-add-btn--diningout { color: var(--hp-marigold-700); }
 .planner-add-btn--diningout:hover { color: var(--hp-ink-900); }
 
-/* Dinner progress summary */
-.planner-dinner-summary {
-  font-size: 12px;
-  color: var(--text-3);
-  padding: 0 2px 2px;
-}
 
 /* ─── Plan card ─────────────────────────────────────────────────────── */
 .plan-card {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  background: var(--hp-paper-off);
+  padding: 12px 14px;
+  background: var(--hp-paper);
   border: 1px solid var(--hp-ink-100);
-  border-radius: 18px;
-  min-height: 48px;
+  border-radius: 20px;
+  min-height: 52px;
   transition: opacity var(--t-fast);
 }
 
@@ -135,9 +174,16 @@
   min-height: 40px;
 }
 
-/* Dinner card */
-.plan-card--dinner {
-  border-left: 3px solid var(--border-mid);
+/* Dinner card — accent is an inline pill, not border-left */
+.plan-card--dinner { }
+
+/* Standalone accent pill — sits between checkbox and name, no border-left */
+.plan-card-accent {
+  width: 3px;
+  height: 28px;
+  border-radius: 99px;
+  flex-shrink: 0;
+  background: var(--hp-ink-200);
 }
 
 /* Sides subtitle — compact read-only line in collapsed view */
@@ -211,20 +257,25 @@
 }
 
 .plan-card-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-1);
+  font-family: var(--hp-font-display);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--hp-ink-900);
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.4;
+  line-height: 1.2;
 }
 
 .plan-card-name:hover { color: var(--hp-cherry); }
 
 .plan-card-name--sm {
+  font-family: var(--hp-font-sans);
   font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .plan-card-unset {
@@ -498,39 +549,52 @@
   line-height: 1;
 }
 
-/* ─── Multiplier button ─────────────────────────────────────────────── */
-.multiplier-btn {
+/* ─── Multiplier buttons ────────────────────────────────────────────── */
+.multiplier-btns {
+  display: flex;
+  align-items: center;
+  gap: 2px;
   flex-shrink: 0;
-  padding: 3px 8px;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--border-mid);
-  background: transparent;
-  color: var(--text-2);
-  font-size: 12px;
-  font-weight: 600;
-  font-family: var(--font-mono);
-  cursor: pointer;
-  transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast);
 }
 
-.multiplier-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-dim);
+.multiplier-btn {
+  flex-shrink: 0;
+  padding: 3px 7px;
+  border-radius: 8px;
+  border: 1px solid var(--hp-ink-200);
+  background: transparent;
+  color: var(--hp-ink-400);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--hp-font-mono);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+
+.multiplier-btn:not(.multiplier-btn--on):hover {
+  border-color: var(--hp-ink-500);
+  color: var(--hp-ink-700);
+}
+
+.multiplier-btn--on {
+  background: var(--hp-ink-900);
+  border-color: var(--hp-ink-900);
+  color: #fff;
 }
 
 /* ─── Audience badge ────────────────────────────────────────────────── */
 .audience-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  gap: 5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--ab-color, var(--text-3));
-  background: color-mix(in srgb, var(--ab-color, currentColor) 12%, transparent);
+  background: color-mix(in srgb, var(--ab-color, currentColor) 14%, transparent);
   border-radius: 99px;
-  padding: 2px 7px;
+  padding: 4px 10px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Audience pills inside dinner card */

@@ -764,43 +764,46 @@ export default function GroceryPage() {
   return (
     <div className="page grocery-page">
 
-      {/* ── Hero header ─────────────────────────────────────────────── */}
-      <div className="grocery-hero">
-        <div className="grocery-hero-left">
-          <div className="t-eyebrow" style={{ color: 'var(--hp-ink-500)' }}>
+      {/* ── Hero ─────────────────────────────────────────────────── */}
+      <div className="page-hero">
+        <div className="page-hero-top">
+          <span className="t-eyebrow" style={{ color: 'var(--ink-400)' }}>
             Grocery · {totalItems} item{totalItems !== 1 ? 's' : ''}
+          </span>
+          <div className="week-nav">
+            <button className="btn btn-icon btn-ghost btn-sm" onClick={() => setWeekKey(k => shiftWeek(k, -1))}>
+              <IconChevronL size={16} />
+            </button>
+            <span className="week-nav-label">{formatWeekOf(weekKey)}</span>
+            <button className="btn btn-icon btn-ghost btn-sm" onClick={() => setWeekKey(k => shiftWeek(k, 1))}>
+              <IconChevronR size={16} />
+            </button>
+            {weekKey !== getWeekKey() && (
+              <button className="btn btn-ghost btn-sm week-nav-today" onClick={() => setWeekKey(getWeekKey())}>
+                This week
+              </button>
+            )}
           </div>
-          {!loading && (
-            <div className="grocery-hero-count">
-              <span className="grocery-hero-num">{stillToGrab}</span>
-              <span className="grocery-hero-tag">
-                {stillToGrab === 0 && totalItems > 0 ? 'all grabbed.' : 'still to grab.'}
-              </span>
-            </div>
-          )}
-          {!loading && totalItems > 0 && (
-            <p className="t-body-sm grocery-hero-sub">
-              {totalChecked} already got · {totalItems} total
-              {totalChecked > 0 && (
-                <button className="grocery-uncheck-btn" onClick={uncheckAll}>
-                  · <IconRefresh size={11} /> uncheck all
-                </button>
-              )}
-            </p>
-          )}
         </div>
-        <div className="grocery-hero-nav">
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setWeekKey(k => shiftWeek(k, -1))}>
-            <IconChevronL size={16} />
-          </button>
-          <span className="t-label grocery-hero-week">{formatWeekOf(weekKey)}</span>
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setWeekKey(k => shiftWeek(k, 1))}>
-            <IconChevronR size={16} />
-          </button>
-          {weekKey !== getWeekKey() && (
-            <button className="btn btn-ghost btn-sm" onClick={() => setWeekKey(getWeekKey())}>This week</button>
-          )}
-        </div>
+        <h1 className="page-hero-title">The list.</h1>
+        {!loading && (
+          <div className="grocery-hero-count">
+            <span className="grocery-hero-num">{stillToGrab}</span>
+            <span className="grocery-hero-tag">
+              {stillToGrab === 0 && totalItems > 0 ? 'all grabbed.' : 'still to grab.'}
+            </span>
+          </div>
+        )}
+        {!loading && totalItems > 0 && (
+          <p className="t-body-sm grocery-hero-sub">
+            {totalChecked} already got · {totalItems} total
+            {totalChecked > 0 && (
+              <button className="grocery-uncheck-btn" onClick={uncheckAll}>
+                · <IconRefresh size={11} /> uncheck all
+              </button>
+            )}
+          </p>
+        )}
       </div>
 
       {/* ── Controls: progress + view toggle + store pills ─────────── */}

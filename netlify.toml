@@ -20,7 +20,7 @@
 [functions."parse-aisle-photo"]
   timeout = 20
 
-[[redirects]]
+[[context.production.redirects]]
   from   = "/*"
   to     = "/index.html"
   status = 200
