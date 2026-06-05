@@ -10,7 +10,7 @@
       // Light is now the default — no class needed for light mode.
       (function() {
         var theme = localStorage.getItem('hp-theme');
-        if (theme === 'dark') document.documentElement.classList.add('dark');
+        if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
       })();
     </script>
   </head>

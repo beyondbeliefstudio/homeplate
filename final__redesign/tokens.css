@@ -1,0 +1,76 @@
+/* HomePlate design tokens — drop into your app, then reference via var(--token).
+   For Tailwind/SCSS/JS theme objects, translate these into your local format. */
+
+@import url('https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300..800&family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500&display=swap');
+
+:root {
+  /* ============ COLOR ============ */
+
+  /* Surfaces */
+  --hp-bg-app:       #F4F6EE;  /* cool mist — app background, always visible */
+  --hp-bg-app-warm:  #ECEFE2;  /* warm-shifted mist — nested fills inside cards */
+  --hp-paper:        #FFFFFF;  /* card surface */
+  --hp-paper-off:    #F8FAF2;  /* nested card / inset row */
+
+  /* Ink (text + borders) */
+  --hp-ink-900:      #0E1212;  /* body text */
+  --hp-ink-700:      #2A302E;  /* strong secondary */
+  --hp-ink-500:      #5C625E;  /* secondary text */
+  --hp-ink-400:      #8C9189;  /* placeholder, tertiary */
+  --hp-ink-300:      #B5B9B0;  /* disabled, faint */
+  --hp-ink-200:      #D4D7CC;  /* borders */
+  --hp-ink-100:      #E5E8DE;  /* dividers */
+  --hp-ink-50:       #EEF1E5;  /* tints, fills */
+
+  /* Cherry — PRIMARY (CTAs, brand, active nav, primary buttons) */
+  --hp-cherry:       #E63957;
+  --hp-cherry-600:   #C42445;
+  --hp-cherry-100:   #FCD9DF;
+  --hp-cherry-50:    #FEE9ED;
+
+  /* Spring — SECONDARY (success, made-state, audience tags) */
+  --hp-spring:       #58CC02;
+  --hp-spring-700:   #3DA002;
+  --hp-spring-100:   #DBF4B8;
+  --hp-spring-50:    #ECF9D8;
+
+  /* Marigold — ACCENT (highlights, pantry raid, kids audience) */
+  --hp-marigold:     #FFC228;
+  --hp-marigold-700: #C99100;
+  --hp-marigold-100: #FFE89E;
+  --hp-marigold-50:  #FFF4C9;
+
+  /* Tangerine — tertiary pop (use sparingly) */
+  --hp-tangerine:    #FF7733;
+  --hp-tangerine-100:#FFD9C0;
+
+  /* ============ TYPOGRAPHY ============ */
+  --hp-font-display: 'Funnel Display', ui-sans-serif, system-ui, sans-serif;
+  --hp-font-body:    'Geist', ui-sans-serif, system-ui, sans-serif;
+  --hp-font-mono:    'Geist Mono', ui-monospace, monospace;
+
+  /* ============ RADIUS ============ */
+  --hp-r-xs:  8px;
+  --hp-r-sm:  12px;
+  --hp-r-md:  16px;
+  --hp-r-lg:  22px;
+  --hp-r-xl:  28px;
+  --hp-r-2xl: 36px;
+  --hp-r-pill: 9999px;
+
+  /* ============ ELEVATION ============ */
+  --hp-shadow-1: 0 1px 2px rgba(14,18,18,.04);   /* set on cards */
+  --hp-shadow-2: 0 4px 14px rgba(14,18,18,.06);  /* hover, dropdowns */
+  --hp-shadow-3: 0 10px 28px rgba(14,18,18,.10); /* popovers */
+  --hp-shadow-4: 0 18px 44px rgba(14,18,18,.14); /* modals, sheets */
+
+  /* ============ DARK MODE (tokens only — light is the product) ============ */
+  /* Apply @media (prefers-color-scheme: dark) or [data-theme="dark"] to swap */
+  --hp-dark-bg:      #0F1414;
+  --hp-dark-surface: #1A1F1D;
+  --hp-dark-elev:    #252B28;
+  --hp-dark-text:    #F4F6EE;
+  --hp-dark-cherry:  #FF5575;
+  --hp-dark-spring:  #7AE020;
+  --hp-dark-marigold:#FFD562;
+}

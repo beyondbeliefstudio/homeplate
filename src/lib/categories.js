@@ -9,6 +9,7 @@ export const CATEGORIES = {
   dessert:   { label: 'Dessert',   color: '#E63957' },  // --hp-cherry
   snack:     { label: 'Snack',     color: '#FF7733' },  // --hp-tangerine
   side:      { label: 'Side',      color: '#3DA002' },  // --hp-spring-700
+  beverage:  { label: 'Beverage',  color: '#2E7AFF' },  // blue
   other:     { label: 'Other',     color: '#5C625E' },  // --hp-ink-500
 }
 

@@ -1,82 +1,114 @@
-.settings-stack { display: flex; flex-direction: column; gap: 12px; max-width: 520px; }
+/* ─── Page shell ──────────────────────────────────────────────────── */
+.settings-page { max-width: none; }
 
-.settings-section-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--text-3);
-  text-transform: uppercase;
-  margin-bottom: 12px;
-}
-
-.settings-hint {
-  font-size: 13px;
-  color: var(--text-2);
-  line-height: 1.55;
-  margin-bottom: 14px;
-}
-
-.settings-row {
+/* ─── Settings layout: left nav + content ────────────────────────── */
+.settings-layout {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 0;
+  flex: 1;
+  margin-top: 28px;
 }
 
-.settings-row-title { font-weight: 500; font-size: 14px; }
-.settings-row-sub   { color: var(--text-2); font-size: 13px; margin-top: 2px; }
-
-/* ─── Members ─────────────────────────────────────────────────────── */
-.member-list {
+.settings-sidenav {
+  width: 196px;
+  flex-shrink: 0;
+  padding-right: 20px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-bottom: 4px;
+  padding-top: 2px;
 }
 
-.member-row {
+.settings-sidenav-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.member-row:last-child { border-bottom: none; }
-
-.member-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.member-name { flex: 1; font-size: 14px; font-weight: 500; color: var(--text-1); }
-
-.member-delete { color: var(--text-3); padding: 0 6px; }
-.member-delete:hover { color: var(--danger); }
-
-.member-add-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 10px;
-  padding: 14px;
-  background: var(--surface-2);
+  height: 38px;
+  padding: 0 12px;
   border-radius: var(--r-md);
-  border: 1px solid var(--border);
-}
-
-.member-color-row { display: flex; gap: 8px; flex-wrap: wrap; }
-
-.member-color-swatch {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid transparent;
+  border: none;
   cursor: pointer;
-  transition: transform var(--t-fast), border-color var(--t-fast);
+  font-family: var(--hp-font-body);
+  font-size: 13px;
+  text-align: left;
+  width: 100%;
+  transition: background 0.1s, color 0.1s;
+  background: transparent;
+  color: var(--hp-ink-500);
+  font-weight: 400;
 }
 
-.member-color-swatch:hover { transform: scale(1.15); }
-.member-color-swatch--active { border-color: var(--text-1); transform: scale(1.1); }
+.settings-sidenav-btn:hover:not(.settings-sidenav-btn--on) {
+  background: var(--hp-ink-50);
+  color: var(--hp-ink-700);
+}
+
+.settings-sidenav-btn--on {
+  background: var(--green-700);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+.settings-content {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 60px;
+  max-width: 720px;
+}
+
+/* ─── Mobile: nav on top, horizontal scroll ──────────────────────── */
+@media (max-width: 699px) {
+  .settings-layout { flex-direction: column; }
+
+  .settings-sidenav {
+    width: 100%;
+    padding-right: 0;
+    flex-direction: row;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    gap: 4px;
+    margin-bottom: 20px;
+  }
+
+  .settings-sidenav::-webkit-scrollbar { display: none; }
+
+  .settings-sidenav-btn {
+    flex-shrink: 0;
+    width: auto;
+    white-space: nowrap;
+    height: 34px;
+  }
+}
+
+/* ─── Toggle switch ──────────────────────────────────────────────── */
+.settings-toggle {
+  position: relative;
+  width: 40px;
+  height: 23px;
+  border-radius: var(--r-pill);
+  border: none;
+  background: var(--hp-ink-200);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s;
+  padding: 0;
+}
+
+.settings-toggle[aria-pressed="true"] {
+  background: var(--hp-green);
+}
+
+.settings-toggle-thumb {
+  position: absolute;
+  top: 2.5px;
+  left: 2.5px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.18s;
+  display: block;
+}
+
+.settings-toggle-thumb--on { left: 19px; }

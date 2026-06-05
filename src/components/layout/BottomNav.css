@@ -1,13 +1,12 @@
-/* Floating card — 16px from bottom + sides, 28px radius */
+/* Floating card — 20px from bottom + sides, 28px radius */
 .bottom-nav {
   position: fixed;
-  bottom: calc(16px + env(safe-area-inset-bottom));
-  left: 16px;
-  right: 16px;
+  bottom: 20px;
+  left: 12px;
+  right: 12px;
   background: var(--hp-paper);
   border-radius: 28px;
-  border: 1px solid var(--hp-ink-100);
-  box-shadow: var(--hp-shadow-2);
+  box-shadow: 0 8px 28px rgba(32,36,28,.12), 0 0 0 1px var(--hp-ink-100);
   display: flex;
   align-items: center;
   padding: 8px;
@@ -27,8 +26,8 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
-  padding: 10px 12px;
-  border-radius: 16px;
+  padding: 10px 6px;
+  border-radius: 20px;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.01em;
@@ -43,11 +42,11 @@
 }
 
 .bottom-nav-link--active {
-  background: var(--hp-ink-900);
+  background: var(--green-700);
   color: #fff;
 }
 
 .bottom-nav-link--active:hover {
-  background: var(--hp-ink-900);
+  background: var(--green-700);
   color: #fff;
 }

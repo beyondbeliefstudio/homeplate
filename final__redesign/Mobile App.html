@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HomePlate — Mobile</title>
+  <script>(function(){ var t = localStorage.getItem('hp-theme'); if (t) document.documentElement.setAttribute('data-theme', t); })();</script>
+  <link rel="stylesheet" href="ds.css" />
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      background: #111;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+    #root { display: flex; align-items: flex-start; justify-content: center; }
+    ::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" src="icons.jsx"></script>
+  <script type="text/babel" src="ds-foodicons.jsx"></script>
+  <script type="text/babel" src="ds-logo.jsx"></script>
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="mobile.jsx"></script>
+  <script type="text/babel" src="mobile-planner.jsx"></script>
+  <script type="text/babel" src="mobile-dashboard.jsx"></script>
+  <script type="text/babel" src="mobile-grocery.jsx"></script>
+  <script type="text/babel">
+    const {
+      IOSDevice,
+      MobileDashboardScreen, MobilePlannerScreen,
+      MobileRecipesScreen,   MobileGroceryScreen,
+      AccountSheet,
+    } = window;
+
+    function App() {
+      const [tab, setTab]             = React.useState('dashboard');
+      const [showAccount, setShowAccount] = React.useState(false);
+
+      // Wire global tab handler so all screens' internal MobileTabBars navigate here
+      window.__appTabPress = React.useCallback((id) => {
+        if (id === 'profile') { setShowAccount(true); return; }
+        setTab(id);
+      }, []);
+
+      // Preserve scroll position per tab by keeping all screens mounted
+      const screens = [
+        ['dashboard', MobileDashboardScreen],
+        ['planner',   MobilePlannerScreen  ],
+        ['recipes',   MobileRecipesScreen  ],
+        ['grocery',   MobileGroceryScreen  ],
+      ];
+
+      return (
+        <IOSDevice>
+          <div style={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
+            {screens.map(([id, Screen]) => (
+              <div key={id} style={{
+                position: 'absolute', inset: 0,
+                display: tab === id ? 'block' : 'none',
+              }}>
+                <Screen />
+              </div>
+            ))}
+            {showAccount && <AccountSheet onClose={() => setShowAccount(false)} />}
+          </div>
+        </IOSDevice>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

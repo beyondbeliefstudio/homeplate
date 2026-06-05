@@ -45,20 +45,35 @@ export async function getRecipeById(id) {
   return { data, error }
 }
 
+export async function uploadRecipeImage(userId, file) {
+  const ext  = file.name.split('.').pop() || 'jpg'
+  const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+  const { error } = await supabase.storage.from('recipe-images').upload(path, file, { upsert: false })
+  if (error) return { url: null, path: null, error }
+  const { data } = supabase.storage.from('recipe-images').getPublicUrl(path)
+  return { url: data.publicUrl, path, error: null }
+}
+
+export async function deleteRecipeImage(path) {
+  const { error } = await supabase.storage.from('recipe-images').remove([path])
+  return { error }
+}
+
 export async function saveRecipe(userId, recipe) {
   const payload = {
-    user_id:      userId,
-    name:         recipe.name,
-    category:     recipe.category || 'other',
-    audience:     recipe.audience || 'everyone',
-    servings:     recipe.servings || 2,
-    prep_time:    recipe.prepTime ?? recipe.prep_time ?? 0,
-    cook_time:    recipe.cookTime ?? recipe.cook_time ?? 0,
-    notes:        recipe.notes || null,
-    image_url:    recipe.imageUrl ?? recipe.image_url ?? null,
-    ingredients:  recipe.ingredients || [],
-    instructions: recipe.instructions || [],
-    nutrition:    recipe.nutrition || {},
+    user_id:        userId,
+    name:           recipe.name,
+    category:       recipe.category || 'other',
+    servings:       recipe.servings || 2,
+    prep_time:      recipe.prepTime ?? recipe.prep_time ?? 0,
+    cook_time:      recipe.cookTime ?? recipe.cook_time ?? 0,
+    notes:          recipe.notes || null,
+    image_url:      recipe.imageUrl ?? recipe.image_url ?? null,
+    ingredients:    recipe.ingredients || [],
+    instructions:   recipe.instructions || [],
+    nutrition:      recipe.nutrition || {},
+    rory_approved:  recipe.rory_approved ?? false,
+    rating:         recipe.rating ?? null,
   }
 
   if (recipe.id) {

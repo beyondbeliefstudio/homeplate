@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react'
 
 export function useDarkMode() {
-  // Light is now the default — dark is opt-in
   const [theme, setTheme] = useState(() => localStorage.getItem('hp-theme') || 'light')
 
   useEffect(() => {
     const root = document.documentElement
     if (theme === 'dark') {
-      root.classList.add('dark')
+      root.setAttribute('data-theme', 'dark')
     } else {
-      root.classList.remove('dark')
+      root.removeAttribute('data-theme')
     }
     localStorage.setItem('hp-theme', theme)
   }, [theme])

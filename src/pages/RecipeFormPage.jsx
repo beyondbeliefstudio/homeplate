@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useUser } from '../hooks/useAuth.jsx'
-import { getRecipeById, saveRecipe } from '../lib/supabase'
-import { CATEGORY_LIST } from '../lib/categories'
-import { IconChevronL, IconPlus, IconTrash, IconCamera, IconClose, IconSparkle } from '../components/icons'
+import { getRecipeById, saveRecipe, uploadRecipeImage, deleteRecipeImage } from '../lib/supabase'
+import { CATEGORIES } from '../lib/categories'
+import { IconChevronL, IconPlus, IconClose, IconCamera, IconSparkle, IconCheck } from '../components/icons'
 import './Recipes.css'
 
 const LOADING_MESSAGES = [
@@ -34,19 +34,31 @@ async function fileToBase64(file) {
   })
 }
 
+async function callParseRecipe(body) {
+  const resp = await fetch('/.netlify/functions/parse-recipe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await resp.json()
+  if (!resp.ok || data.error) throw new Error(data.error || 'Unexpected error')
+  return data
+}
+
 const BLANK_INGREDIENT  = { name: '', quantity: '', unit: '' }
 const BLANK_INSTRUCTION = ''
+const FORM_CATEGORIES   = ['breakfast', 'lunch', 'dinner', 'side', 'snack', 'dessert', 'beverage']
 
 // ─── AI Recipe Builder ────────────────────────────────────────────────────────
 function AIRecipeBuilder({ onGenerate }) {
-  const [text, setText]           = useState('')
-  const [image, setImage]         = useState(null)   // { file, preview, mediaType }
-  const [parsing, setParsing]     = useState(false)
-  const [msgIdx, setMsgIdx]       = useState(0)
-  const [error, setError]         = useState(null)
-  const [done, setDone]           = useState(false)
-  const fileRef                   = useRef(null)
-  const intervalRef               = useRef(null)
+  const [text, setText]       = useState('')
+  const [image, setImage]     = useState(null)
+  const [parsing, setParsing] = useState(false)
+  const [msgIdx, setMsgIdx]   = useState(0)
+  const [error, setError]     = useState(null)
+  const [done, setDone]       = useState(false)
+  const fileRef               = useRef(null)
+  const intervalRef           = useRef(null)
 
   function handleImagePick(e) {
     const file = e.target.files?.[0]
@@ -62,7 +74,7 @@ function AIRecipeBuilder({ onGenerate }) {
     setImage(null)
   }
 
-  const isURL = looksLikeURL(text)
+  const isURL    = looksLikeURL(text)
   const messages = isURL ? LOADING_MESSAGES_URL : LOADING_MESSAGES
 
   async function handleGenerate() {
@@ -70,26 +82,13 @@ function AIRecipeBuilder({ onGenerate }) {
     setError(null)
     setParsing(true)
     setMsgIdx(0)
-
     intervalRef.current = setInterval(() => {
       setMsgIdx(i => (i + 1) % messages.length)
     }, 2800)
-
     try {
       const body = { text: text.trim() || undefined }
-      if (image) {
-        body.image = { mediaType: image.mediaType, data: await fileToBase64(image.file) }
-      }
-
-      const resp = await fetch('/.netlify/functions/parse-recipe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-
-      const data = await resp.json()
-      if (!resp.ok || data.error) throw new Error(data.error || 'Unexpected error')
-
+      if (image) body.image = { mediaType: image.mediaType, data: await fileToBase64(image.file) }
+      const data = await callParseRecipe(body)
       onGenerate(data)
       setDone(true)
     } catch (err) {
@@ -117,23 +116,19 @@ function AIRecipeBuilder({ onGenerate }) {
       <div className="ai-builder-header">
         <IconSparkle size={15} className="ai-builder-sparkle" />
         <span className="ai-builder-title">Generate with AI</span>
-        <span className="ai-builder-hint">Paste a URL, describe, or photograph your recipe</span>
+        <span className="ai-builder-hint">Paste a URL, describe a dish, or photograph your recipe</span>
       </div>
-
       <textarea
         className="input ai-builder-textarea"
-        placeholder={"Paste a recipe URL, describe it, or type it out — e.g. \"chicken stir fry with ginger and sesame, serves 4\"…"}
+        placeholder={'Paste a recipe URL, describe it, or type it out — e.g. "chicken stir fry with ginger and sesame, serves 4"…'}
         value={text}
         rows={4}
         onChange={e => setText(e.target.value)}
         disabled={parsing}
       />
       {isURL && !parsing && (
-        <p className="ai-builder-url-hint">
-          🔗 Recipe URL detected — will fetch the page automatically
-        </p>
+        <p className="ai-builder-url-hint">🔗 Recipe URL detected — will fetch the page automatically</p>
       )}
-
       <div className="ai-builder-footer">
         <div className="ai-builder-photo-row">
           <input ref={fileRef} type="file" accept="image/*" capture="environment"
@@ -153,20 +148,14 @@ function AIRecipeBuilder({ onGenerate }) {
             </button>
           )}
         </div>
-
         <div className="ai-builder-actions">
           {error && <span className="ai-builder-error">{error}</span>}
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={handleGenerate}
-            disabled={parsing || (!text.trim() && !image)}
-          >
-            {parsing ? messages[msgIdx] : 'Generate recipe'}
+          <button type="button" className="btn btn-primary btn-sm"
+            onClick={handleGenerate} disabled={parsing || (!text.trim() && !image)}>
+            {parsing ? messages[msgIdx] : 'Generate recipe →'}
           </button>
         </div>
       </div>
-
       <div className="ai-builder-divider">
         <span>or fill in manually below</span>
       </div>
@@ -174,56 +163,150 @@ function AIRecipeBuilder({ onGenerate }) {
   )
 }
 
+// ─── Photo Drop Zone ──────────────────────────────────────────────────────────
+function PhotoDropZone({ preview, onPick, onClear, onGenerate, generating, error }) {
+  const fileRef         = useRef(null)
+  const autoGenRef      = useRef(false)
+  const [dragging, setDragging] = useState(false)
+
+  function handlePickFile(e) {
+    const file = e.target.files?.[0]
+    if (file) {
+      onPick(file)
+      if (autoGenRef.current) {
+        autoGenRef.current = false
+        onGenerate(file)
+      }
+    }
+    e.target.value = ''
+  }
+
+  function handleDrop(e) {
+    e.preventDefault()
+    setDragging(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file && file.type.startsWith('image/')) onPick(file)
+  }
+
+  function handleGenerateClick(e) {
+    e.stopPropagation()
+    if (preview) {
+      onGenerate()
+    } else {
+      autoGenRef.current = true
+      fileRef.current?.click()
+    }
+  }
+
+  return (
+    <div
+      className={`recipe-photo-zone${dragging ? ' recipe-photo-zone--drag' : ''}${preview ? ' recipe-photo-zone--filled' : ''}`}
+      onDragOver={e => { e.preventDefault(); setDragging(true) }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={handleDrop}
+      onClick={() => !preview && fileRef.current?.click()}
+    >
+      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp"
+        style={{ display: 'none' }} onChange={handlePickFile} />
+
+      {preview ? (
+        <>
+          <img src={preview} alt="Recipe" className="recipe-photo-img" />
+          <button type="button" className="recipe-photo-remove"
+            onClick={e => { e.stopPropagation(); onClear() }}>
+            <IconClose size={12} />
+          </button>
+          <button type="button" className="btn btn-primary btn-sm recipe-photo-gen-btn"
+            onClick={handleGenerateClick} disabled={generating}>
+            <IconSparkle size={13} />
+            {generating ? 'Generating…' : '+ Generate with AI'}
+          </button>
+        </>
+      ) : (
+        <div className="recipe-photo-empty">
+          <IconCamera size={28} className="recipe-photo-icon" />
+          <p className="recipe-photo-label">Drop a photo here</p>
+          <p className="recipe-photo-hint">JPG or PNG · up to 5 MB</p>
+          <button type="button" className="btn btn-primary btn-sm"
+            onClick={handleGenerateClick}>
+            <IconSparkle size={13} />
+            + Generate with AI
+          </button>
+        </div>
+      )}
+      {error && <p className="recipe-photo-error">{error}</p>}
+    </div>
+  )
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function blankForm() {
   return {
-    name: '', category: 'dinner', audience: 'everyone', servings: 2,
-    prep_time: 0, cook_time: 0, notes: '',
+    name: '', category: 'dinner',
+    rory_approved: false, rating: null,
+    servings: 4, prep_time: 0, cook_time: 0,
+    notes: '', image_url: null,
     ingredients: [{ ...BLANK_INGREDIENT }],
     instructions: [BLANK_INSTRUCTION],
     nutrition: { calories: '', protein: '', carbs: '', fat: '', fiber: '' },
   }
 }
 
+function formFromData(data) {
+  return {
+    name:          data.name          || '',
+    category:      data.category      || 'dinner',
+    rory_approved: data.rory_approved ?? false,
+    rating:        data.rating        ?? null,
+    servings:      data.servings      || 4,
+    prep_time:     data.prep_time     || 0,
+    cook_time:     data.cook_time     || 0,
+    notes:         data.notes         || '',
+    image_url:     data.image_url     || null,
+    ingredients:   data.ingredients?.length  ? data.ingredients  : [{ ...BLANK_INGREDIENT }],
+    instructions:  data.instructions?.length ? data.instructions : [BLANK_INSTRUCTION],
+    nutrition: {
+      calories: data.nutrition?.calories ?? '',
+      protein:  data.nutrition?.protein  ?? '',
+      carbs:    data.nutrition?.carbs    ?? '',
+      fat:      data.nutrition?.fat      ?? '',
+      fiber:    data.nutrition?.fiber    ?? '',
+    },
+  }
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function RecipeFormPage() {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const user = useUser()
+  const { id }    = useParams()
+  const navigate  = useNavigate()
+  const user      = useUser()
   const isEditing = Boolean(id)
 
-  const [form, setForm] = useState(blankForm())
-  const [loading, setLoading] = useState(isEditing)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState(null)
+  const [form, setForm]                       = useState(blankForm())
+  const [loading, setLoading]                 = useState(isEditing)
+  const [saving, setSaving]                   = useState(false)
+  const [error, setError]                     = useState(null)
+  const [photoFile, setPhotoFile]             = useState(null)
+  const [photoPreview, setPhotoPreview]       = useState(null)
+  const [photoGenerating, setPhotoGenerating] = useState(false)
+  const [photoError, setPhotoError]           = useState(null)
+
+  useEffect(() => () => {
+    if (photoPreview && !photoPreview.startsWith('http')) URL.revokeObjectURL(photoPreview)
+  }, [photoPreview])
 
   useEffect(() => {
     if (!isEditing) return
     getRecipeById(id).then(({ data }) => {
       if (!data) return
-      setForm({
-        name:         data.name || '',
-        category:     data.category || 'dinner',
-        audience:     data.audience || 'everyone',
-        servings:     data.servings || 2,
-        prep_time:    data.prep_time || 0,
-        cook_time:    data.cook_time || 0,
-        notes:        data.notes || '',
-        ingredients:  data.ingredients?.length ? data.ingredients : [{ ...BLANK_INGREDIENT }],
-        instructions: data.instructions?.length ? data.instructions : [BLANK_INSTRUCTION],
-        nutrition: {
-          calories: data.nutrition?.calories ?? '',
-          protein:  data.nutrition?.protein  ?? '',
-          carbs:    data.nutrition?.carbs    ?? '',
-          fat:      data.nutrition?.fat      ?? '',
-          fiber:    data.nutrition?.fiber    ?? '',
-        },
-      })
+      setForm(formFromData(data))
+      if (data.image_url) setPhotoPreview(data.image_url)
       setLoading(false)
     })
   }, [id, isEditing])
 
   function set(field, value) { setForm(f => ({ ...f, [field]: value })) }
 
-  // Ingredients
   function setIngredient(i, field, value) {
     setForm(f => {
       const arr = [...f.ingredients]
@@ -231,22 +314,42 @@ export default function RecipeFormPage() {
       return { ...f, ingredients: arr }
     })
   }
-  function addIngredient()    { setForm(f => ({ ...f, ingredients: [...f.ingredients, { ...BLANK_INGREDIENT }] })) }
-  function removeIngredient(i) {
-    setForm(f => ({ ...f, ingredients: f.ingredients.filter((_, idx) => idx !== i) }))
-  }
+  function addIngredient()     { setForm(f => ({ ...f, ingredients: [...f.ingredients, { ...BLANK_INGREDIENT }] })) }
+  function removeIngredient(i) { setForm(f => ({ ...f, ingredients: f.ingredients.filter((_, idx) => idx !== i) })) }
 
-  // Instructions
   function setInstruction(i, value) {
-    setForm(f => {
-      const arr = [...f.instructions]
-      arr[i] = value
-      return { ...f, instructions: arr }
-    })
+    setForm(f => { const arr = [...f.instructions]; arr[i] = value; return { ...f, instructions: arr } })
   }
   function addInstruction()     { setForm(f => ({ ...f, instructions: [...f.instructions, BLANK_INSTRUCTION] })) }
-  function removeInstruction(i) {
-    setForm(f => ({ ...f, instructions: f.instructions.filter((_, idx) => idx !== i) }))
+  function removeInstruction(i) { setForm(f => ({ ...f, instructions: f.instructions.filter((_, idx) => idx !== i) })) }
+
+  function handlePhotoPick(file) {
+    if (photoPreview && !photoPreview.startsWith('http')) URL.revokeObjectURL(photoPreview)
+    setPhotoFile(file)
+    setPhotoPreview(URL.createObjectURL(file))
+  }
+
+  function handlePhotoClear() {
+    if (photoPreview && !photoPreview.startsWith('http')) URL.revokeObjectURL(photoPreview)
+    setPhotoFile(null)
+    setPhotoPreview(null)
+    set('image_url', null)
+  }
+
+  async function handlePhotoGenerate(file) {
+    const f = file || photoFile
+    if (!f) return
+    setPhotoGenerating(true)
+    setPhotoError(null)
+    try {
+      const base64 = await fileToBase64(f)
+      const data   = await callParseRecipe({ image: { mediaType: f.type || 'image/jpeg', data: base64 } })
+      setForm(prev => ({ ...formFromData(data), image_url: prev.image_url }))
+    } catch (err) {
+      setPhotoError(err.message || 'Generation failed. Try again.')
+    } finally {
+      setPhotoGenerating(false)
+    }
   }
 
   async function handleSubmit(e) {
@@ -255,9 +358,20 @@ export default function RecipeFormPage() {
     setSaving(true)
     setError(null)
 
+    let image_url    = form.image_url
+    let uploadedPath = null
+
+    if (photoFile) {
+      const { url, path, error: upErr } = await uploadRecipeImage(user.id, photoFile)
+      if (upErr) { setError('Photo upload failed. Please try again.'); setSaving(false); return }
+      image_url    = url
+      uploadedPath = path
+    }
+
     const payload = {
       ...form,
-      id: isEditing ? id : undefined,
+      id:           isEditing ? id : undefined,
+      image_url,
       ingredients:  form.ingredients.filter(i => i.name.trim()),
       instructions: form.instructions.filter(s => s.trim()),
       nutrition: Object.fromEntries(
@@ -266,186 +380,220 @@ export default function RecipeFormPage() {
     }
 
     const { data, error: saveError } = await saveRecipe(user.id, payload)
-    if (saveError) { setError(saveError.message); setSaving(false); return }
+    if (saveError) {
+      if (uploadedPath) deleteRecipeImage(uploadedPath)
+      setError(saveError.message)
+      setSaving(false)
+      return
+    }
     navigate(`/recipes/${data.id}`)
   }
+
+  function handleCancel() { navigate(isEditing ? `/recipes/${id}` : '/recipes') }
 
   if (loading) return <div className="page"><div className="page-placeholder"><p>Loading…</p></div></div>
 
   return (
     <div className="page recipe-form-page">
-      <div className="recipe-detail-header">
-        <button className="btn btn-ghost btn-sm recipe-back-btn"
-          onClick={() => navigate(isEditing ? `/recipes/${id}` : '/recipes')}>
-          <IconChevronL size={16} />
-          {isEditing ? 'Cancel' : 'Back'}
+
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="recipe-form-header">
+        <button type="button" className="btn btn-ghost btn-sm recipe-back-btn" onClick={handleCancel}>
+          <IconChevronL size={16} /> Back to cookbook
         </button>
-        <h1 className="page-title" style={{ fontSize: 20 }}>
+        <h1 className="recipe-form-header-title">
           {isEditing ? 'Edit recipe' : 'New recipe'}
         </h1>
-      </div>
-
-      {/* AI builder — only on new recipes */}
-      {!isEditing && (
-        <AIRecipeBuilder onGenerate={data => {
-          setForm({
-            name:         data.name         || '',
-            category:     data.category     || 'dinner',
-            audience:     data.audience     || 'everyone',
-            servings:     data.servings     || 2,
-            prep_time:    data.prep_time    || 0,
-            cook_time:    data.cook_time    || 0,
-            notes:        data.notes        || '',
-            ingredients:  data.ingredients?.length  ? data.ingredients  : [{ name: '', quantity: '', unit: '' }],
-            instructions: data.instructions?.length ? data.instructions : [''],
-            nutrition: {
-              calories: data.nutrition?.calories ?? '',
-              protein:  data.nutrition?.protein  ?? '',
-              carbs:    data.nutrition?.carbs    ?? '',
-              fat:      data.nutrition?.fat      ?? '',
-              fiber:    data.nutrition?.fiber    ?? '',
-            },
-          })
-        }} />
-      )}
-
-      <form className="recipe-form" onSubmit={handleSubmit}>
-
-        {/* Name */}
-        <div className="form-field">
-          <label className="form-label">Recipe name *</label>
-          <input className="input" placeholder="e.g. Roasted Garlic Pasta" value={form.name}
-            onChange={e => set('name', e.target.value)} />
-        </div>
-
-        {/* Category + Audience + Servings */}
-        <div className="form-row">
-          <div className="form-field">
-            <label className="form-label">Category</label>
-            <select className="input" value={form.category} onChange={e => set('category', e.target.value)}>
-              {CATEGORY_LIST.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-            </select>
-          </div>
-          <div className="form-field">
-            <label className="form-label">Who eats this</label>
-            <select className="input" value={form.audience} onChange={e => set('audience', e.target.value)}>
-              <option value="everyone">Everyone</option>
-              <option value="adults">Adults only</option>
-              <option value="kids">Kids only</option>
-            </select>
-          </div>
-          <div className="form-field">
-            <label className="form-label">Servings</label>
-            <input className="input" type="number" min="1" value={form.servings}
-              onChange={e => set('servings', Number(e.target.value))} />
-          </div>
-        </div>
-
-        {/* Times */}
-        <div className="form-row">
-          <div className="form-field">
-            <label className="form-label">Prep time (min)</label>
-            <input className="input" type="number" min="0" value={form.prep_time}
-              onChange={e => set('prep_time', Number(e.target.value))} />
-          </div>
-          <div className="form-field">
-            <label className="form-label">Cook time (min)</label>
-            <input className="input" type="number" min="0" value={form.cook_time}
-              onChange={e => set('cook_time', Number(e.target.value))} />
-          </div>
-        </div>
-
-        {/* Ingredients */}
-        <div className="form-field">
-          <label className="form-label">Ingredients</label>
-          <div className="form-ingredient-list">
-            <div className="form-ingredient-header">
-              <span>Amount</span><span>Unit</span><span>Ingredient</span><span />
-            </div>
-            {form.ingredients.map((ing, i) => (
-              <div key={i} className="form-ingredient-row">
-                <input className="input input-sm" type="text" placeholder="2" value={ing.quantity}
-                  onChange={e => setIngredient(i, 'quantity', e.target.value)} />
-                <input className="input input-sm" type="text" placeholder="cups" value={ing.unit}
-                  onChange={e => setIngredient(i, 'unit', e.target.value)} />
-                <input className="input input-sm" type="text" placeholder="Ingredient name" value={ing.name}
-                  onChange={e => setIngredient(i, 'name', e.target.value)} />
-                <button type="button" className="btn btn-ghost btn-sm form-remove-btn"
-                  onClick={() => removeIngredient(i)} disabled={form.ingredients.length === 1}>
-                  <IconTrash size={13} />
-                </button>
-              </div>
-            ))}
-          </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={addIngredient}
-            style={{ marginTop: 8, color: 'var(--accent)' }}>
-            <IconPlus size={14} /> Add ingredient
-          </button>
-        </div>
-
-        {/* Instructions */}
-        <div className="form-field">
-          <label className="form-label">Instructions</label>
-          <div className="form-instruction-list">
-            {form.instructions.map((step, i) => (
-              <div key={i} className="form-instruction-row">
-                <span className="form-step-num">{i + 1}</span>
-                <textarea className="input input-sm" rows={2} placeholder={`Step ${i + 1}…`}
-                  value={step} onChange={e => setInstruction(i, e.target.value)} />
-                <button type="button" className="btn btn-ghost btn-sm form-remove-btn"
-                  onClick={() => removeInstruction(i)} disabled={form.instructions.length === 1}>
-                  <IconTrash size={13} />
-                </button>
-              </div>
-            ))}
-          </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={addInstruction}
-            style={{ marginTop: 8, color: 'var(--accent)' }}>
-            <IconPlus size={14} /> Add step
-          </button>
-        </div>
-
-        {/* Notes */}
-        <div className="form-field">
-          <label className="form-label">Notes <span className="form-optional">(optional)</span></label>
-          <textarea className="input" rows={3} placeholder="Tips, variations, storage notes…"
-            value={form.notes} onChange={e => set('notes', e.target.value)} />
-        </div>
-
-        {/* Nutrition */}
-        <div className="form-field">
-          <label className="form-label">Nutrition per serving <span className="form-optional">(optional)</span></label>
-          <div className="form-nutrition-grid">
-            {[
-              { key: 'calories', label: 'Calories', unit: 'kcal' },
-              { key: 'protein',  label: 'Protein',  unit: 'g' },
-              { key: 'carbs',    label: 'Carbs',    unit: 'g' },
-              { key: 'fat',      label: 'Fat',      unit: 'g' },
-              { key: 'fiber',    label: 'Fiber',    unit: 'g' },
-            ].map(({ key, label, unit }) => (
-              <div key={key} className="form-nutrition-cell">
-                <label className="form-label" style={{ fontSize: 11 }}>{label} ({unit})</label>
-                <input className="input input-sm" type="number" min="0" placeholder="—"
-                  value={form.nutrition[key]}
-                  onChange={e => setForm(f => ({ ...f, nutrition: { ...f.nutrition, [key]: e.target.value } }))} />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {error && <p className="form-error">{error}</p>}
-
-        <div className="form-actions">
-          <button type="button" className="btn btn-secondary"
-            onClick={() => navigate(isEditing ? `/recipes/${id}` : '/recipes')}>
-            Cancel
-          </button>
-          <button type="submit" className="btn btn-primary" disabled={saving}>
+        <div className="recipe-form-header-actions">
+          {error && <span className="form-error-inline">{error}</span>}
+          <button type="button" className="btn btn-secondary" onClick={handleCancel}>Cancel</button>
+          <button type="submit" form="recipe-form" className="btn btn-primary" disabled={saving}>
+            <IconCheck size={14} />
             {saving ? 'Saving…' : isEditing ? 'Save changes' : 'Add recipe'}
           </button>
         </div>
+      </div>
 
+      {/* ── AI Builder ─────────────────────────────────────────────────── */}
+      {!isEditing && (
+        <AIRecipeBuilder onGenerate={data => setForm(formFromData(data))} />
+      )}
+
+      {/* ── Form ───────────────────────────────────────────────────────── */}
+      <form id="recipe-form" className="recipe-form" onSubmit={handleSubmit}>
+        <div className="recipe-form-body">
+
+          {/* ── Left column ────────────────────────────────────────────── */}
+          <div className="recipe-form-main">
+
+            <div className="form-section">
+              <p className="form-section-title">Recipe name <span className="form-required">*</span></p>
+              <input className="input recipe-form-name-input" placeholder="e.g. Roasted Garlic Pasta"
+                value={form.name} onChange={e => set('name', e.target.value)} />
+            </div>
+
+            <div className="form-section">
+              <p className="form-section-title">Ingredients</p>
+              <div className="form-ingredient-list">
+                <div className="form-ingredient-header">
+                  <span>Amount</span><span>Unit</span><span>Ingredient</span><span />
+                </div>
+                {form.ingredients.map((ing, i) => (
+                  <div key={i} className="form-ingredient-row">
+                    <input className="input input-sm" type="text" placeholder="2"
+                      value={ing.quantity} onChange={e => setIngredient(i, 'quantity', e.target.value)} />
+                    <input className="input input-sm" type="text" placeholder="cups"
+                      value={ing.unit} onChange={e => setIngredient(i, 'unit', e.target.value)} />
+                    <input className="input input-sm" type="text" placeholder="Ingredient name"
+                      value={ing.name} onChange={e => setIngredient(i, 'name', e.target.value)} />
+                    <button type="button" className="btn btn-ghost btn-sm form-remove-btn"
+                      onClick={() => removeIngredient(i)} disabled={form.ingredients.length === 1}>
+                      <IconClose size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button type="button" className="btn btn-ghost btn-sm form-add-btn" onClick={addIngredient}>
+                <IconPlus size={14} /> Add ingredient
+              </button>
+            </div>
+
+            <div className="form-section">
+              <p className="form-section-title">Instructions</p>
+              <div className="form-instruction-list">
+                {form.instructions.map((step, i) => (
+                  <div key={i} className="form-instruction-row">
+                    <span className="form-step-num">{i + 1}</span>
+                    <textarea className="input input-sm" rows={2} placeholder={`Step ${i + 1}…`}
+                      value={step} onChange={e => setInstruction(i, e.target.value)} />
+                    <button type="button" className="btn btn-ghost btn-sm form-remove-btn"
+                      onClick={() => removeInstruction(i)} disabled={form.instructions.length === 1}>
+                      <IconClose size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button type="button" className="btn btn-ghost btn-sm form-add-btn" onClick={addInstruction}>
+                <IconPlus size={14} /> Add step
+              </button>
+            </div>
+
+          </div>{/* /recipe-form-main */}
+
+          {/* ── Right column ───────────────────────────────────────────── */}
+          <div className="recipe-form-side">
+
+            <PhotoDropZone
+              preview={photoPreview}
+              onPick={handlePhotoPick}
+              onClear={handlePhotoClear}
+              onGenerate={handlePhotoGenerate}
+              generating={photoGenerating}
+              error={photoError}
+            />
+
+            <div className="form-section">
+              <p className="form-section-title">Details</p>
+
+              <p className="form-subsection-label">Category</p>
+              <div className="form-cat-chips">
+                {FORM_CATEGORIES.map(val => (
+                  <button key={val} type="button"
+                    className={`form-cat-chip${form.category === val ? ' form-cat-chip--on' : ''}`}
+                    onClick={() => set('category', val)}>
+                    {CATEGORIES[val]?.label ?? val}
+                  </button>
+                ))}
+              </div>
+
+              <div className="form-stepper-group">
+                {[
+                  { field: 'servings',  label: 'Servings',  min: 1 },
+                  { field: 'prep_time', label: 'Prep (min)', min: 0 },
+                  { field: 'cook_time', label: 'Cook (min)', min: 0 },
+                ].map(({ field, label, min }) => (
+                  <div key={field} className="form-stepper-col">
+                    <span className="form-stepper-label">{label}</span>
+                    <div className="form-stepper">
+                      <button type="button" className="form-stepper-btn"
+                        onClick={() => set(field, Math.max(min, (form[field] || 0) - 1))}>−</button>
+                      <span className="form-stepper-val">{form[field]}</span>
+                      <button type="button" className="form-stepper-btn"
+                        onClick={() => set(field, (form[field] || 0) + 1)}>+</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="form-divider" />
+
+              <div className="form-toggle-row">
+                <div className="form-toggle-info">
+                  <span className="form-toggle-label">Rory-approved</span>
+                  <span className="form-toggle-desc">Will the little guy eat this?</span>
+                </div>
+                <label className="form-toggle">
+                  <input type="checkbox" checked={form.rory_approved}
+                    onChange={e => set('rory_approved', e.target.checked)} />
+                  <span className="form-toggle-track" />
+                </label>
+              </div>
+
+              <div className="form-divider" />
+
+              <div className="form-rating-row">
+                <div className="form-toggle-info">
+                  <span className="form-toggle-label">Your rating</span>
+                  <span className="form-toggle-desc">How did this one turn out?</span>
+                </div>
+                <div className="form-stars">
+                  {[1, 2, 3, 4, 5].map(n => (
+                    <button key={n} type="button"
+                      className={`form-star-btn${(form.rating ?? 0) >= n ? ' form-star-btn--on' : ''}`}
+                      onClick={() => set('rating', form.rating === n ? null : n)}>
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="form-section">
+              <p className="form-section-title">
+                Nutrition <span className="form-optional">per serving · optional</span>
+              </p>
+              <div className="form-nutrition-grid">
+                {[
+                  { key: 'calories', label: 'Calories', unit: 'kcal' },
+                  { key: 'protein',  label: 'Protein',  unit: 'g'    },
+                  { key: 'carbs',    label: 'Carbs',    unit: 'g'    },
+                  { key: 'fat',      label: 'Fat',      unit: 'g'    },
+                  { key: 'fiber',    label: 'Fiber',    unit: 'g'    },
+                ].map(({ key, label, unit }) => (
+                  <div key={key} className="form-nutrition-cell">
+                    <input className="form-nutrition-input" type="number" min="0" placeholder="0"
+                      value={form.nutrition[key]}
+                      onChange={e => setForm(f => ({ ...f, nutrition: { ...f.nutrition, [key]: e.target.value } }))} />
+                    <span className="form-nutrition-label-sm">{label}</span>
+                    <span className="form-nutrition-unit">{unit}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-section">
+              <p className="form-section-title">
+                Notes <span className="form-optional">optional</span>
+              </p>
+              <textarea className="input" rows={3} placeholder="Tips, variations, storage notes…"
+                value={form.notes} onChange={e => set('notes', e.target.value)} />
+            </div>
+
+          </div>{/* /recipe-form-side */}
+
+        </div>{/* /recipe-form-body */}
       </form>
+
     </div>
   )
 }

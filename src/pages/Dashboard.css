@@ -1,513 +1,129 @@
-/* ─── Dashboard page ─────────────────────────────────────────────────── */
+/* ─── Dashboard page shell ─────────────────────────────────────────── */
 .dash-page {
   max-width: none;
+  padding: 0;
 }
 
-
-/* ─── Row A: Tonight hero + 3 stat tiles ─────────────────────────────── */
-.dash-row-a {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 18px;
+/* ─── Top bar ──────────────────────────────────────────────────────── */
+.dash-topbar {
+  padding: 32px 40px 0;
+  margin-bottom: 24px;
 }
 
-/* Tonight tile spans full width on mobile */
-.dash-tonight {
-  grid-column: 1 / -1;
-  background: var(--hp-cherry);
-  border-radius: var(--hp-r-xl);
-  padding: 26px 28px 22px;
-  color: #fff;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-height: 190px;
-}
-
-.dash-tonight-label {
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 2px;
-}
-
-.dash-tonight-name {
-  font-family: var(--hp-font-display);
-  font-size: 32px;
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.025em;
-  color: #fff;
-  max-width: 360px;
-}
-
-.dash-tonight-sides {
-  color: rgba(255, 255, 255, 0.78);
-  margin-top: 2px;
-}
-
-.dash-tonight-chips {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: auto;
-  padding-top: 14px;
-}
-
-.dash-tonight-watermark {
-  position: absolute;
-  right: -20px;
-  bottom: -24px;
-  opacity: 0.12;
-  pointer-events: none;
-}
-
-/* Stat tiles */
-.dash-stat-tile {
-  border-radius: var(--hp-r-xl);
-  padding: 20px 22px 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-height: 130px;
-}
-
-.dash-stat-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.dash-stat-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.dash-stat-bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: auto;
-}
-
-.dash-stat-num {
-  font-family: var(--hp-font-display);
-  font-size: 36px;
-  font-weight: 700;
-  line-height: 1.0;
-  letter-spacing: -0.03em;
-}
-
-.dash-stat-sub {
-  font-size: 12px;
-  font-weight: 500;
-  opacity: 0.72;
-  font-family: var(--hp-font-body);
-}
-
-/* Mobile: compact stat tiles */
-@media (max-width: 639px) {
-  .dash-stat-tile {
-    padding: 12px 14px 14px;
-    min-height: 110px;
-    gap: 10px;
-  }
-  .dash-stat-num { font-size: 28px; }
-  .dash-stat-icon { width: 28px; height: 28px; border-radius: 8px; }
-}
-
-/* Desktop: tonight takes first column, stats fill remaining 3 */
-@media (min-width: 640px) {
-  .dash-row-a {
-    grid-template-columns: 1.8fr 1fr 1fr 1fr;
-  }
-  .dash-tonight {
-    grid-column: 1;
-    grid-row: 1;
-  }
-}
-
-/* ─── Shared card header ─────────────────────────────────────────────── */
-.dash-card {
-  margin-bottom: 18px;
-}
-
-.dash-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 18px;
-}
-
-/* ─── Week at a glance ───────────────────────────────────────────────── */
-.dash-week-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-}
-
-.dash-day-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 8px;
-  border-radius: 12px;
-  background: var(--hp-ink-50);
-  min-height: 90px;
-}
-
-.dash-day-cell--today {
-  background: var(--hp-cherry-50);
-  outline: 2px solid var(--hp-cherry);
-  outline-offset: -2px;
-}
-
-.dash-day-cell--empty {
-  opacity: 0.6;
-}
-
-.dash-day-top {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.dash-day-num {
-  font-family: var(--hp-font-display);
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.0;
-  color: var(--hp-ink-900);
-}
-
-.dash-day-recipe {
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--hp-ink-700);
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  text-align: center;
-}
-
-.dash-day-empty {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--hp-ink-300);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  text-align: center;
-}
-
-/* Mobile: week grid scrolls horizontally — card must not clip */
-@media (max-width: 639px) {
-  .dash-week-grid {
-    overflow-x: auto;
-    padding-bottom: 4px;
-    grid-template-columns: repeat(7, minmax(72px, 1fr));
-    /* Extend scroll to edge of padding */
-    margin: 0 -4px;
-    padding: 0 4px 4px;
-  }
-  .dash-day-cell { min-width: 72px; }
-}
-
-/* ─── Row C: Cooking list + Pantry watch ─────────────────────────────── */
-.dash-row-c {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-  margin-bottom: 18px;
-}
-
-@media (min-width: 640px) {
-  .dash-row-c {
-    grid-template-columns: 1.2fr 1fr;
-  }
-}
-
-.dash-cook-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.dash-cook-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 0;
-  border-bottom: 1px solid var(--hp-ink-100);
-}
-
-.dash-cook-row:last-child {
-  border-bottom: none;
-}
-
-.dash-cook-day {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  flex-shrink: 0;
-}
-
-.dash-cook-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.dash-cook-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--hp-ink-900);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dash-cook-check {
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
-  border: 1.5px solid var(--hp-ink-200);
-  flex-shrink: 0;
-}
-
-/* ─── Row D: Cook time + Audience + Quick nav ────────────────────────── */
-.dash-row-d {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-  margin-bottom: 18px;
-}
-
-@media (min-width: 640px) {
-  .dash-row-d {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-}
-
-.dash-bar-chart {
+.dash-topbar-row {
   display: flex;
   align-items: flex-end;
-  gap: 4px;
-  height: 56px;
-  margin-top: 16px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
-.dash-bar-col {
-  flex: 1;
+.dash-greeting {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 72px;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  color: var(--ink-900);
+  margin: 6px 0 0;
+}
+
+/* ─── Content area ─────────────────────────────────────────────────── */
+.dash-content {
+  padding: 0 32px 60px;
+  max-width: 1100px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  height: 100%;
-  justify-content: flex-end;
+  gap: 18px;
 }
 
-.dash-bar {
-  width: 100%;
-  border-radius: 4px 4px 0 0;
-  transition: height 0.3s ease;
-}
-
-.dash-audience-bar {
-  display: flex;
-  height: 10px;
-  border-radius: 5px;
-  overflow: hidden;
-  margin: 14px 0 16px;
-  gap: 2px;
-}
-
-.dash-audience-bar > div {
-  border-radius: 3px;
-}
-
-.dash-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.dash-legend-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.dash-legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-/* Quick nav card */
-.dash-quick-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.dash-quick-btn {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--hp-ink-50);
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  transition: background var(--t-fast);
-  width: 100%;
-}
-
-.dash-quick-btn:hover {
-  background: var(--hp-ink-100);
-}
-
-.dash-quick-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-/* ─── Row E: Cookbook mini grid + Try this week ──────────────────────── */
-.dash-row-e {
+/* ─── AI Summary card (gradient border) ────────────────────────────── */
+.dash-ai-card {
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  background-image:
+    linear-gradient(var(--paper), var(--paper)),
+    linear-gradient(135deg, var(--orange), var(--yellow), var(--lime), var(--green));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  border: 2px solid transparent;
+  padding: 20px 24px;
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-  margin-bottom: 18px;
+  grid-template-columns: 100px 1fr;
+  gap: 24px;
+  align-items: start;
 }
 
-@media (min-width: 640px) {
-  .dash-row-e {
-    grid-template-columns: 1.2fr 1fr;
-  }
+.dash-ai-rating {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
 }
 
-.dash-cookbook-grid {
+.dash-ai-score {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 64px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+/* ─── Week + Today 2-col grid ───────────────────────────────────────── */
+.dash-grid-week {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 18px;
+  align-items: start;
+}
+
+/* ─── This week's recipes strip ─────────────────────────────────────── */
+.dash-week-recipes {
+  /* no card container — free-floating strip */
+}
+
+.dash-recipe-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.dash-recipe-strip::-webkit-scrollbar { display: none; }
+
+/* ─── 3-col grid (Most cooked / Pantry / Stats) ─────────────────────── */
+.dash-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+/* ─── 2-col grid (Recommended / Streak) ────────────────────────────── */
+.dash-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 18px;
+  align-items: start;
 }
 
-.dash-mini-card {
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid var(--hp-ink-100);
-  background: var(--hp-paper);
-  cursor: pointer;
-  transition: box-shadow var(--t-fast);
+/* ─── Responsive ────────────────────────────────────────────────────── */
+@media (max-width: 979px) {
+  .dash-topbar { padding: 20px 18px 0; }
+  .dash-greeting { font-size: 34px; letter-spacing: -0.04em; }
+  .dash-content { padding: 0 18px 48px; gap: 14px; }
+
+  .dash-ai-card { grid-template-columns: 1fr; gap: 14px; }
+  .dash-ai-rating { flex-direction: row; align-items: baseline; gap: 8px; }
+  .dash-ai-score { font-size: 42px; }
+
+  .dash-grid-week { grid-template-columns: 1fr; }
+  .dash-grid-3    { grid-template-columns: 1fr; }
+  .dash-grid-2    { grid-template-columns: 1fr; }
 }
 
-.dash-mini-card:hover {
-  box-shadow: 0 4px 14px rgba(14, 18, 18, 0.08);
-}
-
-.dash-mini-strip {
-  height: 52px;
-}
-
-.dash-mini-name {
-  padding: 10px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--hp-ink-900);
-  line-height: 1.3;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-/* "Try this week" — dark ink-900 hero tile */
-.dash-try-card {
-  background: var(--hp-ink-900);
-  border-radius: var(--hp-r-xl);
-  padding: 26px 28px 22px;
-  color: #fff;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-height: 220px;
-}
-
-.dash-try-label {
-  color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 2px;
-}
-
-.dash-try-name {
-  font-family: var(--hp-font-display);
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  color: #fff;
-  max-width: 280px;
-}
-
-.dash-try-chips {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: auto;
-  padding-top: 14px;
-}
-
-.dash-try-watermark {
-  position: absolute;
-  right: -20px;
-  bottom: -24px;
-  opacity: 0.10;
-  pointer-events: none;
-}
-
-/* ─── Empty hints ────────────────────────────────────────────────────── */
-.dash-empty-hint {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 8px 0 4px;
-  color: var(--hp-ink-400);
-}
-
-/* ─── Row gap between all sections ──────────────────────────────────── */
-.dash-row-a,
-.dash-row-c,
-.dash-row-d,
-.dash-row-e {
-  margin-bottom: 18px;
-}
-
-.dash-page > .card-out.dash-card,
-.dash-page > section.card-out {
-  margin-bottom: 18px;
+@media (min-width: 980px) and (max-width: 1199px) {
+  .dash-grid-3 { grid-template-columns: 1fr 1fr; }
+  .dash-grid-3 > :last-child { grid-column: 1 / -1; }
 }

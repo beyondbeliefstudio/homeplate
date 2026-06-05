@@ -1,0 +1,208 @@
+/* HomePlate v4 — cool mist bg, bright bold trio, Funnel Display */
+
+@import url('https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300..800&family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500&display=swap');
+
+:root {
+  /* --- color: cool mist canvas, white surfaces, bright bold trio --- */
+  --bg-app:       #F4F6EE;
+  --bg-app-warm:  #ECEFE2;
+  --paper:        #FFFFFF;
+  --paper-off:    #F8FAF2;
+
+  --ink-900:      #0E1212;
+  --ink-700:      #2A302E;
+  --ink-500:      #5C625E;
+  --ink-400:      #8C9189;
+  --ink-300:      #B5B9B0;
+  --ink-200:      #D4D7CC;
+  --ink-100:      #E5E8DE;
+  --ink-50:       #EEF1E5;
+
+  /* Cherry — primary, bright saturated red */
+  --hot:          #E63957;
+  --hot-600:      #C42445;
+  --hot-100:      #FCD9DF;
+  --hot-50:       #FEE9ED;
+
+  /* Spring — secondary, vibrant bright green */
+  --leaf:         #58CC02;
+  --leaf-700:     #3DA002;
+  --leaf-100:     #DBF4B8;
+  --leaf-50:      #ECF9D8;
+
+  /* Marigold — accent, punchy yellow */
+  --sun:          #FFC228;
+  --sun-700:      #C99100;
+  --sun-100:      #FFE89E;
+  --sun-50:       #FFF4C9;
+
+  /* Tertiary — bright tangerine */
+  --orange:       #FF7733;
+  --orange-100:   #FFD9C0;
+
+  /* semantic */
+  --bg-card:      var(--paper);
+  --text:         var(--ink-900);
+  --text-soft:    var(--ink-500);
+  --line:         var(--ink-100);
+  --line-strong:  var(--ink-200);
+
+  /* --- radius --- */
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-xl: 28px;
+  --r-2xl: 36px;
+  --r-pill: 9999px;
+
+  /* --- elevation --- */
+  --shadow-1: 0 1px 2px rgba(14,18,18,.04);
+  --shadow-2: 0 4px 14px rgba(14,18,18,.06);
+  --shadow-3: 0 10px 28px rgba(14,18,18,.10);
+  --shadow-4: 0 18px 44px rgba(14,18,18,.14);
+
+  /* --- type --- */
+  --font-display: 'Funnel Display', ui-sans-serif, system-ui, sans-serif;
+  --font-body:    'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'Geist Mono', ui-monospace, monospace;
+}
+
+/* ===== Artboard reset ===== */
+.hp {
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--bg-app);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "cv11";
+  font-size: 14px;
+  line-height: 1.45;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+.hp * { box-sizing: border-box; }
+.hp button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.hp input, .hp textarea, .hp select { font: inherit; color: inherit; }
+.hp h1, .hp h2, .hp h3, .hp h4, .hp h5, .hp p { margin: 0; }
+
+/* ===== Type scale — Funnel Display weight only, no width axis ===== */
+.t-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 96px;
+  line-height: .98;
+  letter-spacing: -0.035em;
+}
+.t-display-wide {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 96px;
+  line-height: .98;
+  letter-spacing: -0.03em;
+}
+.t-h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 60px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.t-h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 42px;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+}
+.t-h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.t-h4 {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.t-eyebrow {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+}
+.t-body-lg  { font-family: var(--font-body); font-weight: 400; font-size: 17px; line-height: 1.5; }
+.t-body     { font-family: var(--font-body); font-weight: 400; font-size: 15px; line-height: 1.5; }
+.t-body-sm  { font-family: var(--font-body); font-weight: 400; font-size: 13px; line-height: 1.45; }
+.t-label    { font-family: var(--font-body); font-weight: 600; font-size: 13px; line-height: 1.2; letter-spacing: -0.005em; }
+.t-caption  { font-family: var(--font-body); font-weight: 500; font-size: 11px; line-height: 1.3; color: var(--text-soft); }
+.t-mono     { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0; }
+
+/* Numeric display */
+.t-num-xl   { font-family: var(--font-display); font-weight: 700; font-size: 96px; line-height: .9; letter-spacing: -0.04em; }
+.t-num-lg   { font-family: var(--font-display); font-weight: 700; font-size: 56px; line-height: .92; letter-spacing: -0.035em; }
+.t-num-md   { font-family: var(--font-display); font-weight: 700; font-size: 36px; line-height: .98; letter-spacing: -0.03em; }
+
+/* ===== Buttons ===== */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--font-body);
+  font-weight: 500; letter-spacing: -0.005em;
+  border-radius: 14px;
+  transition: background .14s ease, color .14s ease, border-color .14s ease, opacity .14s ease;
+  white-space: nowrap; user-select: none; border: 0;
+}
+.btn:active { opacity: .92; }
+
+.btn-lg { height: 52px; padding: 0 22px; font-size: 15px; }
+.btn-md { height: 42px; padding: 0 18px; font-size: 14px; }
+.btn-sm { height: 34px; padding: 0 14px; font-size: 13px; }
+
+.btn-primary    { background: var(--hot); color: #fff; }
+.btn-primary:hover { background: var(--hot-600); }
+
+.btn-secondary  { background: var(--ink-900); color: var(--paper); }
+.btn-secondary:hover { background: #000; }
+
+.btn-ghost      { background: var(--paper); color: var(--ink-900); border: 1px solid var(--ink-200); }
+.btn-ghost:hover{ background: var(--ink-50); }
+
+.btn-destructive{ background: transparent; color: var(--hot); border: 1px solid var(--hot-100); }
+.btn-destructive:hover { background: var(--hot-50); }
+
+.btn-icon { width: 42px; height: 42px; padding: 0; border-radius: 12px; }
+.btn-icon.btn-sm { width: 34px; height: 34px; border-radius: 10px; }
+
+/* ===== Chip ===== */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 12px;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-weight: 600; font-size: 12px; letter-spacing: -0.003em;
+  background: var(--ink-50); color: var(--ink-700); border: 0;
+}
+.chip-pill { border-radius: var(--r-pill); }
+.chip-on   { background: var(--ink-900); color: var(--paper); }
+.chip-hot  { background: var(--hot); color: var(--paper); }
+.chip-leaf { background: var(--leaf-50); color: var(--leaf-700); }
+.chip-sun  { background: var(--sun-50); color: #7F5A00; }
+.chip-orange { background: var(--orange-100); color: #9A3A00; }
+
+/* ===== Card ===== */
+.card        { background: var(--bg-card); border-radius: var(--r-xl); }
+.card-out    { background: var(--bg-card); border-radius: var(--r-xl); border: 1px solid var(--ink-100); }
+.card-lifted { background: var(--bg-card); border-radius: var(--r-xl); box-shadow: var(--shadow-2); }
+
+/* ===== Misc ===== */
+.divider { height: 1px; background: var(--line); border: 0; }
+.tabular { font-variant-numeric: tabular-nums; }

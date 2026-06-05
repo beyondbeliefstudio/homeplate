@@ -1,75 +1,95 @@
-/* HomePlate design tokens — source of truth for all visual decisions.
-   All tokens are prefixed --hp- to avoid collisions with the legacy
-   --bg / --surface / --text-* tokens that are still live during migration. */
+/* HomePlate V2 design tokens
+   Fonts loaded via Fontshare (index.html) + Google Fonts (Geist Mono below). */
 
-@import url('https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300..800&family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500&display=swap');
+@import url('https://api.fontshare.com/v2/css?f[]=clash-grotesk@400,500,600,700&f[]=general-sans@400,500,600,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap');
 
 :root {
-  /* ─── Surfaces ────────────────────────────────────────────────── */
-  --hp-bg-app:       #F4F6EE;  /* cool mist — app background          */
-  --hp-bg-app-warm:  #ECEFE2;  /* warm mist — nested fills in cards   */
-  --hp-paper:        #FFFFFF;  /* card surface                         */
-  --hp-paper-off:    #F8FAF2;  /* nested card / inset row              */
+  /* ─── Canvas & Surfaces ──────────────────────────────────────────── */
+  --hp-bg-app:      #F7F8F5;
+  --hp-bg-app-2:    #EEF0EA;
+  --hp-paper:       #FFFFFF;
+  --hp-paper-off:   #FAFBF8;
 
-  /* ─── Ink (text + borders) ───────────────────────────────────── */
-  --hp-ink-900:      #0E1212;  /* primary body text                    */
-  --hp-ink-700:      #2A302E;  /* strong secondary                     */
-  --hp-ink-500:      #5C625E;  /* secondary text, captions             */
-  --hp-ink-400:      #8C9189;  /* placeholder, tertiary                */
-  --hp-ink-300:      #B5B9B0;  /* disabled, faint                      */
-  --hp-ink-200:      #D4D7CC;  /* borders                              */
-  --hp-ink-100:      #E5E8DE;  /* dividers                             */
-  --hp-ink-50:       #EEF1E5;  /* tints, chip fills                    */
+  /* ─── Warm Neutrals (ink scale) ──────────────────────────────────── */
+  --hp-ink-900: #20241C;
+  --hp-ink-800: #2D3227;
+  --hp-ink-700: #3E443A;
+  --hp-ink-600: #565C4F;
+  --hp-ink-500: #6E7466;
+  --hp-ink-400: #969B8C;
+  --hp-ink-300: #BCC0B2;
+  --hp-ink-200: #DBDDD0;
+  --hp-ink-100: #ECEDE2;
+  --hp-ink-50:  #F4F5EC;
 
-  /* ─── Cherry — PRIMARY ───────────────────────────────────────── */
-  --hp-cherry:       #E63957;  /* primary buttons, active nav          */
-  --hp-cherry-600:   #C42445;  /* primary button hover                 */
-  --hp-cherry-100:   #FCD9DF;  /* focus rings, light chip bg           */
-  --hp-cherry-50:    #FEE9ED;  /* destructive button hover             */
+  /* ─── Primary — Bright Grass Green ───────────────────────────────── */
+  --hp-green:     #5BA63C;
+  --hp-green-600: #4A8B30;
+  --hp-green-700: #3A7024;
+  --hp-green-200: #C2DFAA;
+  --hp-green-100: #DCF0C5;
+  --hp-green-50:  #EEF7E1;
 
-  /* ─── Spring — SECONDARY ─────────────────────────────────────── */
-  --hp-spring:       #58CC02;  /* made state, success, progress        */
-  --hp-spring-700:   #3DA002;  /* spring text on light bg              */
-  --hp-spring-100:   #DBF4B8;  /* light spring chip                    */
-  --hp-spring-50:    #ECF9D8;  /* spring chip bg                       */
+  /* Backward-compat: old --hp-cherry tokens → green (rebrand) */
+  --hp-cherry:     var(--hp-green);
+  --hp-cherry-600: var(--hp-green-600);
+  --hp-cherry-100: var(--hp-green-100);
+  --hp-cherry-50:  var(--hp-green-50);
 
-  /* ─── Marigold — ACCENT ──────────────────────────────────────── */
-  --hp-marigold:     #FFC228;  /* pantry raid, kids audience, highlight*/
-  --hp-marigold-700: #C99100;  /* marigold text on light bg            */
-  --hp-marigold-100: #FFE89E;  /* light marigold chip                  */
-  --hp-marigold-50:  #FFF4C9;  /* marigold chip bg                     */
+  /* ─── Warm Accent — Orange ────────────────────────────────────────── */
+  --hp-orange:     #F0913C;
+  --hp-orange-600: #D2741E;
+  --hp-orange-100: #FAE0C0;
+  --hp-orange-50:  #FDF0E1;
 
-  /* ─── Tangerine — tertiary pop (use sparingly) ───────────────── */
-  --hp-tangerine:    #FF7733;
-  --hp-tangerine-100:#FFD9C0;
+  /* Backward-compat: old --hp-tangerine → orange */
+  --hp-tangerine:     var(--hp-orange);
+  --hp-tangerine-100: var(--hp-orange-100);
 
-  /* ─── Typography ─────────────────────────────────────────────── */
-  --hp-font-display: 'Funnel Display', ui-sans-serif, system-ui, sans-serif;
-  --hp-font-body:    'Geist', ui-sans-serif, system-ui, sans-serif;
-  --hp-font-mono:    'Geist Mono', ui-monospace, 'Menlo', monospace;
+  /* ─── Warm Accent — Yellow ────────────────────────────────────────── */
+  --hp-yellow:     #F4C233;
+  --hp-yellow-600: #CE9C12;
+  --hp-yellow-100: #FBEDB5;
+  --hp-yellow-50:  #FEF8DC;
 
-  /* ─── Radius ─────────────────────────────────────────────────── */
-  --hp-r-xs:   8px;
-  --hp-r-sm:   12px;
-  --hp-r-md:   16px;
-  --hp-r-lg:   22px;
-  --hp-r-xl:   28px;
-  --hp-r-2xl:  36px;
+  /* Backward-compat: old --hp-marigold → yellow */
+  --hp-marigold:     var(--hp-yellow);
+  --hp-marigold-700: var(--hp-yellow-600);
+  --hp-marigold-100: var(--hp-yellow-100);
+  --hp-marigold-50:  var(--hp-yellow-50);
+
+  /* ─── Bridge — Lime ───────────────────────────────────────────────── */
+  --hp-lime:     #A6C948;
+  --hp-lime-100: #E5EFBF;
+  --hp-lime-50:  #F2F7E0;
+
+  /* Backward-compat: old --hp-spring → lime */
+  --hp-spring:     var(--hp-lime);
+  --hp-spring-700: var(--hp-green-700);
+  --hp-spring-100: var(--hp-lime-100);
+  --hp-spring-50:  var(--hp-lime-50);
+
+  /* ─── Semantic ────────────────────────────────────────────────────── */
+  --hp-danger: #DA4A36;
+
+  /* ─── Typography ──────────────────────────────────────────────────── */
+  --hp-font-display: 'Clash Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --hp-font-body:    'General Sans', ui-sans-serif, system-ui, sans-serif;
+  --hp-font-mono:    'Geist Mono', ui-monospace, monospace;
+
+  /* ─── Radius ──────────────────────────────────────────────────────── */
+  --hp-r-xs:   2px;
+  --hp-r-sm:   4px;
+  --hp-r-md:   5px;
+  --hp-r-lg:   7px;
+  --hp-r-xl:   8px;
+  --hp-r-2xl:  10px;
   --hp-r-pill: 9999px;
 
-  /* ─── Elevation ──────────────────────────────────────────────── */
-  --hp-shadow-1: 0 1px 2px rgba(14,18,18,.04);    /* set state on cards      */
-  --hp-shadow-2: 0 4px 14px rgba(14,18,18,.06);   /* hover, dropdowns        */
-  --hp-shadow-3: 0 10px 28px rgba(14,18,18,.10);  /* popovers, drag preview  */
-  --hp-shadow-4: 0 18px 44px rgba(14,18,18,.14);  /* modals, sheets          */
-
-  /* ─── Dark mode (tokens only — light is the product) ─────────── */
-  /* Apply [data-theme="dark"] to swap these in.                      */
-  --hp-dark-bg:       #0F1414;
-  --hp-dark-surface:  #1A1F1D;
-  --hp-dark-elev:     #252B28;
-  --hp-dark-text:     #F4F6EE;
-  --hp-dark-cherry:   #FF5575;
-  --hp-dark-spring:   #7AE020;
-  --hp-dark-marigold: #FFD562;
+  /* ─── Elevation ───────────────────────────────────────────────────── */
+  --hp-shadow-1: 0 1px 2px rgba(32,36,28,.05);
+  --hp-shadow-2: 0 3px 10px rgba(32,36,28,.07);
+  --hp-shadow-3: 0 10px 26px rgba(32,36,28,.10);
+  --hp-shadow-4: 0 18px 40px rgba(32,36,28,.13);
 }
