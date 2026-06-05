@@ -1,28 +1,59 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '../hooks/useAuth.jsx'
-import { getRecipes } from '../lib/supabase'
+import { getRecipes, getHouseholdMembers } from '../lib/supabase'
 import { CATEGORY_LIST, getCategoryMeta } from '../lib/categories'
 import {
   IconClock, IconServes, IconSearch, IconPlus, IconClose,
-  IconChevronL, IconChevronR, IconEdit, IconTrash, IconGrid, IconList,
+  IconChevronL, IconChevronR, IconEdit, IconTrash, IconGrid, IconList, IconExternalLink,
 } from '../components/icons'
 import { FOOD_ICON_MAP } from '../components/FoodIcons.jsx'
+import { abbreviateUnit } from '../lib/units'
 import { EmptyRecipes } from '../components/EmptyStates'
 import './Recipes.css'
 
 const CATS_LIST = ['All', ...CATEGORY_LIST.map(c => c.label)]
 
+// ── Star rating ───────────────────────────────────────────────────────────────
+function StarRating({ rating, size = 13, showNumber = true }) {
+  if (!rating) return null
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <span style={{ display: 'inline-flex', gap: 1 }}>
+        {Array.from({ length: 5 }, (_, i) => {
+          const filled = rating >= i + 1
+          const half   = !filled && rating >= i + 0.5
+          return (
+            <span key={i} style={{ position: 'relative', fontSize: size, lineHeight: 1,
+              color: filled ? '#F5A623' : 'var(--hp-ink-200)' }}>
+              ★
+              {half && (
+                <span style={{ position: 'absolute', left: 0, top: 0, width: '50%',
+                  overflow: 'hidden', color: '#F5A623' }}>★</span>
+              )}
+            </span>
+          )
+        })}
+      </span>
+      {showNumber && (
+        <span style={{ fontFamily: 'var(--hp-font-mono)', fontSize: size - 1, fontWeight: 600,
+          color: 'var(--hp-ink-500)', lineHeight: 1 }}>{Number(rating).toFixed(1)}</span>
+      )}
+    </span>
+  )
+}
+
 export default function RecipesPage() {
   const user     = useUser()
   const navigate = useNavigate()
 
-  const [recipes,        setRecipes]        = useState([])
-  const [loading,        setLoading]        = useState(true)
-  const [search,         setSearch]         = useState('')
-  const [activeCategory, setActiveCategory] = useState('all')
-  const [roryFilter,     setRoryFilter]     = useState(false)
-  const [view,           setView]           = useState('grid')
+  const [recipes,         setRecipes]         = useState([])
+  const [members,         setMembers]         = useState([])
+  const [loading,         setLoading]         = useState(true)
+  const [search,          setSearch]          = useState('')
+  const [activeCategory,  setActiveCategory]  = useState('all')
+  const [approvalFilters, setApprovalFilters] = useState(new Set())
+  const [view,            setView]            = useState('grid')
 
   // Slide-over state
   const [selectedRecipe, setSelectedRecipe] = useState(null)
@@ -34,12 +65,26 @@ export default function RecipesPage() {
       setRecipes(data ?? [])
       setLoading(false)
     })
+    getHouseholdMembers(user.id).then(({ data }) => setMembers(data ?? []))
   }, [user])
 
+  const approvalMembers = members.filter(m => m.meal_approval)
+
+  const clickTimer = useRef(null)
+
   const openDetail = useCallback((recipe) => {
-    setSelectedRecipe(recipe)
-    requestAnimationFrame(() => setPanelOpen(true))
+    if (clickTimer.current) clearTimeout(clickTimer.current)
+    clickTimer.current = setTimeout(() => {
+      setSelectedRecipe(recipe)
+      requestAnimationFrame(() => setPanelOpen(true))
+      clickTimer.current = null
+    }, 220)
   }, [])
+
+  const openFullPage = useCallback((recipe) => {
+    if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null }
+    navigate(`/recipes/${recipe.id}`)
+  }, [navigate])
 
   const closeDetail = useCallback(() => {
     setPanelOpen(false)
@@ -56,7 +101,8 @@ export default function RecipesPage() {
   const filtered = recipes.filter(r => {
     const matchesSearch   = r.name.toLowerCase().includes(search.toLowerCase())
     const matchesCategory = activeCategory === 'all' || r.category === activeCategory
-    return matchesSearch && matchesCategory
+    const matchesApproval = approvalFilters.size === 0 || [...approvalFilters].every(id => (r.approved_by ?? []).includes(id))
+    return matchesSearch && matchesCategory && matchesApproval
   })
 
   const handleCatFilter = (cat) => {
@@ -67,17 +113,16 @@ export default function RecipesPage() {
     <div className="page recipes-page">
 
       {/* ── Hero ── */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 22 }}>
-        <div>
-          <div className="t-eyebrow" style={{ color: 'var(--ink-400)', marginBottom: 6 }}>
+      <div className="page-hero">
+        <div className="page-hero-top">
+          <span className="t-eyebrow" style={{ color: 'var(--ink-400)' }}>
             Cookbook · {recipes.length} recipe{recipes.length !== 1 ? 's' : ''}
-          </div>
-          <h1 className="page-hero-title" style={{ margin: 0 }}>The cookbook.</h1>
+          </span>
+          <button className="btn btn-primary btn-sm" onClick={() => navigate('/recipes/new')}>
+            <IconPlus size={15} /> Add recipe
+          </button>
         </div>
-        <button className="btn btn-primary btn-lg" onClick={() => navigate('/recipes/new')}
-          style={{ flexShrink: 0, marginBottom: 4 }}>
-          <IconPlus size={18} /> Add recipe
-        </button>
+        <h1 className="page-hero-title">The cookbook.</h1>
       </div>
 
       {/* ── Search bar + view toggle ── */}
@@ -123,16 +168,25 @@ export default function RecipesPage() {
           )
         })}
 
-        <span className="recipes-filter-divider" />
+        {approvalMembers.length > 0 && <span className="recipes-filter-divider" />}
 
-        <button
-          className={`recipes-filter-chip ${roryFilter ? 'recipes-filter-chip--rory' : ''}`}
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          onClick={() => setRoryFilter(v => !v)}
-        >
-          {roryFilter && <span className="recipes-rory-dot" />}
-          Rory-approved
-        </button>
+        {approvalMembers.map(m => {
+          const on = approvalFilters.has(m.id)
+          return (
+            <button key={m.id}
+              className={`recipes-filter-chip ${on ? 'recipes-filter-chip--approval' : ''}`}
+              style={on ? { '--approval-color': m.color } : {}}
+              onClick={() => setApprovalFilters(prev => {
+                const next = new Set(prev)
+                on ? next.delete(m.id) : next.add(m.id)
+                return next
+              })}
+            >
+              {on && <span className="recipes-approval-dot" style={{ background: m.color }} />}
+              {m.name} ✓
+            </button>
+          )
+        })}
       </div>
 
       {/* ── Content ── */}
@@ -158,13 +212,13 @@ export default function RecipesPage() {
       ) : view === 'grid' ? (
         <div className="recipes-grid">
           {filtered.map(recipe => (
-            <RecipeCard key={recipe.id} recipe={recipe} onClick={openDetail} />
+            <RecipeCard key={recipe.id} recipe={recipe} onClick={openDetail} onDoubleClick={openFullPage} approvalMembers={approvalMembers} />
           ))}
         </div>
       ) : (
         <div className="recipes-list">
           {filtered.map(recipe => (
-            <RecipeRow key={recipe.id} recipe={recipe} onClick={openDetail} />
+            <RecipeRow key={recipe.id} recipe={recipe} onClick={openDetail} approvalMembers={approvalMembers} />
           ))}
         </div>
       )}
@@ -195,8 +249,10 @@ export default function RecipesPage() {
         }}>
           <DetailPanel
             recipe={selectedRecipe}
+            approvalMembers={approvalMembers}
             onClose={closeDetail}
-            onEdit={() => navigate(`/recipes/${selectedRecipe.id}`)}
+            onEdit={() => navigate(`/recipes/${selectedRecipe.id}/edit`)}
+            onOpenFull={() => navigate(`/recipes/${selectedRecipe.id}`)}
           />
         </div>
       )}
@@ -205,13 +261,14 @@ export default function RecipesPage() {
 }
 
 // ── Recipe card (grid view) ───────────────────────────────────────────────────
-function RecipeCard({ recipe, onClick }) {
+function RecipeCard({ recipe, onClick, onDoubleClick, approvalMembers = [] }) {
   const meta      = getCategoryMeta(recipe.category)
   const FoodIcon  = FOOD_ICON_MAP[recipe.category] ?? FOOD_ICON_MAP.other
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0)
+  const approvedBy = approvalMembers.filter(m => (recipe.approved_by ?? []).includes(m.id))
 
   return (
-    <div className="recipe-card" onClick={() => onClick(recipe)}>
+    <div className="recipe-card" onClick={() => onClick(recipe)} onDoubleClick={() => onDoubleClick(recipe)}>
       {/* Photo / food-icon header */}
       <div className="recipe-card-header" style={{ background: recipe.image_url ? undefined : 'var(--hp-ink-50)' }}>
         {recipe.image_url ? (
@@ -233,12 +290,17 @@ function RecipeCard({ recipe, onClick }) {
         </span>
       </div>
 
-      {/* Title */}
+      {/* Title + rating */}
       <div style={{ flex: 1, padding: '14px 16px 10px' }}>
         <h3 className="recipe-card-name">{recipe.name}</h3>
+        {recipe.rating && (
+          <div style={{ marginTop: 6 }}>
+            <StarRating rating={recipe.rating} size={12} />
+          </div>
+        )}
       </div>
 
-      {/* Footer: time · serves */}
+      {/* Footer: time · serves · approval badges */}
       <div className="recipe-card-footer">
         {totalTime > 0 && (
           <span className="recipe-card-meta-item">
@@ -250,16 +312,27 @@ function RecipeCard({ recipe, onClick }) {
             <IconServes size={12} /> {recipe.servings}
           </span>
         )}
+        {approvedBy.length > 0 && (
+          <span className="recipe-card-approvals">
+            {approvedBy.map(m => (
+              <span key={m.id} className="recipe-card-approval-badge"
+                style={{ background: m.color + '22', color: m.color, borderColor: m.color + '44' }}>
+                {m.name} ✓
+              </span>
+            ))}
+          </span>
+        )}
       </div>
     </div>
   )
 }
 
 // ── Recipe row (list view) ────────────────────────────────────────────────────
-function RecipeRow({ recipe, onClick }) {
+function RecipeRow({ recipe, onClick, approvalMembers = [] }) {
   const meta      = getCategoryMeta(recipe.category)
   const FoodIcon  = FOOD_ICON_MAP[recipe.category] ?? FOOD_ICON_MAP.other
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0)
+  const approvedBy = approvalMembers.filter(m => (recipe.approved_by ?? []).includes(m.id))
   const [hov, setHov] = useState(false)
 
   return (
@@ -270,62 +343,80 @@ function RecipeRow({ recipe, onClick }) {
       style={{
         background: hov ? 'var(--hp-paper-off)' : 'var(--hp-paper)',
         borderRadius: 'var(--r-lg)', border: '1px solid var(--hp-ink-100)',
-        padding: '14px 20px', display: 'flex', alignItems: 'center',
-        gap: 16, cursor: 'pointer', transition: 'background 0.12s',
+        padding: '12px 16px', display: 'flex', alignItems: 'center',
+        gap: 14, cursor: 'pointer', transition: 'background 0.12s',
       }}
     >
-      {/* Food illustration tile — 50×50, light grey bg */}
+      {/* Thumbnail */}
       <div style={{
-        width: 50, height: 50, borderRadius: 'var(--r-md)',
-        background: 'var(--hp-ink-50)',
-        flexShrink: 0, display: 'grid', placeItems: 'center', overflow: 'hidden',
+        width: 72, height: 54, borderRadius: 'var(--r-md)',
+        background: 'var(--hp-ink-50)', flexShrink: 0, overflow: 'hidden',
       }}>
-        <FoodIcon size={34} />
+        {recipe.image_url ? (
+          <img src={recipe.image_url} alt={recipe.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center' }}>
+            <FoodIcon size={30} />
+          </div>
+        )}
       </div>
 
-      {/* Meta row (category label) + name row */}
+      {/* Name + meta */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Top: category label — uniform dark grey, same for all */}
+        {/* Category label — small + muted, clearly secondary */}
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3,
-          fontFamily: 'var(--hp-font-body)', fontSize: 11, fontWeight: 700,
+          fontFamily: 'var(--hp-font-body)', fontSize: 10, fontWeight: 600,
           letterSpacing: '0.08em', textTransform: 'uppercase',
-          color: 'var(--hp-ink-600)',
+          color: 'var(--hp-ink-400)', marginBottom: 3,
         }}>
           {meta.label}
         </div>
-        {/* Bottom: recipe name */}
+        {/* Recipe name — dominant */}
         <div style={{
-          fontFamily: 'var(--hp-font-display)', fontWeight: 600, fontSize: 17,
+          fontFamily: 'var(--hp-font-display)', fontWeight: 600, fontSize: 16,
           letterSpacing: '-0.02em', color: 'var(--hp-ink-900)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          marginBottom: 5,
         }}>
           {recipe.name}
         </div>
+        {/* Rating + approval badges */}
+        {(recipe.rating || approvedBy.length > 0) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {recipe.rating && <StarRating rating={recipe.rating} size={11} />}
+            {approvedBy.map(m => (
+              <span key={m.id} className="recipe-card-approval-badge"
+                style={{ background: m.color + '22', color: m.color, borderColor: m.color + '44', fontSize: 10, padding: '2px 7px' }}>
+                {m.name} ✓
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Time + serves */}
-      <div style={{ display: 'flex', gap: 16, color: 'var(--hp-ink-500)', flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: 14, color: 'var(--hp-ink-400)', flexShrink: 0, fontSize: 12 }}>
         {totalTime > 0 && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500 }}>
-            <IconClock size={13} /> {totalTime} m
+          <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontWeight: 500 }}>
+            <IconClock size={12} /> {totalTime}m
           </span>
         )}
         {recipe.servings > 0 && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500 }}>
-            <IconServes size={13} /> {recipe.servings}
+          <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontWeight: 500 }}>
+            <IconServes size={12} /> {recipe.servings}
           </span>
         )}
       </div>
       <div style={{ color: 'var(--hp-ink-300)', flexShrink: 0 }}>
-        <IconChevronR size={16} />
+        <IconChevronR size={15} />
       </div>
     </div>
   )
 }
 
 // ── Detail slide-over panel ───────────────────────────────────────────────────
-function DetailPanel({ recipe, onClose, onEdit }) {
+function DetailPanel({ recipe, onClose, onEdit, onOpenFull, approvalMembers = [] }) {
   const meta     = getCategoryMeta(recipe.category)
   const FoodIcon = FOOD_ICON_MAP[recipe.category] ?? FOOD_ICON_MAP.other
   const total    = (recipe.prep_time || 0) + (recipe.cook_time || 0)
@@ -352,32 +443,41 @@ function DetailPanel({ recipe, onClose, onEdit }) {
         }}>
           <IconChevronL size={16} /> Back
         </button>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-ghost btn-sm" onClick={onEdit}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <button className="btn btn-ghost btn-sm" onClick={onOpenFull}
+            title="Open full page"
+            style={{ padding: '0 8px', color: 'var(--hp-ink-400)' }}>
+            <IconExternalLink size={14} />
+          </button>
+          <button className="btn btn-primary btn-sm" onClick={onEdit}
             style={{ gap: 6, fontSize: 13 }}>
             <IconEdit size={14} /> Edit
           </button>
         </div>
       </div>
 
-      {/* Hero image / icon */}
-      <div style={{ height: 200, background: recipe.image_url ? undefined : 'var(--hp-ink-50)',
-        flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
-        {recipe.image_url ? (
-          <img src={recipe.image_url} alt={recipe.name}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex',
-            alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ opacity: 0.38 }}>
-              <FoodIcon size={120} />
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Scrollable body — image is first item inside so it scrolls with content */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 60px' }}>
 
-      {/* Scrollable body */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px 60px' }}>
+        {/* Hero image */}
+        <div style={{
+          aspectRatio: '3 / 2', background: 'var(--hp-ink-50)',
+          overflow: 'hidden', flexShrink: 0,
+        }}>
+          {recipe.image_url ? (
+            <img src={recipe.image_url} alt={recipe.name}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex',
+              alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ opacity: 0.38 }}>
+                <FoodIcon size={120} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ padding: '24px 28px 0' }}>
 
         {/* Category chip */}
         <span style={{
@@ -392,16 +492,24 @@ function DetailPanel({ recipe, onClose, onEdit }) {
         <h2 style={{
           fontFamily: 'var(--hp-font-display)', fontWeight: 600, fontSize: 28,
           lineHeight: 1.06, letterSpacing: '-0.025em', color: 'var(--hp-ink-900)',
-          marginBottom: 20, marginTop: 0,
+          marginBottom: 14, marginTop: 0,
         }}>{recipe.name}</h2>
+
+        {/* Rating */}
+        {recipe.rating && (
+          <div style={{ marginBottom: 12 }}>
+            <StarRating rating={recipe.rating} size={18} />
+          </div>
+        )}
 
         {/* Meta chips */}
         {(recipe.prep_time || recipe.cook_time || recipe.servings) && (
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 28 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap',
+            marginBottom: approvalMembers.filter(m => (recipe.approved_by ?? []).includes(m.id)).length > 0 ? 10 : 28 }}>
             {[
               recipe.prep_time  && ['Prep',   `${recipe.prep_time}m`],
               recipe.cook_time  && ['Cook',   `${recipe.cook_time}m`],
-              total > 0         && ['Total',  `${total}m`],
+              (recipe.prep_time || recipe.cook_time) && ['Total', `${(recipe.prep_time||0)+(recipe.cook_time||0)}m`],
               recipe.servings   && ['Serves', recipe.servings],
             ].filter(Boolean).map(([label, val]) => (
               <div key={label} style={{
@@ -416,6 +524,19 @@ function DetailPanel({ recipe, onClose, onEdit }) {
           </div>
         )}
 
+        {/* Approval badges — own row */}
+        {approvalMembers.filter(m => (recipe.approved_by ?? []).includes(m.id)).length > 0 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 28 }}>
+            {approvalMembers.filter(m => (recipe.approved_by ?? []).includes(m.id)).map(m => (
+              <span key={m.id} className="recipe-card-approval-badge"
+                style={{ background: m.color + '22', color: m.color, borderColor: m.color + '44', fontSize: 11, padding: '4px 10px' }}>
+                {m.name} ✓
+              </span>
+            ))}
+          </div>
+        )}
+
+
         {/* Ingredients */}
         {ingredients.length > 0 && (
           <section style={{ marginBottom: 28 }}>
@@ -427,8 +548,8 @@ function DetailPanel({ recipe, onClose, onEdit }) {
               }}>
                 <span style={{ width: 52, fontFamily: 'var(--hp-font-mono)', fontSize: 12,
                   color: 'var(--hp-ink-500)', flexShrink: 0 }}>{ing.quantity || ing.qty}</span>
-                <span style={{ width: 64, fontFamily: 'var(--hp-font-body)', fontSize: 13,
-                  color: 'var(--hp-ink-500)', flexShrink: 0 }}>{ing.unit}</span>
+                <span style={{ width: 52, fontFamily: 'var(--hp-font-body)', fontSize: 13,
+                  color: 'var(--hp-ink-500)', flexShrink: 0 }}>{abbreviateUnit(ing.unit)}</span>
                 <span style={{ fontFamily: 'var(--hp-font-body)', fontSize: 14,
                   color: 'var(--hp-ink-900)', flex: 1 }}>{ing.name}</span>
               </div>
@@ -505,7 +626,8 @@ function DetailPanel({ recipe, onClose, onEdit }) {
           </section>
         )}
 
-      </div>
+        </div>{/* end inner padding div */}
+      </div>{/* end scrollable body */}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useUser } from '../hooks/useAuth.jsx'
-import { getRecipeById, saveRecipe, uploadRecipeImage, deleteRecipeImage } from '../lib/supabase'
+import { getRecipeById, saveRecipe, uploadRecipeImage, deleteRecipeImage, getHouseholdMembers } from '../lib/supabase'
 import { CATEGORIES } from '../lib/categories'
 import { IconChevronL, IconPlus, IconClose, IconCamera, IconSparkle, IconCheck } from '../components/icons'
 import './Recipes.css'
@@ -48,6 +48,109 @@ async function callParseRecipe(body) {
 const BLANK_INGREDIENT  = { name: '', quantity: '', unit: '' }
 const BLANK_INSTRUCTION = ''
 const FORM_CATEGORIES   = ['breakfast', 'lunch', 'dinner', 'side', 'snack', 'dessert', 'beverage']
+
+// ─── AI Edit Assistant (edit mode only) ──────────────────────────────────────
+const EDIT_MESSAGES = [
+  'Reading your changes…',
+  'Updating the recipe…',
+  'Almost done…',
+]
+
+function AIEditAssistant({ form, onApply }) {
+  const [open,    setOpen]    = useState(false)
+  const [text,    setText]    = useState('')
+  const [working, setWorking] = useState(false)
+  const [msgIdx,  setMsgIdx]  = useState(0)
+  const [error,   setError]   = useState(null)
+  const [done,    setDone]    = useState(false)
+  const intervalRef           = useRef(null)
+
+  async function handleApply() {
+    if (!text.trim()) return
+    setError(null)
+    setWorking(true)
+    setMsgIdx(0)
+    intervalRef.current = setInterval(() => setMsgIdx(i => (i + 1) % EDIT_MESSAGES.length), 2200)
+    try {
+      const resp = await fetch('/.netlify/functions/edit-recipe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ current: form, changes: text.trim() }),
+      })
+      const data = await resp.json()
+      if (!resp.ok) throw new Error(data.error || 'Edit failed')
+      onApply(data)
+      setDone(true)
+      setText('')
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Try again.')
+    } finally {
+      clearInterval(intervalRef.current)
+      setWorking(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <button type="button" className="ai-edit-collapsed" onClick={() => setOpen(true)}>
+        <IconSparkle size={14} />
+        <span>Edit with AI</span>
+        <span className="ai-edit-collapsed-hint">Describe changes and let AI update the recipe</span>
+      </button>
+    )
+  }
+
+  return (
+    <div className="ai-builder">
+      <div className="ai-builder-header" style={{ justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <IconSparkle size={15} className="ai-builder-sparkle" />
+          <span className="ai-builder-title">Edit with AI</span>
+          <span className="ai-builder-hint">Describe what you want to change</span>
+        </div>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}
+          style={{ padding: '0 6px', color: 'var(--hp-ink-400)' }}>
+          <IconClose size={14} />
+        </button>
+      </div>
+
+      {done ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0' }}>
+          <span style={{ fontFamily: 'var(--hp-font-body)', fontSize: 13,
+            color: 'var(--hp-green-700)', fontWeight: 500 }}>
+            ✓ Recipe updated — review the changes below, then save.
+          </span>
+          <button type="button" className="btn btn-ghost btn-sm"
+            onClick={() => { setDone(false); setText('') }}>
+            Make another change
+          </button>
+        </div>
+      ) : (
+        <>
+          <textarea
+            className="input ai-builder-textarea"
+            placeholder={'Describe what you want to change — e.g. "swap broccoli for spinach", "add a step about resting the meat", "reduce cook time by 10 minutes", "double the garlic"…'}
+            value={text}
+            rows={3}
+            onChange={e => setText(e.target.value)}
+            disabled={working}
+            onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleApply() }}
+          />
+          <div className="ai-builder-footer">
+            <div />
+            <div className="ai-builder-actions">
+              {error && <span className="ai-builder-error">{error}</span>}
+              <button type="button" className="btn btn-primary btn-sm"
+                onClick={handleApply} disabled={working || !text.trim()}>
+                {working ? EDIT_MESSAGES[msgIdx] : 'Apply changes →'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
 // ─── AI Recipe Builder ────────────────────────────────────────────────────────
 function AIRecipeBuilder({ onGenerate }) {
@@ -164,20 +267,115 @@ function AIRecipeBuilder({ onGenerate }) {
 }
 
 // ─── Photo Drop Zone ──────────────────────────────────────────────────────────
-function PhotoDropZone({ preview, onPick, onClear, onGenerate, generating, error }) {
-  const fileRef         = useRef(null)
-  const autoGenRef      = useRef(false)
-  const [dragging, setDragging] = useState(false)
+function GenerateConfirmModal({ form, onConfirm, onCancel }) {
+  const [extraContext, setExtraContext] = useState('')
+
+  const hasName    = form.name.trim().length > 0
+  const hasIngreds = form.ingredients.some(i => i.name.trim())
+  const hasSteps   = form.instructions.some(s => s.trim())
+
+  const checks = [
+    { label: 'Recipe name',   ok: hasName },
+    { label: 'Ingredients',   ok: hasIngreds },
+    { label: 'Instructions',  ok: hasSteps },
+  ]
+  const allGood = checks.every(c => c.ok)
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      background: 'rgba(0,0,0,0.4)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 24,
+    }} onClick={onCancel}>
+      <div style={{
+        background: 'var(--hp-paper)', borderRadius: 'var(--r-xl)',
+        padding: '28px 28px 24px', maxWidth: 420, width: '100%',
+        boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+      }} onClick={e => e.stopPropagation()}>
+        <h3 style={{ fontFamily: 'var(--hp-font-display)', fontWeight: 600, fontSize: 18,
+          letterSpacing: '-0.02em', color: 'var(--hp-ink-900)', margin: '0 0 6px' }}>
+          Ready to generate?
+        </h3>
+        <p style={{ fontFamily: 'var(--hp-font-body)', fontSize: 13,
+          color: 'var(--hp-ink-500)', margin: '0 0 20px', lineHeight: 1.5 }}>
+          The AI uses your recipe details to create the illustration. More complete recipes produce better images.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+          {checks.map(({ label, ok }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                background: ok ? 'var(--hp-green-100)' : 'var(--hp-ink-100)',
+                display: 'grid', placeItems: 'center',
+              }}>
+                <span style={{ fontSize: 11, color: ok ? 'var(--hp-green-700)' : 'var(--hp-ink-400)' }}>
+                  {ok ? '✓' : '–'}
+                </span>
+              </div>
+              <span style={{ fontFamily: 'var(--hp-font-body)', fontSize: 13,
+                color: ok ? 'var(--hp-ink-800)' : 'var(--hp-ink-400)', fontWeight: ok ? 500 : 400 }}>
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Extra context field */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontFamily: 'var(--hp-font-body)', fontSize: 12, fontWeight: 600,
+            color: 'var(--hp-ink-600)', display: 'block', marginBottom: 6 }}>
+            Additional instructions <span style={{ fontWeight: 400, color: 'var(--hp-ink-400)' }}>— optional</span>
+          </label>
+          <textarea
+            value={extraContext}
+            onChange={e => setExtraContext(e.target.value)}
+            rows={3}
+            placeholder={'e.g. "skirt steak should have visible grill marks, sliced thin, medium-rare" or "served in a cast iron pan"…'}
+            style={{
+              width: '100%', boxSizing: 'border-box', resize: 'vertical',
+              fontFamily: 'var(--hp-font-body)', fontSize: 13, lineHeight: 1.5,
+              border: '1px solid var(--hp-ink-200)', borderRadius: 'var(--r-md)',
+              padding: '9px 12px', outline: 'none', color: 'var(--hp-ink-900)',
+              background: 'var(--hp-bg-app)',
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" onClick={onCancel}
+            style={{
+              flex: 1, height: 38, borderRadius: 'var(--r-md)',
+              border: '1px solid var(--hp-ink-200)', background: 'transparent',
+              fontFamily: 'var(--hp-font-body)', fontSize: 13, fontWeight: 600,
+              color: 'var(--hp-ink-600)', cursor: 'pointer',
+            }}>Cancel</button>
+          <button type="button" onClick={() => onConfirm(extraContext.trim())}
+            style={{
+              flex: 2, height: 38, borderRadius: 'var(--r-md)',
+              border: 'none', background: allGood ? 'var(--hp-green)' : 'var(--hp-ink-900)',
+              fontFamily: 'var(--hp-font-body)', fontSize: 13, fontWeight: 600,
+              color: '#fff', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>
+            <IconSparkle size={13} />
+            {allGood ? 'Generate image' : 'Generate anyway'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PhotoDropZone({ preview, onPick, onClear, onGenerate, generating, error, form }) {
+  const fileRef = useRef(null)
+  const [dragging,      setDragging]      = useState(false)
+  const [showConfirm,   setShowConfirm]   = useState(false)
 
   function handlePickFile(e) {
     const file = e.target.files?.[0]
-    if (file) {
-      onPick(file)
-      if (autoGenRef.current) {
-        autoGenRef.current = false
-        onGenerate(file)
-      }
-    }
+    if (file) onPick(file)
     e.target.value = ''
   }
 
@@ -190,52 +388,68 @@ function PhotoDropZone({ preview, onPick, onClear, onGenerate, generating, error
 
   function handleGenerateClick(e) {
     e.stopPropagation()
-    if (preview) {
-      onGenerate()
-    } else {
-      autoGenRef.current = true
-      fileRef.current?.click()
-    }
+    setShowConfirm(true)
+  }
+
+  function handleConfirm(extraContext) {
+    setShowConfirm(false)
+    onGenerate(extraContext)
   }
 
   return (
-    <div
-      className={`recipe-photo-zone${dragging ? ' recipe-photo-zone--drag' : ''}${preview ? ' recipe-photo-zone--filled' : ''}`}
-      onDragOver={e => { e.preventDefault(); setDragging(true) }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={handleDrop}
-      onClick={() => !preview && fileRef.current?.click()}
-    >
-      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp"
-        style={{ display: 'none' }} onChange={handlePickFile} />
-
-      {preview ? (
-        <>
-          <img src={preview} alt="Recipe" className="recipe-photo-img" />
-          <button type="button" className="recipe-photo-remove"
-            onClick={e => { e.stopPropagation(); onClear() }}>
-            <IconClose size={12} />
-          </button>
-          <button type="button" className="btn btn-primary btn-sm recipe-photo-gen-btn"
-            onClick={handleGenerateClick} disabled={generating}>
-            <IconSparkle size={13} />
-            {generating ? 'Generating…' : '+ Generate with AI'}
-          </button>
-        </>
-      ) : (
-        <div className="recipe-photo-empty">
-          <IconCamera size={28} className="recipe-photo-icon" />
-          <p className="recipe-photo-label">Drop a photo here</p>
-          <p className="recipe-photo-hint">JPG or PNG · up to 5 MB</p>
-          <button type="button" className="btn btn-primary btn-sm"
-            onClick={handleGenerateClick}>
-            <IconSparkle size={13} />
-            + Generate with AI
-          </button>
-        </div>
+    <>
+      {showConfirm && (
+        <GenerateConfirmModal
+          form={form}
+          onConfirm={handleConfirm}
+          onCancel={() => setShowConfirm(false)}
+        />
       )}
-      {error && <p className="recipe-photo-error">{error}</p>}
-    </div>
+
+      <div
+        className={`recipe-photo-zone${dragging ? ' recipe-photo-zone--drag' : ''}${preview ? ' recipe-photo-zone--filled' : ''}`}
+        onDragOver={e => { e.preventDefault(); setDragging(true) }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+      >
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp"
+          style={{ display: 'none' }} onChange={handlePickFile} />
+
+        {preview ? (
+          <>
+            <img src={preview} alt="Recipe" className="recipe-photo-img" />
+            <button type="button" className="recipe-photo-remove"
+              onClick={e => { e.stopPropagation(); onClear() }}>
+              <IconClose size={12} />
+            </button>
+            <button type="button" className="btn btn-primary btn-sm recipe-photo-gen-btn"
+              onClick={handleGenerateClick} disabled={generating}>
+              <IconSparkle size={13} />
+              {generating ? 'Generating…' : '↺ Regenerate with AI'}
+            </button>
+          </>
+        ) : (
+          <div className="recipe-photo-empty">
+            <IconCamera size={28} className="recipe-photo-icon" />
+            <p className="recipe-photo-label">Recipe photo</p>
+            <p className="recipe-photo-hint">Drag & drop a JPG or PNG, or choose below</p>
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <button type="button" className="btn btn-ghost btn-sm"
+                style={{ border: '1px solid var(--hp-ink-200)' }}
+                onClick={e => { e.stopPropagation(); fileRef.current?.click() }}>
+                <IconCamera size={13} /> Upload photo
+              </button>
+              <button type="button" className="btn btn-primary btn-sm"
+                onClick={handleGenerateClick} disabled={generating}>
+                <IconSparkle size={13} />
+                {generating ? 'Generating…' : '+ Generate with AI'}
+              </button>
+            </div>
+          </div>
+        )}
+        {error && <p className="recipe-photo-error">{error}</p>}
+      </div>
+    </>
   )
 }
 
@@ -243,7 +457,7 @@ function PhotoDropZone({ preview, onPick, onClear, onGenerate, generating, error
 function blankForm() {
   return {
     name: '', category: 'dinner',
-    rory_approved: false, rating: null,
+    rory_approved: false, approved_by: [], rating: null,
     servings: 4, prep_time: 0, cook_time: 0,
     notes: '', image_url: null,
     ingredients: [{ ...BLANK_INGREDIENT }],
@@ -257,6 +471,7 @@ function formFromData(data) {
     name:          data.name          || '',
     category:      data.category      || 'dinner',
     rory_approved: data.rory_approved ?? false,
+    approved_by:   data.approved_by   ?? [],
     rating:        data.rating        ?? null,
     servings:      data.servings      || 4,
     prep_time:     data.prep_time     || 0,
@@ -283,6 +498,7 @@ export default function RecipeFormPage() {
   const isEditing = Boolean(id)
 
   const [form, setForm]                       = useState(blankForm())
+  const [approvalMembers, setApprovalMembers] = useState([])
   const [loading, setLoading]                 = useState(isEditing)
   const [saving, setSaving]                   = useState(false)
   const [error, setError]                     = useState(null)
@@ -294,6 +510,13 @@ export default function RecipeFormPage() {
   useEffect(() => () => {
     if (photoPreview && !photoPreview.startsWith('http')) URL.revokeObjectURL(photoPreview)
   }, [photoPreview])
+
+  useEffect(() => {
+    if (!user) return
+    getHouseholdMembers(user.id).then(({ data }) =>
+      setApprovalMembers((data ?? []).filter(m => m.meal_approval))
+    )
+  }, [user])
 
   useEffect(() => {
     if (!isEditing) return
@@ -336,17 +559,48 @@ export default function RecipeFormPage() {
     set('image_url', null)
   }
 
-  async function handlePhotoGenerate(file) {
-    const f = file || photoFile
-    if (!f) return
+  async function handlePhotoGenerate(extraContext = '') {
+    if (!form.name.trim()) {
+      setPhotoError('Add a recipe name first so the AI knows what to illustrate.')
+      return
+    }
     setPhotoGenerating(true)
     setPhotoError(null)
     try {
-      const base64 = await fileToBase64(f)
-      const data   = await callParseRecipe({ image: { mediaType: f.type || 'image/jpeg', data: base64 } })
-      setForm(prev => ({ ...formFromData(data), image_url: prev.image_url }))
+      const resp = await fetch('/.netlify/functions/generate-recipe-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name:         form.name,
+          category:     form.category,
+          ingredients:  form.ingredients.filter(i => i.name.trim()),
+          instructions: form.instructions.filter(s => s.trim()),
+          extraContext: extraContext || undefined,
+        }),
+      })
+      const data = await resp.json()
+      if (!resp.ok) throw new Error(data.error || 'Generation failed')
+
+      const filename = `${form.name.replace(/\s+/g, '-').toLowerCase()}.png`
+      let blob
+
+      if (data.b64) {
+        // gpt-image-1 returns base64
+        const binary = atob(data.b64)
+        const bytes  = new Uint8Array(binary.length)
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+        blob = new Blob([bytes], { type: 'image/png' })
+      } else if (data.url) {
+        // fallback: fetch from URL
+        const imgResp = await fetch(data.url)
+        blob = await imgResp.blob()
+      } else {
+        throw new Error('No image data returned')
+      }
+
+      handlePhotoPick(new File([blob], filename, { type: 'image/png' }))
     } catch (err) {
-      setPhotoError(err.message || 'Generation failed. Try again.')
+      setPhotoError(err.message || 'Image generation failed. Try again.')
     } finally {
       setPhotoGenerating(false)
     }
@@ -414,10 +668,11 @@ export default function RecipeFormPage() {
         </div>
       </div>
 
-      {/* ── AI Builder ─────────────────────────────────────────────────── */}
-      {!isEditing && (
-        <AIRecipeBuilder onGenerate={data => setForm(formFromData(data))} />
-      )}
+      {/* ── AI Builder / Edit Assistant ────────────────────────────────── */}
+      {isEditing
+        ? <AIEditAssistant form={form} onApply={data => setForm(f => ({ ...formFromData(data), image_url: f.image_url }))} />
+        : <AIRecipeBuilder onGenerate={data => setForm(formFromData(data))} />
+      }
 
       {/* ── Form ───────────────────────────────────────────────────────── */}
       <form id="recipe-form" className="recipe-form" onSubmit={handleSubmit}>
@@ -490,6 +745,7 @@ export default function RecipeFormPage() {
               onGenerate={handlePhotoGenerate}
               generating={photoGenerating}
               error={photoError}
+              form={form}
             />
 
             <div className="form-section">
@@ -527,17 +783,38 @@ export default function RecipeFormPage() {
 
               <div className="form-divider" />
 
-              <div className="form-toggle-row">
-                <div className="form-toggle-info">
-                  <span className="form-toggle-label">Rory-approved</span>
-                  <span className="form-toggle-desc">Will the little guy eat this?</span>
+              {approvalMembers.length > 0 && (
+                <div className="form-toggle-row" style={{ alignItems: 'flex-start' }}>
+                  <div className="form-toggle-info">
+                    <span className="form-toggle-label">Meal approval</span>
+                    <span className="form-toggle-desc">Who will eat this?</span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {approvalMembers.map(m => {
+                      const on = (form.approved_by ?? []).includes(m.id)
+                      return (
+                        <button key={m.id} type="button"
+                          onClick={() => set('approved_by', on
+                            ? (form.approved_by ?? []).filter(id => id !== m.id)
+                            : [...(form.approved_by ?? []), m.id]
+                          )}
+                          style={{
+                            height: 30, padding: '0 12px', borderRadius: 'var(--r-pill)',
+                            border: `1.5px solid ${on ? m.color : 'var(--hp-ink-200)'}`,
+                            background: on ? m.color + '22' : 'var(--hp-ink-50)',
+                            color: on ? m.color : 'var(--hp-ink-500)',
+                            fontFamily: 'var(--hp-font-body)', fontSize: 12, fontWeight: 600,
+                            cursor: 'pointer', transition: 'all 0.15s',
+                            display: 'flex', alignItems: 'center', gap: 5,
+                          }}>
+                          {on && <span style={{ width: 6, height: 6, borderRadius: '50%', background: m.color, flexShrink: 0 }} />}
+                          {m.name} ✓
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
-                <label className="form-toggle">
-                  <input type="checkbox" checked={form.rory_approved}
-                    onChange={e => set('rory_approved', e.target.checked)} />
-                  <span className="form-toggle-track" />
-                </label>
-              </div>
+              )}
 
               <div className="form-divider" />
 

@@ -3,6 +3,7 @@ import { useDarkMode } from '../hooks/useDarkMode'
 import { useUser } from '../hooks/useAuth.jsx'
 import { signOut, getHouseholdMembers, saveHouseholdMember, deleteHouseholdMember, getStores, saveStore, deleteStore } from '../lib/supabase'
 import { IconPlus, IconTrash, IconClose, IconCheck } from '../components/icons'
+import { STORE_PALETTES, getStorePalette } from '../lib/storePalettes'
 import './Settings.css'
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
@@ -71,8 +72,13 @@ function MemberCard({ member, onChange, onDelete }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft]     = useState(member)
 
+  // Keep draft in sync if parent updates member (e.g. after save)
+  useEffect(() => { setDraft(member) }, [member])
+
   const save   = () => { onChange(draft); setEditing(false) }
   const cancel = () => { setDraft(member); setEditing(false) }
+
+  const toggleApproval = () => onChange({ ...member, meal_approval: !member.meal_approval })
 
   const initials = (member.name || 'M')[0].toUpperCase()
 
@@ -168,6 +174,23 @@ function MemberCard({ member, onChange, onDelete }) {
           </button>
         </div>
       )}
+
+      {/* Meal approval toggle — always visible */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 16, paddingTop: 14,
+        borderTop: '1px solid var(--hp-ink-100)',
+      }}>
+        <div>
+          <div style={{ fontFamily: 'var(--hp-font-body)', fontSize: 13, fontWeight: 600,
+            color: 'var(--hp-ink-800)', marginBottom: 2 }}>Meal approval tracking</div>
+          <div style={{ fontFamily: 'var(--hp-font-body)', fontSize: 12,
+            color: 'var(--hp-ink-400)', lineHeight: 1.4 }}>
+            Show "{member.name} ✓" on recipes they enjoy
+          </div>
+        </div>
+        <Toggle on={!!member.meal_approval} onChange={toggleApproval} />
+      </div>
     </div>
   )
 }
@@ -181,7 +204,7 @@ function HouseholdSection({ user, members, setMembers }) {
     const color = MEMBER_COLORS[members.length % MEMBER_COLORS.length]
     setSaving(true)
     const { data } = await saveHouseholdMember(user.id, { name, color })
-    if (data?.[0]) setMembers(m => [...m, data[0]])
+    if (data) setMembers(m => [...m, data])
     setSaving(false)
   }
 
@@ -227,6 +250,7 @@ const INIT_TAG_GROUPS = {
   Side:      { label: 'Type',    tags: ['Salad', 'Bread', 'Vegetable', 'Pasta'] },
   Snack:     { label: 'Type',    tags: ['Sweet', 'Savory', 'No-cook', 'Make-ahead'] },
   Dessert:   { label: 'Type',    tags: ['Chocolate', 'Baked', 'No-bake'] },
+  Beverage:  { label: 'Type',    tags: ['Smoothie', 'Juice', 'Coffee', 'Tea', 'Cocktail', 'Mocktail'] },
 }
 
 function TagGroupCard({ cat, group, onChange }) {
@@ -315,15 +339,6 @@ function TagsSection() {
 }
 
 // ─── Stores section ───────────────────────────────────────────────────────────
-const STORE_PALETTES = [
-  { bg: 'var(--hp-green-100)',  color: 'var(--hp-green-700)',  border: 'var(--hp-green-200)'  },
-  { bg: '#FFF3EE',              color: '#C05418',              border: '#FFD5C2'               },
-  { bg: '#EEF2FF',              color: '#3B4FBE',              border: '#C7D2FE'               },
-  { bg: '#FDF4FF',              color: '#7C3AED',              border: '#E9D5FF'               },
-  { bg: '#F0FDF4',              color: '#15803D',              border: '#BBF7D0'               },
-  { bg: '#FFF7ED',              color: '#C2410C',              border: '#FED7AA'               },
-]
-
 function StoresSection({ user }) {
   const [stores,   setStores]   = useState([])
   const [newName,  setNewName]  = useState('')
@@ -344,7 +359,7 @@ function StoresSection({ user }) {
     if (!name || !user) return
     const palette = stores.length % STORE_PALETTES.length
     const { data } = await saveStore(user.id, { name, palette })
-    if (data?.[0]) setStores(prev => [...prev, data[0]])
+    if (data) setStores(prev => [...prev, data])
     setNewName('')
   }
 
@@ -356,6 +371,12 @@ function StoresSection({ user }) {
       setStores(prev => prev.map(s => s.id === id ? { ...s, name } : s))
     }
     setEditId(null)
+  }
+
+  const setPalette = async (store, paletteIdx) => {
+    const updated = { ...store, palette: paletteIdx }
+    setStores(prev => prev.map(s => s.id === store.id ? updated : s))
+    await saveStore(user.id, updated)
   }
 
   const remove = async (id) => {
@@ -380,13 +401,14 @@ function StoresSection({ user }) {
             color: 'var(--hp-ink-300)', fontStyle: 'italic' }}>No stores yet — add one below.</div>
         )}
         {stores.map((store, i) => {
-          const pal    = STORE_PALETTES[(store.palette ?? 0) % STORE_PALETTES.length]
+          const pal    = getStorePalette(store)
           const isLast = i === stores.length - 1
           return (
             <div key={store.id} style={{
               display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0',
               borderBottom: isLast ? 'none' : '1px solid var(--hp-ink-100)',
             }}>
+              {/* Store name badge */}
               <span style={{
                 display: 'inline-flex', alignItems: 'center', height: 26, padding: '0 12px',
                 borderRadius: 'var(--r-pill)', background: pal.bg, color: pal.color,
@@ -395,6 +417,7 @@ function StoresSection({ user }) {
                 flexShrink: 0, minWidth: 70, justifyContent: 'center',
               }}>{store.name}</span>
 
+              {/* Store name / edit input */}
               {editId === store.id ? (
                 <input autoFocus value={editName} onChange={e => setEditName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') saveEdit(store.id); if (e.key === 'Escape') setEditId(null) }}
@@ -409,6 +432,23 @@ function StoresSection({ user }) {
                   fontWeight: 600, color: 'var(--hp-ink-900)' }}>{store.name}</span>
               )}
 
+              {/* Color swatches — always visible, one click to assign */}
+              <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+                {STORE_PALETTES.map((p, idx) => (
+                  <button key={idx} onClick={() => setPalette(store, idx)}
+                    title={`Color ${idx + 1}`}
+                    style={{
+                      width: 18, height: 18, borderRadius: '50%',
+                      background: p.color, border: 'none', cursor: 'pointer',
+                      boxSizing: 'border-box', flexShrink: 0,
+                      outline: (store.palette ?? 0) === idx ? '2px solid var(--hp-ink-900)' : '2px solid transparent',
+                      outlineOffset: 2,
+                      transition: 'outline-color 0.1s',
+                    }} />
+                ))}
+              </div>
+
+              {/* Rename / delete */}
               <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                 {editId === store.id ? (
                   <>
@@ -654,7 +694,6 @@ const SETTING_SECTIONS = [
   { id: 'household',  label: 'Household'            },
   { id: 'tags',       label: 'Tags & Filters'       },
   { id: 'stores',     label: 'Stores'               },
-  { id: 'planner',    label: 'Planner'              },
   { id: 'ai',         label: 'AI & Recommendations' },
   { id: 'appearance', label: 'Appearance'           },
   { id: 'account',    label: 'Account'              },
@@ -702,7 +741,6 @@ export default function SettingsPage() {
           {active === 'household'  && <HouseholdSection user={user} members={members} setMembers={setMembers} />}
           {active === 'tags'       && <TagsSection />}
           {active === 'stores'     && <StoresSection user={user} />}
-          {active === 'planner'    && <PlannerSection />}
           {active === 'ai'         && <AISection />}
           {active === 'appearance' && <AppearanceSection isDark={isDark} toggle={toggle} />}
           {active === 'account'    && <AccountSection user={user} />}

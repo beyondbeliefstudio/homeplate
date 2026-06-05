@@ -1,57 +1,29 @@
-/* ─── Dashboard page shell ─────────────────────────────────────────── */
+/* ─── Page shell ─────────────────────────────────────────────────── */
 .dash-page {
   max-width: none;
-  padding: 0;
 }
 
-/* ─── Top bar ──────────────────────────────────────────────────────── */
-.dash-topbar {
-  padding: 32px 40px 0;
-  margin-bottom: 24px;
-}
-
-.dash-topbar-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.dash-greeting {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 72px;
-  letter-spacing: -0.03em;
-  line-height: 0.95;
-  color: var(--ink-900);
-  margin: 6px 0 0;
-}
-
-/* ─── Content area ─────────────────────────────────────────────────── */
+/* ─── Content area ───────────────────────────────────────────────── */
 .dash-content {
-  padding: 0 32px 60px;
-  max-width: 1100px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
 }
 
-/* ─── AI Summary card (gradient border) ────────────────────────────── */
+/* ─── AI Summary card (gradient border) ─────────────────────────── */
 .dash-ai-card {
   border-radius: var(--r-lg);
-  background: var(--paper);
+  background: var(--hp-paper);
   background-image:
-    linear-gradient(var(--paper), var(--paper)),
-    linear-gradient(135deg, var(--orange), var(--yellow), var(--lime), var(--green));
+    linear-gradient(var(--hp-paper), var(--hp-paper)),
+    linear-gradient(135deg, #E8732A, #FFC228, #A6C948, #58CC02);
   background-origin: border-box;
   background-clip: padding-box, border-box;
   border: 2px solid transparent;
-  padding: 20px 24px;
+  padding: 22px 28px;
   display: grid;
-  grid-template-columns: 100px 1fr;
-  gap: 24px;
+  grid-template-columns: 110px 1fr;
+  gap: 28px;
   align-items: start;
 }
 
@@ -59,71 +31,366 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  padding-top: 6px;
 }
 
 .dash-ai-score {
-  font-family: var(--font-display);
+  font-family: var(--hp-font-display);
   font-weight: 700;
-  font-size: 64px;
+  font-size: 68px;
   line-height: 1;
   letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #E8732A, #FFC228);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-/* ─── Week + Today 2-col grid ───────────────────────────────────────── */
-.dash-grid-week {
-  display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 18px;
-  align-items: start;
+.dash-ai-score-sub {
+  font-family: var(--hp-font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--hp-ink-400);
+  margin-top: 3px;
 }
 
-/* ─── This week's recipes strip ─────────────────────────────────────── */
-.dash-week-recipes {
-  /* no card container — free-floating strip */
-}
-
-.dash-recipe-strip {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: none;
-}
-.dash-recipe-strip::-webkit-scrollbar { display: none; }
-
-/* ─── 3-col grid (Most cooked / Pantry / Stats) ─────────────────────── */
-.dash-grid-3 {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 18px;
-  align-items: start;
-}
-
-/* ─── 2-col grid (Recommended / Streak) ────────────────────────────── */
-.dash-grid-2 {
+/* ─── Body: 2-column ─────────────────────────────────────────────── */
+.dash-body {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 18px;
+  gap: 20px;
   align-items: start;
 }
 
-/* ─── Responsive ────────────────────────────────────────────────────── */
-@media (max-width: 979px) {
-  .dash-topbar { padding: 20px 18px 0; }
-  .dash-greeting { font-size: 34px; letter-spacing: -0.04em; }
-  .dash-content { padding: 0 18px 48px; gap: 14px; }
-
-  .dash-ai-card { grid-template-columns: 1fr; gap: 14px; }
-  .dash-ai-rating { flex-direction: row; align-items: baseline; gap: 8px; }
-  .dash-ai-score { font-size: 42px; }
-
-  .dash-grid-week { grid-template-columns: 1fr; }
-  .dash-grid-3    { grid-template-columns: 1fr; }
-  .dash-grid-2    { grid-template-columns: 1fr; }
+.dash-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-@media (min-width: 980px) and (max-width: 1199px) {
-  .dash-grid-3 { grid-template-columns: 1fr 1fr; }
-  .dash-grid-3 > :last-child { grid-column: 1 / -1; }
+/* ─── Generic card ───────────────────────────────────────────────── */
+.dash-card {
+  background: var(--hp-paper);
+  border: 1px solid var(--hp-ink-100);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.dash-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 20px 11px;
+  border-bottom: 1px solid var(--hp-ink-100);
+}
+
+.dash-card-action {
+  font-family: var(--hp-font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--hp-green);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+/* ─── Time filter chips ──────────────────────────────────────────── */
+.dash-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--hp-ink-50);
+}
+
+.dash-time-chip {
+  font-family: var(--hp-font-body);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--hp-ink-400);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.dash-time-chip:hover { color: var(--hp-ink-700); }
+
+.dash-time-chip--on {
+  background: var(--hp-ink-50);
+  border-color: var(--hp-ink-200);
+  color: var(--hp-ink-700);
+  font-weight: 600;
+}
+
+/* ─── Bar list (Most Cooked + Top Proteins) ──────────────────────── */
+.dash-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 20px;
+}
+
+.dash-bar-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.dash-bar-name {
+  font-family: var(--hp-font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--hp-ink-800);
+}
+
+.dash-bar-rank {
+  font-family: var(--hp-font-mono);
+  font-size: 10px;
+  color: var(--hp-ink-400);
+  margin-right: 6px;
+  min-width: 18px;
+}
+
+.dash-bar-count {
+  font-family: var(--hp-font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--hp-ink-500);
+  flex-shrink: 0;
+}
+
+.dash-bar-track {
+  height: 5px;
+  background: var(--hp-ink-100);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.dash-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #E8732A, #FFC228, #A6C948, #58CC02);
+  min-width: 6px;
+}
+
+/* ─── Recommended rows ───────────────────────────────────────────── */
+.dash-rec-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--hp-ink-50);
+  transition: background 0.12s;
+}
+
+.dash-rec-row:last-child { border-bottom: none; }
+.dash-rec-row:hover { background: var(--hp-ink-50); }
+
+.dash-rec-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--hp-green-50);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.dash-rec-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-rec-name {
+  font-family: var(--hp-font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--hp-ink-900);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-rec-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.dash-rec-time {
+  font-family: var(--hp-font-body);
+  font-size: 12px;
+  color: var(--hp-ink-400);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.dash-rec-add {
+  height: 30px;
+  padding: 0 14px;
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--hp-ink-200);
+  background: transparent;
+  color: var(--hp-ink-600);
+  font-family: var(--hp-font-body);
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+
+.dash-rec-add:hover:not(:disabled) {
+  background: var(--hp-ink-900);
+  border-color: var(--hp-ink-900);
+  color: var(--hp-paper);
+}
+
+.dash-rec-add--added {
+  background: var(--hp-green-50);
+  border-color: var(--hp-green-200, #BBF7D0);
+  color: var(--hp-green-600, #15803D);
+  cursor: default;
+}
+
+.dash-rec-add--added:hover {
+  background: var(--hp-green-50);
+  border-color: var(--hp-green-200, #BBF7D0);
+  color: var(--hp-green-600, #15803D);
+}
+
+/* ─── Planning streak ────────────────────────────────────────────── */
+.dash-streak-body {
+  padding: 18px 20px;
+}
+
+.dash-streak-num {
+  font-family: var(--hp-font-display);
+  font-weight: 700;
+  font-size: 52px;
+  letter-spacing: -0.04em;
+  color: var(--hp-ink-900);
+  line-height: 1;
+}
+
+.dash-streak-label {
+  font-family: var(--hp-font-body);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--hp-ink-600);
+  margin-left: 6px;
+}
+
+.dash-streak-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 52px;
+  margin-top: 20px;
+}
+
+.dash-streak-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.dash-streak-bar {
+  border-radius: 3px;
+  width: 100%;
+}
+
+.dash-streak-week-labels {
+  display: flex;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.dash-streak-week-label {
+  flex: 1;
+  font-family: var(--hp-font-body);
+  font-size: 9px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-streak-stats {
+  display: flex;
+  gap: 28px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hp-ink-100);
+}
+
+.dash-streak-stat-label {
+  font-family: var(--hp-font-body);
+  font-size: 12px;
+  color: var(--hp-ink-400);
+  margin-bottom: 3px;
+}
+
+.dash-streak-stat-val {
+  font-family: var(--hp-font-display);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--hp-ink-900);
+}
+
+.dash-streak-stat-unit {
+  font-family: var(--hp-font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--hp-ink-500);
+  margin-left: 3px;
+}
+
+/* ─── Tag chip ───────────────────────────────────────────────────── */
+.dash-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--r-sm);
+  font-family: var(--hp-font-body);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid;
+}
+
+/* ─── Empty state ────────────────────────────────────────────────── */
+.dash-empty {
+  padding: 20px;
+  font-family: var(--hp-font-body);
+  font-size: 13px;
+  color: var(--hp-ink-400);
+  line-height: 1.5;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 979px) {
+  .dash-content { gap: 14px; }
+
+  .dash-ai-card   { grid-template-columns: 1fr; gap: 14px; }
+  .dash-ai-rating { flex-direction: row; align-items: baseline; gap: 10px; }
+  .dash-ai-score  { font-size: 44px; }
+
+  .dash-body { grid-template-columns: 1fr; }
 }

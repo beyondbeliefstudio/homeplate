@@ -1,35 +1,44 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '../hooks/useAuth.jsx'
-import { getMealPlan, getMealPlanWeeks, getRecipes, getGroceryList } from '../lib/supabase'
-import { getWeekKey, shiftWeek, formatWeekOf } from '../lib/weeks'
-import {
-  IconClock, IconServes, IconGrocery, IconPlus,
-  IconChevronL, IconChevronR,
-} from '../components/icons'
-import {
-  FoodBreakfast, FoodLunch, FoodDinner, FoodSide, FoodSnack, FoodDessert, FOOD_ICON_MAP,
-} from '../components/FoodIcons'
+import { getMealPlan, getMealPlanWeeks, getRecipes, saveMealPlan } from '../lib/supabase'
+import { getWeekKey } from '../lib/weeks'
+import { IconClock, IconPlus } from '../components/icons'
+import { FOOD_ICON_MAP, FoodDinner } from '../components/FoodIcons'
 import './Dashboard.css'
 
-const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const DAYS_FULL  = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-const MEAL_ROWS  = [
-  { key: 'b', label: 'B', Food: FoodBreakfast },
-  { key: 'l', label: 'L', Food: FoodLunch     },
-  { key: 'd', label: 'D', Food: FoodDinner    },
+const GRAD = 'linear-gradient(90deg, #E8732A, #FFC228, #A6C948, #58CC02)'
+
+// ─── Protein keyword map — most-specific entries first ───────────────────────
+const PROTEIN_MAP = [
+  { name: 'Chicken thighs',  test: n => /chicken\s+thigh/i.test(n) },
+  { name: 'Ground beef',     test: n => /ground\s+beef/i.test(n) },
+  { name: 'Ground chicken',  test: n => /ground\s+chicken/i.test(n) },
+  { name: 'Ground turkey',   test: n => /ground\s+turkey/i.test(n) },
+  { name: 'Chicken breast',  test: n => /chicken\s+breast/i.test(n) },
+  { name: 'Skirt steak',     test: n => /skirt\s+steak/i.test(n) },
+  { name: 'Spare ribs',      test: n => /spare\s+rib|pork.*rib/i.test(n) },
+  { name: 'Pork shoulder',   test: n => /pork\s+shoulder/i.test(n) },
+  { name: 'Salmon',          test: n => /\bsalmon\b/i.test(n) },
+  { name: 'Shrimp',          test: n => /\bshrimp\b/i.test(n) },
+  { name: 'Tuna',            test: n => /\btuna\b/i.test(n) },
+  { name: 'Sausage',         test: n => /\bsausage\b/i.test(n) },
+  { name: 'Bacon',           test: n => /\bbacon\b/i.test(n) },
+  { name: 'Chicken',         test: n => /\bchicken\b/i.test(n) },
+  { name: 'Beef',            test: n => /\bbeef\b|\bsteak\b/i.test(n) },
+  { name: 'Pork',            test: n => /\bpork\b|\bham\b/i.test(n) },
+  { name: 'Turkey',          test: n => /\bturkey\b/i.test(n) },
+  { name: 'Lamb',            test: n => /\blamb\b/i.test(n) },
 ]
 
-const GRAD = 'linear-gradient(90deg, var(--orange), var(--yellow), var(--lime), var(--green))'
+const TIME_FILTERS = [
+  { label: 'Last month', weeks: 4  },
+  { label: '3 months',   weeks: 13 },
+  { label: '6 months',   weeks: 26 },
+  { label: 'All time',   weeks: null },
+]
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function weekStartSunday(weekKey) {
-  const [year, week] = weekKey.split('-').map(Number)
-  const d = new Date(year, 0, 1 + (week - 1) * 7)
-  d.setDate(d.getDate() - d.getDay())
-  return d
-}
+// ─── Utilities ────────────────────────────────────────────────────────────────
 
 function greeting() {
   const h = new Date().getHours()
@@ -38,621 +47,538 @@ function greeting() {
   return 'Good evening'
 }
 
-function formatFullDate(d) {
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+function formatHeaderDate() {
+  return new Date().toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric',
+  }).toUpperCase()
 }
 
-// Build a 7-slot week array from the plan's dinners array
-function buildWeekSlots(plan, recipeMap, sunday) {
-  const dinners = plan?.dinners ?? []
-  const slots = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(sunday)
-    d.setDate(sunday.getDate() + i)
-    return { day: DAYS_SHORT[d.getDay()], date: d.getDate(), dateObj: d, slots: { b: null, l: null, d: null } }
+function planRecipeIds(plan) {
+  if (!plan) return []
+  const ids = []
+  plan.dinners?.forEach(d => {
+    if (d.adultRecipeId) ids.push(d.adultRecipeId)
+    if (d.kidsRecipeId)  ids.push(d.kidsRecipeId)
   })
+  plan.breakfasts?.forEach(b => { if (b.recipeId) ids.push(b.recipeId) })
+  plan.lunches?.forEach(l => {
+    if (l.recipeId)     ids.push(l.recipeId)
+    if (l.kidsRecipeId) ids.push(l.kidsRecipeId)
+  })
+  plan.snacks?.forEach(s => { if (s.recipeId) ids.push(s.recipeId) })
+  return ids
+}
 
-  // Map dinners by array index (one-per-night assumption, respecting multiplier)
+function daysWithMeals(plan) {
+  if (!plan) return 0
+  const days = new Set()
   let dayIdx = 0
-  for (const dinner of dinners) {
-    if (dayIdx >= 7) break
-    const recipe = dinner.adultRecipeId ? recipeMap[dinner.adultRecipeId] : null
-    if (recipe) slots[dayIdx].slots.d = recipe
-    const mult = dinner.multiplier ?? 1
+  plan.dinners?.forEach(d => {
+    const mult = d.multiplier ?? 1
+    if (d.adultRecipeId) for (let i = 0; i < mult; i++) days.add(dayIdx + i)
     dayIdx += mult
+  })
+  plan.breakfasts?.forEach((b, i) => { if (b.recipeId) days.add(i) })
+  plan.lunches?.forEach((l, i) => { if (l.recipeId || l.kidsRecipeId) days.add(i) })
+  return days.size
+}
+
+function computeMostCooked(planHistory, recipeMap, filterWeeks) {
+  const weeks = filterWeeks ? planHistory.slice(0, filterWeeks) : planHistory
+  const counts = {}
+  weeks.forEach(({ plan }) => {
+    planRecipeIds(plan).forEach(id => {
+      if (recipeMap[id]) counts[id] = (counts[id] || 0) + 1
+    })
+  })
+  return Object.entries(counts)
+    .map(([id, count]) => ({ recipe: recipeMap[id], count }))
+    .filter(x => x.recipe)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+}
+
+function computeTopProteins(planHistory, recipeMap, filterWeeks) {
+  const weeks = filterWeeks ? planHistory.slice(0, filterWeeks) : planHistory
+  const counts = {}
+  weeks.forEach(({ plan }) => {
+    const ids = new Set(planRecipeIds(plan))
+    ids.forEach(id => {
+      const recipe = recipeMap[id]
+      if (!recipe?.ingredients) return
+      const found = new Set()
+      recipe.ingredients.forEach(ing => {
+        const name = (ing.name || '').toLowerCase()
+        for (const p of PROTEIN_MAP) {
+          if (!found.has(p.name) && p.test(name)) {
+            found.add(p.name)
+            break
+          }
+        }
+      })
+      found.forEach(p => { counts[p] = (counts[p] || 0) + 1 })
+    })
+  })
+  return Object.entries(counts)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 7)
+}
+
+function computeStreak(planHistory) {
+  const annotated = planHistory.map(w => ({
+    ...w,
+    days: daysWithMeals(w.plan),
+    qualifies: daysWithMeals(w.plan) >= 3,
+  }))
+
+  let streak = 0
+  for (const w of annotated) {
+    if (!w.qualifies) break
+    streak++
   }
 
-  // Map breakfasts (not day-indexed — attach to first available slots)
-  const breakfasts = plan?.breakfasts ?? []
-  let bIdx = 0
-  for (const b of breakfasts) {
-    if (bIdx >= 7) break
-    const recipe = b.recipeId ? recipeMap[b.recipeId] : null
-    if (recipe) slots[bIdx].slots.b = recipe
-    bIdx++
+  let best = 0, curr = 0
+  for (const w of [...annotated].reverse()) {
+    curr = w.qualifies ? curr + 1 : 0
+    best = Math.max(best, curr)
   }
 
-  // Map lunches similarly
-  const lunches = plan?.lunches ?? []
-  let lIdx = 0
-  for (const l of lunches) {
-    if (lIdx >= 7) break
-    const recipe = l.recipeId ? recipeMap[l.recipeId] : null
-    if (recipe) slots[lIdx].slots.l = recipe
-    lIdx++
+  const allTimeMeals = planHistory.reduce((total, { plan }) => {
+    if (!plan) return total
+    return total +
+      (plan.dinners?.length   || 0) +
+      (plan.breakfasts?.length || 0) +
+      (plan.lunches?.length   || 0) +
+      (plan.snacks?.length    || 0)
+  }, 0)
+
+  return {
+    streak,
+    best: Math.max(best, streak),
+    allTimeMeals,
+    history: annotated.slice(0, 8).reverse(),
+  }
+}
+
+function computeWeeklyScore(plan, recipeMap) {
+  const dinners  = plan?.dinners ?? []
+  const allMeals = [
+    ...(plan?.breakfasts ?? []),
+    ...(plan?.lunches    ?? []),
+    ...dinners,
+    ...(plan?.snacks     ?? []),
+  ]
+  if (!allMeals.length) return null
+  const categories = new Set(
+    dinners.map(d => recipeMap[d.adultRecipeId]?.category).filter(Boolean)
+  )
+  const base    = Math.min(9, Math.max(5, Math.round(3 + (allMeals.length / 10) * 4 + (categories.size / 4) * 3)))
+  const decimal = (allMeals.length + categories.size * 3) % 10
+  return `${base}.${decimal}`
+}
+
+function getRecommendationTag(recipe, planHistory, currentWeekKey, mostCooked) {
+  const cookTime   = (recipe.prep_time || 0) + (recipe.cook_time || 0)
+  const isFavourite = mostCooked.slice(0, 3).some(m => m.recipe.id === recipe.id)
+  if (isFavourite) return { tag: 'Fan favourite', style: 'green' }
+
+  const historical = planHistory.filter(w => w.week_key !== currentWeekKey)
+  for (let i = 0; i < historical.length; i++) {
+    if (planRecipeIds(historical[i].plan).includes(recipe.id)) {
+      const weeks = i + 1
+      return { tag: `Not made in ${weeks} week${weeks !== 1 ? 's' : ''}`, style: 'orange' }
+    }
   }
 
-  return slots
+  if (cookTime > 0 && cookTime <= 25) return { tag: 'Quick & easy', style: 'green' }
+  if (cookTime > 0 && cookTime <= 40) return { tag: 'Under 40 min', style: 'blue' }
+  return { tag: null, style: null }
 }
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
 
-const dashCard = (extra = {}) => ({
-  background: 'var(--paper)',
-  border: '1px solid var(--ink-100)',
-  borderRadius: 'var(--r-lg)',
-  ...extra,
-})
-
-function Card({ children, style, pad = 20 }) {
-  return <div style={{ ...dashCard(), padding: pad, ...style }}>{children}</div>
-}
-
-function SHead({ label, action, onAction }) {
+function TagChip({ tag, style }) {
+  const styles = {
+    orange: { background: '#FFF3EE', color: '#C05418', borderColor: '#FFD5C2' },
+    green:  { background: '#F0FDF4', color: '#15803D', borderColor: '#BBF7D0' },
+    blue:   { background: '#EEF2FF', color: '#3B4FBE', borderColor: '#C7D2FE' },
+    gray:   { background: 'var(--hp-ink-50)', color: 'var(--hp-ink-600)', borderColor: 'var(--hp-ink-200)' },
+  }
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-      <span className="t-eyebrow">{label}</span>
-      {action && (
-        <button
-          onClick={onAction}
-          style={{ fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 600, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-        >
-          {action}
-        </button>
-      )}
-    </div>
+    <span className="dash-tag" style={styles[style] || styles.gray}>{tag}</span>
   )
 }
 
-// ─── Widget: Top Bar ──────────────────────────────────────────────────────────
+function DashCard({ children }) {
+  return <div className="dash-card">{children}</div>
+}
 
-function TopBar({ weekKey, onPrevWeek, onNextWeek, onThisWeek, isCurrentWeek, navigate, displayName }) {
-  const today = new Date()
+function CardHead({ label, action, onAction, slot }) {
   return (
-    <div className="dash-topbar">
-      <div className="t-eyebrow" style={{ color: 'var(--ink-500)', marginBottom: 0 }}>Dashboard</div>
-      <div className="dash-topbar-row">
-        <div>
-          <h1 className="dash-greeting">
-            {displayName ? `Hey ${displayName}.` : `${greeting()}.`}
-          </h1>
-          <div className="t-caption" style={{ marginTop: 6 }}>
-            {formatFullDate(today)}
-            {' · '}
-            <span style={{ color: 'var(--ink-400)' }}>{formatWeekOf(weekKey)}</span>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', paddingBottom: 4 }}>
-          <div className="week-nav">
-            <button className="btn btn-icon btn-ghost btn-sm" onClick={onPrevWeek}><IconChevronL size={16} /></button>
-            <span className="week-nav-label">{formatWeekOf(weekKey)}</span>
-            <button className="btn btn-icon btn-ghost btn-sm" onClick={onNextWeek}><IconChevronR size={16} /></button>
-            {!isCurrentWeek && (
-              <button className="btn btn-ghost btn-sm" onClick={onThisWeek} style={{ color: 'var(--green)' }}>This week</button>
-            )}
-          </div>
-          <button className="btn btn-sm btn-ghost" onClick={() => navigate('/planner')}>
-            <IconPlus size={14} /> Add meal
-          </button>
-          <button
-            className="btn btn-sm"
-            style={{ background: GRAD, color: 'var(--ink-900)', border: 'none', fontWeight: 700 }}
-            onClick={() => navigate('/grocery')}
-          >
-            <IconGrocery size={14} /> Grocery list
-          </button>
-        </div>
+    <div className="dash-card-head">
+      <span className="t-eyebrow" style={{ color: 'var(--hp-ink-500)' }}>{label}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {slot}
+        {action && (
+          <button className="dash-card-action" onClick={onAction}>{action}</button>
+        )}
       </div>
     </div>
   )
 }
 
-// ─── Widget: AI Summary ────────────────────────────────────────────────────────
+function BarRow({ name, count, maxCount, rank }) {
+  const pct = maxCount > 0 ? Math.max(3, (count / maxCount) * 100) : 0
+  return (
+    <div>
+      <div className="dash-bar-meta">
+        <span style={{ display: 'flex', alignItems: 'center' }}>
+          {rank !== undefined && <span className="dash-bar-rank">#{rank}</span>}
+          <span className="dash-bar-name">{name}</span>
+        </span>
+        <span className="dash-bar-count">{count}×</span>
+      </div>
+      <div className="dash-bar-track">
+        <div className="dash-bar-fill" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  )
+}
 
-function AISummary({ plan, recipes, recipeMap }) {
+function FilterChips({ filterIdx, setFilterIdx }) {
+  return (
+    <div className="dash-filter-row">
+      {TIME_FILTERS.map((f, i) => (
+        <button key={f.label}
+          className={`dash-time-chip${filterIdx === i ? ' dash-time-chip--on' : ''}`}
+          onClick={() => setFilterIdx(i)}>
+          {f.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── AISummary ────────────────────────────────────────────────────────────────
+
+function AISummary({ plan, recipeMap, aiData }) {
+  const score = computeWeeklyScore(plan, recipeMap)
   const dinners = plan?.dinners ?? []
   const allMeals = [
     ...(plan?.breakfasts ?? []),
-    ...(plan?.lunches ?? []),
+    ...(plan?.lunches    ?? []),
     ...dinners,
-    ...(plan?.snacks ?? []),
+    ...(plan?.snacks     ?? []),
   ]
-  const totalMeals = allMeals.length
-  const totalTime = dinners.reduce((s, d) => {
-    const r = recipeMap[d.adultRecipeId]
-    return s + (r ? (r.prep_time || 0) + (r.cook_time || 0) : 0)
-  }, 0)
-  const avgTime = dinners.length ? Math.round(totalTime / dinners.length) : 0
 
-  // Simple scoring: more meals = better, variety = better
-  const categories = new Set(dinners.map(d => recipeMap[d.adultRecipeId]?.category).filter(Boolean))
-  const score = Math.min(10, Math.round(3 + (totalMeals / 9) * 4 + (categories.size / 4) * 3))
-  const scoreDisplay = totalMeals === 0 ? '—' : `${score}.${Math.floor(Math.random() * 9)}`
-
-  const tags = []
-  if (avgTime > 0 && avgTime <= 30) tags.push('Quick weeknights ✓')
-  if (dinners.length >= 5) tags.push('Well-planned week')
-  if (categories.size >= 3) tags.push('Good variety')
-  if (totalMeals === 0) tags.push('Nothing planned yet')
-
-  const summaryText = totalMeals === 0
-    ? 'No meals planned yet this week. Head to the planner to start building your week — even a few dinners makes grocery shopping much easier.'
-    : `${dinners.length} dinner${dinners.length !== 1 ? 's' : ''} planned this week${avgTime > 0 ? ` with an average cook time of ${avgTime} minutes` : ''}. ${categories.size > 1 ? `Good variety across ${categories.size} meal categories.` : 'Consider mixing up categories for more variety.'}`
+  const summaryText = aiData?.summaryText || (
+    allMeals.length === 0
+      ? 'No meals planned yet this week. Head to the planner to start building your week — even a few dinners makes grocery shopping much easier.'
+      : `${dinners.length} dinner${dinners.length !== 1 ? 's' : ''} planned this week. Add more meals for a fuller picture.`
+  )
+  const tags = aiData?.tags || []
 
   return (
     <div className="dash-ai-card">
       <div className="dash-ai-rating">
-        <div className="dash-ai-score" style={{ background: GRAD, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-          {scoreDisplay}
-        </div>
-        <div className="t-caption" style={{ fontWeight: 600 }}>/ 10 this week</div>
+        <div className="dash-ai-score">{score ?? '—'}</div>
+        <div className="dash-ai-score-sub">/ 10 this week</div>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
           <span style={{ fontSize: 13 }}>✦</span>
-          <span className="t-eyebrow">Weekly summary</span>
+          <span className="t-eyebrow" style={{ color: 'var(--hp-ink-500)' }}>AI Weekly Summary</span>
         </div>
-        <p style={{ fontFamily: 'var(--font-body)', fontSize: 14, lineHeight: 1.6, color: 'var(--ink-700)', margin: '0 0 12px' }}>
-          {summaryText}
-        </p>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {tags.map(t => (
-            <span key={t} className="chip" style={{ background: 'var(--ink-50)', fontSize: 11, height: 26 }}>{t}</span>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Widget: Week at a Glance ──────────────────────────────────────────────────
-
-function WeekAtAGlance({ weekSlots, today, navigate }) {
-  return (
-    <Card style={{ overflow: 'hidden' }} pad={0}>
-      <div style={{ padding: '14px 18px 12px', borderBottom: '1px solid var(--ink-100)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span className="t-eyebrow">Week at a glance</span>
-        <button
-          style={{ fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 600, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-          onClick={() => navigate('/planner')}
-        >Open planner →</button>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
-        {weekSlots.map(({ day, date, dateObj }) => {
-          const isToday = dateObj.toDateString() === today.toDateString()
-          return (
-            <div key={day} style={{ padding: '8px 6px 6px', textAlign: 'center', borderBottom: '1px solid var(--ink-100)', borderRight: '1px solid var(--ink-100)', background: isToday ? 'var(--green-50)' : 'transparent' }}>
-              <div className="t-caption" style={{ fontWeight: 600, color: isToday ? 'var(--green-600)' : 'var(--ink-500)' }}>{day}</div>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: isToday ? 'var(--green-600)' : 'var(--ink-900)', lineHeight: 1.1 }}>{date}</div>
-              {isToday && <div style={{ height: 3, width: 22, margin: '3px auto 0', borderRadius: 2, background: GRAD }} />}
-            </div>
-          )
-        })}
-        {MEAL_ROWS.map(({ key, Food }) =>
-          weekSlots.map(({ day, dateObj, slots }) => {
-            const isToday = dateObj.toDateString() === today.toDateString()
-            const meal = slots[key]
-            return (
-              <div
-                key={`${day}-${key}`}
-                style={{ padding: '6px 6px', minHeight: 54, borderBottom: key !== 'd' ? '1px solid var(--ink-100)' : 'none', borderRight: '1px solid var(--ink-100)', background: isToday ? 'var(--green-50)' : 'transparent', display: 'flex', flexDirection: 'column', gap: 3 }}
-              >
-                {meal ? (
-                  <>
-                    <Food size={16} />
-                    <span style={{ fontFamily: 'var(--font-body)', fontSize: 10, lineHeight: 1.3, color: 'var(--ink-700)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                      {meal.name}
-                    </span>
-                  </>
-                ) : (
-                  <span style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11, color: 'var(--ink-300)' }}>—</span>
-                )}
-              </div>
-            )
-          })
-        )}
-      </div>
-    </Card>
-  )
-}
-
-// ─── Widget: Today's Meals ────────────────────────────────────────────────────
-
-function TodaysMeals({ weekSlots, today }) {
-  const todaySlot = weekSlots.find(s => s.dateObj.toDateString() === today.toDateString())
-  const meals = []
-  if (todaySlot?.slots.b) meals.push({ type: 'Breakfast', recipe: todaySlot.slots.b, Food: FoodBreakfast })
-  if (todaySlot?.slots.l) meals.push({ type: 'Lunch',     recipe: todaySlot.slots.l, Food: FoodLunch })
-  if (todaySlot?.slots.d) meals.push({ type: 'Dinner',    recipe: todaySlot.slots.d, Food: FoodDinner })
-
-  return (
-    <Card pad={0} style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '14px 18px 12px', borderBottom: '1px solid var(--ink-100)' }}>
-        <span className="t-eyebrow">Today</span>
-      </div>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {meals.length === 0 ? (
-          <div style={{ padding: '24px 18px', color: 'var(--ink-400)', fontFamily: 'var(--font-body)', fontSize: 13 }}>
-            Nothing planned today.
+        <p style={{
+          fontFamily: 'var(--hp-font-body)', fontSize: 14, lineHeight: 1.65,
+          color: 'var(--hp-ink-700)', margin: '0 0 12px',
+        }}>{summaryText}</p>
+        {tags.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {tags.map((t, i) => (
+              <TagChip key={i} tag={t.text} style={t.style || 'gray'} />
+            ))}
           </div>
-        ) : (
-          meals.map(({ type, recipe, Food }, i) => {
-            const time = (recipe.prep_time || 0) + (recipe.cook_time || 0)
-            return (
-              <div key={type} style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: i < meals.length - 1 ? '1px solid var(--ink-100)' : 'none' }}>
-                <Food size={32} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="t-caption" style={{ fontWeight: 600, marginBottom: 2 }}>{type}</div>
-                  <div style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 13, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{recipe.name}</div>
-                </div>
-                {time > 0 && (
-                  <span className="t-caption tabular" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <IconClock size={11} />{time}m
-                  </span>
-                )}
-              </div>
-            )
-          })
         )}
-      </div>
-    </Card>
-  )
-}
-
-// ─── Widget: This Week's Recipes ──────────────────────────────────────────────
-
-function ThisWeekRecipes({ plan, recipeMap }) {
-  const seen = new Set()
-  const weekRecipes = []
-
-  const addMeal = (recipeId, dayLabel) => {
-    const r = recipeMap[recipeId]
-    if (!r || seen.has(r.id)) return
-    seen.add(r.id)
-    const Food = FOOD_ICON_MAP[r.category] ?? FoodDinner
-    weekRecipes.push({ recipe: r, day: dayLabel, Food })
-  }
-
-  const dinners = plan?.dinners ?? []
-  dinners.forEach((d, i) => {
-    const day = DAYS_SHORT[i] ?? `D${i+1}`
-    if (d.adultRecipeId) addMeal(d.adultRecipeId, day)
-    if (d.kidsRecipeId)  addMeal(d.kidsRecipeId, day)
-    d.sides?.forEach(s => s.recipeId && addMeal(s.recipeId, day))
-  });
-  (plan?.breakfasts ?? []).forEach(b => b.recipeId && addMeal(b.recipeId, 'B'));
-  (plan?.lunches   ?? []).forEach(l => l.recipeId && addMeal(l.recipeId, 'L'));
-  (plan?.snacks    ?? []).forEach(s => s.recipeId && addMeal(s.recipeId, 'S'));
-
-  if (weekRecipes.length === 0) return null
-
-  return (
-    <div className="dash-week-recipes">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <span className="t-eyebrow">This week's recipes</span>
-        <span className="t-caption">{weekRecipes.length} planned</span>
-      </div>
-      <div className="dash-recipe-strip">
-        {weekRecipes.map(({ recipe, day, Food }) => {
-          const time = (recipe.prep_time || 0) + (recipe.cook_time || 0)
-          return (
-            <div key={recipe.id} style={{ ...dashCard(), padding: '12px 14px', minWidth: 160, maxWidth: 160, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Food size={28} />
-                <span className="chip" style={{ height: 20, padding: '0 7px', fontSize: 10, background: 'var(--ink-50)' }}>{day}</span>
-              </div>
-              <div style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 12, color: 'var(--ink-900)', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                {recipe.name}
-              </div>
-              {time > 0 && (
-                <div className="t-caption tabular" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <IconClock size={10} />{time}m · {recipe.category ?? 'Recipe'}
-                </div>
-              )}
-            </div>
-          )
-        })}
       </div>
     </div>
   )
 }
 
-// ─── Widget: Most Cooked ──────────────────────────────────────────────────────
+// ─── MostCooked ───────────────────────────────────────────────────────────────
 
-function MostCooked({ recipes, navigate }) {
-  const top = recipes.slice(0, 5)
-  if (top.length === 0) return (
-    <Card>
-      <SHead label="Most cooked meals" action="All recipes →" onAction={() => navigate('/recipes')} />
-      <div className="t-caption" style={{ color: 'var(--ink-400)' }}>No recipes yet.</div>
-    </Card>
-  )
+function MostCooked({ planHistory, recipeMap, navigate }) {
+  const [filterIdx, setFilterIdx] = useState(3)
 
-  return (
-    <Card>
-      <SHead label="Your recipes" action="All →" onAction={() => navigate('/recipes')} />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {top.map((r, i) => {
-          const Food = FOOD_ICON_MAP[r.category] ?? FoodDinner
-          return (
-            <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Food size={22} />
-              <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600, color: 'var(--ink-900)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {r.name}
-              </span>
-              <span style={{ height: 6, width: 6, borderRadius: '50%', background: GRAD.replace('90deg', `${i * 20}deg`), flexShrink: 0 }} />
-            </div>
-          )
-        })}
-      </div>
-    </Card>
-  )
-}
+  const items = useMemo(() => {
+    const f = TIME_FILTERS[filterIdx]
+    return computeMostCooked(planHistory, recipeMap, f.weeks)
+  }, [planHistory, recipeMap, filterIdx])
 
-// ─── Widget: Pantry Stash ─────────────────────────────────────────────────────
-
-function PantryStash({ plan, recipeMap, navigate }) {
-  const STAPLE_KEYWORDS = ['salt', 'pepper', 'olive oil', 'butter', 'garlic', 'onion', 'oil', 'flour', 'sugar', 'egg', 'cream', 'stock', 'pasta']
-  const found = new Map()
-
-  ;(plan?.dinners ?? []).forEach(d => {
-    recipeMap[d.adultRecipeId]?.ingredients?.forEach(ing => {
-      const n = (ing.name ?? '').toLowerCase()
-      STAPLE_KEYWORDS.forEach(kw => {
-        if (n.includes(kw) && !found.has(ing.name)) {
-          found.set(ing.name, { name: ing.name, status: 'ok', color: '#A6C948' })
-        }
-      })
-    })
-  })
-
-  const items = [...found.values()].slice(0, 5)
+  const maxCount = items[0]?.count || 1
 
   return (
-    <Card style={{ display: 'flex', flexDirection: 'column' }}>
-      <SHead label="Pantry watch" action="Grocery →" onAction={() => navigate('/grocery')} />
+    <DashCard>
+      <CardHead
+        label="Most cooked meals"
+        action="All recipes →"
+        onAction={() => navigate('/recipes')}
+      />
+      <FilterChips filterIdx={filterIdx} setFilterIdx={setFilterIdx} />
       {items.length === 0 ? (
-        <div className="t-caption" style={{ color: 'var(--ink-400)' }}>Plan dinners to see pantry items here.</div>
+        <p className="dash-empty">No meal history yet for this period. Plan meals and they'll appear here.</p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 9, flex: 1 }}>
-          {items.map(({ name, color }) => (
-            <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-              <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--ink-800)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: color }} />
-                <span className="t-caption" style={{ fontWeight: 600, color }}>Check</span>
-              </span>
-            </div>
+        <div className="dash-bar-list">
+          {items.map(({ recipe, count }) => (
+            <BarRow key={recipe.id} name={recipe.name} count={count} maxCount={maxCount} />
           ))}
         </div>
       )}
-      <button className="btn btn-sm btn-ghost" style={{ marginTop: 14, width: '100%', justifyContent: 'center' }}
-        onClick={() => navigate('/grocery')}>
-        View grocery list
-      </button>
-    </Card>
+    </DashCard>
   )
 }
 
-// ─── Widget: Stats Panel ───────────────────────────────────────────────────────
+// ─── RecommendedForYou ────────────────────────────────────────────────────────
 
-function StatsPanel({ plan, recipes, groceryItems }) {
-  const dinners = plan?.dinners ?? []
-  const allMeals = [
-    ...(plan?.breakfasts ?? []),
-    ...(plan?.lunches ?? []),
-    ...dinners,
-    ...(plan?.snacks ?? []),
-  ]
+function RecommendedForYou({ recipes, plan, planHistory, currentWeekKey, mostCooked, onAdd, addedIds }) {
+  const plannedIds = useMemo(() => new Set(planRecipeIds(plan)), [plan])
 
-  // Count days that have at least one meal — use dinner count as proxy
-  const daysPlanned = Math.min(7, dinners.reduce((n, d) => n + (d.multiplier ?? 1), 0))
-  const totalServings = dinners.reduce((s, d) => s + (d.multiplier ?? 1) * 2, 0)
-  const avgPrepTime = dinners.length
-    ? Math.round(dinners.reduce((s, d) => s + ((d.prep_time || 0) + (d.cook_time || 0)), 0) / dinners.length)
-    : 0
+  const candidates = useMemo(() => {
+    return recipes
+      .filter(r => !plannedIds.has(r.id))
+      .slice(0, 4)
+      .map(r => ({ recipe: r, ...getRecommendationTag(r, planHistory, currentWeekKey, mostCooked) }))
+  }, [recipes, plannedIds, planHistory, currentWeekKey, mostCooked])
 
-  const stats = [
-    { value: `${daysPlanned}/7`, sub: 'Days planned', grad: true },
-    { value: String(allMeals.length || '—'), sub: 'Meals this week' },
-    { value: recipes.length > 0 ? String(recipes.length) : '—', sub: 'Saved recipes' },
-    { value: groceryItems.length > 0 ? String(groceryItems.length) : '—', sub: 'Grocery items' },
-  ]
-
-  return (
-    <Card>
-      <SHead label="Week stats" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        {stats.map(({ value, sub, grad }) => (
-          <div key={sub} style={{ background: 'var(--bg-app)', borderRadius: 'var(--r-md)', padding: '12px 12px 10px' }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 28, lineHeight: 1, letterSpacing: '-0.025em', ...(grad ? { background: GRAD, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' } : { color: 'var(--ink-900)' }) }}>{value}</div>
-            <div className="t-caption" style={{ marginTop: 5 }}>{sub}</div>
-          </div>
-        ))}
-      </div>
-      <div style={{ marginTop: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-          <span className="t-caption">Weekly planning</span>
-          <span className="t-caption tabular" style={{ fontWeight: 600, color: 'var(--green-600)' }}>{daysPlanned}/7 days</span>
-        </div>
-        <div style={{ height: 7, background: 'var(--ink-100)', borderRadius: 'var(--r-full)', overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${(daysPlanned / 7) * 100}%`, background: GRAD }} />
-        </div>
-      </div>
-    </Card>
-  )
-}
-
-// ─── Widget: Recommended Recipe ────────────────────────────────────────────────
-
-function Recommended({ recipes, plan, navigate }) {
-  const plannedIds = new Set([
-    ...(plan?.dinners ?? []).map(d => d.adultRecipeId),
-    ...(plan?.breakfasts ?? []).map(b => b.recipeId),
-    ...(plan?.lunches ?? []).map(l => l.recipeId),
-  ])
-
-  const candidates = recipes.filter(r => !plannedIds.has(r.id))
   if (candidates.length === 0) return null
 
-  const rec = candidates[0]
-  const Food = FOOD_ICON_MAP[rec.category] ?? FoodDinner
-  const time = (rec.prep_time || 0) + (rec.cook_time || 0)
-
   return (
-    <Card style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
-      <div style={{ background: 'var(--green-50)', borderRadius: 'var(--r-md)', padding: 14, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
-        <Food size={52} />
+    <DashCard>
+      <CardHead label="Recommended for you" />
+      <div>
+        {candidates.map(({ recipe, tag, style }) => {
+          const Food     = FOOD_ICON_MAP[recipe.category] ?? FoodDinner
+          const cookTime = (recipe.prep_time || 0) + (recipe.cook_time || 0)
+          const isAdded  = addedIds.has(recipe.id)
+          return (
+            <div key={recipe.id} className="dash-rec-row">
+              <div className="dash-rec-icon"><Food size={28} /></div>
+              <div className="dash-rec-info">
+                <div className="dash-rec-name">{recipe.name}</div>
+                <div className="dash-rec-meta">
+                  {tag && <TagChip tag={tag} style={style} />}
+                  {cookTime > 0 && (
+                    <span className="dash-rec-time">
+                      <IconClock size={11} /> {cookTime} min
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button
+                className={`dash-rec-add${isAdded ? ' dash-rec-add--added' : ''}`}
+                onClick={() => !isAdded && onAdd(recipe.id)}
+                disabled={isAdded}
+              >
+                {isAdded ? '✓ Added' : <><IconPlus size={12} /> Add</>}
+              </button>
+            </div>
+          )
+        })}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-          <span className="t-eyebrow">Recommended</span>
-          <span className="chip" style={{ height: 22, fontSize: 11, padding: '0 8px', background: 'var(--orange-50)', color: 'var(--orange-600)', border: 'none' }}>
-            Not this week
-          </span>
-        </div>
-        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, letterSpacing: '-0.015em', color: 'var(--ink-900)', marginBottom: 6, lineHeight: 1.1 }}>
-          {rec.name}
-        </div>
-        <div className="t-caption" style={{ marginBottom: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {time > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><IconClock size={11} /> {time} min</span>}
-          {rec.servings > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><IconServes size={11} /> Serves {rec.servings}</span>}
-          {rec.category && <span style={{ textTransform: 'capitalize' }}>{rec.category}</span>}
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-sm btn-primary" onClick={() => navigate('/planner')}>
-            Add to planner
-          </button>
-          <button className="btn btn-sm btn-ghost" onClick={() => navigate(`/recipes/${rec.id}`)}>
-            View recipe
-          </button>
-        </div>
-      </div>
-    </Card>
+    </DashCard>
   )
 }
 
-// ─── Widget: Planning Streak ──────────────────────────────────────────────────
+// ─── TopProteins ──────────────────────────────────────────────────────────────
 
-function StreakCard({ planHistory }) {
-  // planHistory is an array of { week_key } from most recent to oldest
-  // Calculate streak: consecutive weeks with any meals planned
-  const streakData = planHistory.slice(0, 8).reverse()
-  const labels = streakData.map(p => {
-    const parts = p.week_key.split('-')
-    return `Wk ${parts[1]}`
-  })
-  const currentLabel = labels[labels.length - 1] ?? 'This week'
+function TopProteins({ planHistory, recipeMap }) {
+  const [filterIdx, setFilterIdx] = useState(3)
 
-  // Mock bar heights until we have real planning % data
-  const bars = streakData.map((p, i) => i === streakData.length - 1 ? 5/7 : 0.5 + Math.random() * 0.4)
+  const items = useMemo(() => {
+    const f = TIME_FILTERS[filterIdx]
+    return computeTopProteins(planHistory, recipeMap, f.weeks)
+  }, [planHistory, recipeMap, filterIdx])
 
-  // Streak = consecutive recent weeks
-  let streak = 0
-  for (let i = planHistory.length - 1; i >= 0; i--) {
-    streak++
-    // Would need to check if that week had any meals — without that data, just show plan count
-    if (streak >= planHistory.length) break
-  }
-
-  if (planHistory.length === 0) {
-    return (
-      <Card>
-        <SHead label="Planning streak" />
-        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 36, letterSpacing: '-0.03em', color: 'var(--ink-900)', marginBottom: 6 }}>—</div>
-        <div className="t-caption">Start planning to build a streak.</div>
-      </Card>
-    )
-  }
+  const maxCount = items[0]?.count || 1
 
   return (
-    <Card>
-      <SHead label="Planning streak" />
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 16 }}>
-        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 38, letterSpacing: '-0.03em', color: 'var(--ink-900)' }}>{planHistory.length}</span>
-        <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 14, color: 'var(--ink-600)' }}>weeks planned ✦</span>
-      </div>
-      {bars.length > 0 && (
-        <>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 56 }}>
-            {bars.map((v, i) => (
-              <div key={i} style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
-                <div style={{ width: '100%', height: Math.max(6, Math.round(v * 48)), borderRadius: 3, background: i === bars.length - 1 ? GRAD : 'var(--ink-100)', opacity: i < bars.length - 1 ? 0.6 + i * 0.05 : 1 }} />
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 5, marginTop: 5 }}>
-            {labels.map((l, i) => (
-              <div key={i} style={{ flex: 1, textAlign: 'center', fontFamily: 'var(--font-body)', fontSize: 9, color: i === labels.length - 1 ? 'var(--green-600)' : 'var(--ink-300)', fontWeight: i === labels.length - 1 ? 700 : 400 }}>
-                {l}
-              </div>
-            ))}
-          </div>
-        </>
+    <DashCard>
+      <CardHead label="Top proteins" />
+      <FilterChips filterIdx={filterIdx} setFilterIdx={setFilterIdx} />
+      {items.length === 0 ? (
+        <p className="dash-empty">Plan meals with proteins to see your top picks here.</p>
+      ) : (
+        <div className="dash-bar-list">
+          {items.map(({ name, count }, i) => (
+            <BarRow key={name} name={name} count={count} maxCount={maxCount} rank={i + 1} />
+          ))}
+        </div>
       )}
-      <div style={{ marginTop: 14, display: 'flex', gap: 20 }}>
-        <div>
-          <div className="t-caption" style={{ marginBottom: 2 }}>Total weeks</div>
-          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--ink-900)' }}>{planHistory.length}</div>
-        </div>
-        <div>
-          <div className="t-caption" style={{ marginBottom: 2 }}>All-time meals</div>
-          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--ink-900)' }}>—</div>
-        </div>
-      </div>
-    </Card>
+    </DashCard>
   )
 }
 
-// ─── Main Dashboard Page ───────────────────────────────────────────────────────
+// ─── PlanningStreak ───────────────────────────────────────────────────────────
+
+function PlanningStreak({ planHistory }) {
+  const { streak, best, allTimeMeals, history } = useMemo(
+    () => computeStreak(planHistory),
+    [planHistory]
+  )
+
+  const maxDays = history.length ? Math.max(...history.map(w => w.days), 1) : 1
+
+  return (
+    <DashCard>
+      <CardHead label="Planning streak" />
+      <div className="dash-streak-body">
+        <div>
+          <span className="dash-streak-num">{streak || 0}</span>
+          <span className="dash-streak-label">weeks in a row ✦</span>
+        </div>
+
+        {history.length > 0 && (
+          <>
+            <div className="dash-streak-bars">
+              {history.map((w, i) => {
+                const isLatest = i === history.length - 1
+                const height   = Math.max(6, Math.round((w.days / maxDays) * 52))
+                return (
+                  <div key={w.week_key} className="dash-streak-bar-col" style={{ alignItems: 'flex-end', justifyContent: 'flex-end' }}>
+                    <div className="dash-streak-bar" style={{
+                      height,
+                      background: isLatest ? GRAD : (w.qualifies ? 'var(--hp-ink-200)' : 'var(--hp-ink-100)'),
+                    }} />
+                  </div>
+                )
+              })}
+            </div>
+            <div className="dash-streak-week-labels">
+              {history.map((w, i) => {
+                const isLatest = i === history.length - 1
+                const parts    = w.week_key.split('-')
+                return (
+                  <div key={w.week_key} className="dash-streak-week-label" style={{
+                    color:      isLatest ? 'var(--hp-green-600)' : 'var(--hp-ink-300)',
+                    fontWeight: isLatest ? 700 : 400,
+                  }}>
+                    {isLatest ? 'Now' : `Wk ${parts[1]}`}
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
+
+        <div className="dash-streak-stats">
+          <div>
+            <div className="dash-streak-stat-label">Best streak</div>
+            <div className="dash-streak-stat-val">
+              {best || '—'}
+              {best > 0 && <span className="dash-streak-stat-unit">weeks</span>}
+            </div>
+          </div>
+          <div>
+            <div className="dash-streak-stat-label">All-time meals planned</div>
+            <div className="dash-streak-stat-val">{allTimeMeals || '—'}</div>
+          </div>
+        </div>
+      </div>
+    </DashCard>
+  )
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const user     = useUser()
-  const navigate = useNavigate()
+  const user           = useUser()
+  const navigate       = useNavigate()
+  const currentWeekKey = getWeekKey()
 
-  const [weekKey,      setWeekKey]      = useState(() => getWeekKey())
-  const [plan,         setPlan]         = useState({})
-  const [recipes,      setRecipes]      = useState([])
-  const [groceryItems, setGroceryItems] = useState([])
-  const [planHistory,  setPlanHistory]  = useState([])
-  const [loading,      setLoading]      = useState(true)
-
-  const today = useMemo(() => new Date(), [])
-
-  useEffect(() => {
-    if (!user) return
-    getRecipes(user.id).then(({ data }) => setRecipes(data || []))
-    getGroceryList(user.id).then(({ data }) => setGroceryItems(data || []))
-    getMealPlanWeeks(user.id).then(({ data }) => setPlanHistory(data || []))
-  }, [user])
+  const [plan,        setPlan]        = useState({})
+  const [recipes,     setRecipes]     = useState([])
+  const [planHistory, setPlanHistory] = useState([])
+  const [loading,     setLoading]     = useState(true)
+  const [addedIds,    setAddedIds]    = useState(new Set())
+  const [aiData,      setAiData]      = useState(null)
 
   useEffect(() => {
     if (!user) return
-    setLoading(true)
-    getMealPlan(user.id, weekKey).then(({ data }) => {
-      setPlan(data || {})
+    Promise.all([
+      getRecipes(user.id),
+      getMealPlanWeeks(user.id),
+      getMealPlan(user.id, currentWeekKey),
+    ]).then(([{ data: r }, { data: h }, { data: p }]) => {
+      setRecipes(r || [])
+      setPlanHistory(h || [])
+      setPlan(p || {})
       setLoading(false)
     })
-  }, [user, weekKey])
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const recipeMap  = useMemo(() => Object.fromEntries(recipes.map(r => [r.id, r])), [recipes])
-  const sunday     = useMemo(() => weekStartSunday(weekKey), [weekKey])
-  const weekSlots  = useMemo(() => buildWeekSlots(plan, recipeMap, sunday), [plan, recipeMap, sunday])
-  const isCurrentWeek = weekKey === getWeekKey()
+  const recipeMap = useMemo(
+    () => Object.fromEntries(recipes.map(r => [r.id, r])),
+    [recipes]
+  )
+
+  const allTimeMostCooked = useMemo(
+    () => computeMostCooked(planHistory, recipeMap, null),
+    [planHistory, recipeMap]
+  )
+
+  // AI summary — cached in plan.dashboardAI keyed by week recipe fingerprint
+  const planFingerprint = useMemo(
+    () => [...new Set(planRecipeIds(plan))].sort().join(','),
+    [plan]
+  )
+
+  useEffect(() => {
+    if (!plan || !recipes.length) return
+    const cached = plan.dashboardAI
+    if (cached?.fingerprint === planFingerprint) {
+      setAiData(cached)
+      return
+    }
+    const weekMeals = [...new Set(planRecipeIds(plan))].map(id => {
+      const r = recipeMap[id]
+      return r ? { name: r.name, category: r.category, prepTime: r.prep_time || 0, cookTime: r.cook_time || 0 } : null
+    }).filter(Boolean)
+
+    const fp = planFingerprint
+    fetch('/.netlify/functions/dashboard-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weekMeals }),
+    })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        const payload = { ...data, fingerprint: fp }
+        setAiData(payload)
+        saveMealPlan(user.id, currentWeekKey, { ...plan, dashboardAI: payload })
+          .then(() => setPlan(p => ({ ...p, dashboardAI: payload })))
+      })
+      .catch(() => {})
+  }, [planFingerprint, recipes.length]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function addToPlan(recipeId) {
+    setAddedIds(s => new Set([...s, recipeId]))
+    const updated = {
+      ...plan,
+      dinners: [...(plan.dinners || []), { adultRecipeId: recipeId, multiplier: 1 }],
+    }
+    setPlan(updated)
+    await saveMealPlan(user.id, currentWeekKey, updated)
+  }
+
+  const displayName = user?.user_metadata?.full_name?.split(' ')[0]
+    ?? user?.email?.split('@')[0]
+    ?? null
 
   if (loading) {
     return (
-      <div className="dash-page">
-        <div style={{ padding: '80px 32px', textAlign: 'center', color: 'var(--ink-400)', fontFamily: 'var(--font-body)', fontSize: 14 }}>
+      <div className="page">
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--hp-ink-400)', fontFamily: 'var(--hp-font-body)', fontSize: 14 }}>
           Loading…
         </div>
       </div>
@@ -660,42 +586,42 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="dash-page">
-      {/* Top Bar */}
-      <TopBar
-        weekKey={weekKey}
-        onPrevWeek={() => setWeekKey(k => shiftWeek(k, -1))}
-        onNextWeek={() => setWeekKey(k => shiftWeek(k, 1))}
-        onThisWeek={() => setWeekKey(getWeekKey())}
-        isCurrentWeek={isCurrentWeek}
-        navigate={navigate}
-        displayName={user?.user_metadata?.full_name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? null}
-      />
+    <div className="page">
+      {/* ── Header ── */}
+      <div className="page-hero">
+        <div className="page-hero-top">
+          <span className="t-eyebrow" style={{ color: 'var(--ink-400)' }}>{formatHeaderDate()}</span>
+        </div>
+        <h1 className="page-hero-title">
+          {displayName ? `${greeting()}, ${displayName}.` : `${greeting()}.`}
+        </h1>
+      </div>
 
       <div className="dash-content">
         {/* AI Summary — full width */}
-        <AISummary plan={plan} recipes={recipes} recipeMap={recipeMap} />
+        <AISummary plan={plan} recipeMap={recipeMap} aiData={aiData} />
 
-        {/* Week + Today */}
-        <div className="dash-grid-week">
-          <WeekAtAGlance weekSlots={weekSlots} today={today} navigate={navigate} />
-          <TodaysMeals weekSlots={weekSlots} today={today} />
-        </div>
+        {/* Body — 2 columns */}
+        <div className="dash-body">
+          {/* Left: Most Cooked + Recommended */}
+          <div className="dash-col">
+            <MostCooked planHistory={planHistory} recipeMap={recipeMap} navigate={navigate} />
+            <RecommendedForYou
+              recipes={recipes}
+              plan={plan}
+              planHistory={planHistory}
+              currentWeekKey={currentWeekKey}
+              mostCooked={allTimeMostCooked}
+              onAdd={addToPlan}
+              addedIds={addedIds}
+            />
+          </div>
 
-        {/* This week's recipes */}
-        <ThisWeekRecipes plan={plan} recipeMap={recipeMap} />
-
-        {/* Most cooked + Pantry + Stats */}
-        <div className="dash-grid-3">
-          <MostCooked recipes={recipes} navigate={navigate} />
-          <PantryStash plan={plan} recipeMap={recipeMap} navigate={navigate} />
-          <StatsPanel plan={plan} recipes={recipes} groceryItems={groceryItems} />
-        </div>
-
-        {/* Recommended + Streak */}
-        <div className="dash-grid-2">
-          <Recommended recipes={recipes} plan={plan} navigate={navigate} />
-          <StreakCard planHistory={planHistory} />
+          {/* Right: Top Proteins + Streak */}
+          <div className="dash-col">
+            <TopProteins planHistory={planHistory} recipeMap={recipeMap} />
+            <PlanningStreak planHistory={planHistory} />
+          </div>
         </div>
       </div>
     </div>

@@ -323,13 +323,14 @@
 
 .plan-card-unset { color: var(--hp-ink-300); font-style: normal; }
 
-/* Rory badge */
-.plan-card-rory {
+/* Approval badge (dynamic member color) */
+.plan-card-approval {
   flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--hp-green-600);
+  font-size: 11px;
+  font-weight: 700;
   white-space: nowrap;
+  padding: 2px 7px;
+  border-radius: var(--r-pill);
 }
 
 /* Expand/collapse button */
@@ -337,20 +338,19 @@
   flex-shrink: 0;
   width: 24px;
   height: 24px;
-  border-radius: var(--r-xs);
-  border: 1px solid var(--hp-ink-200);
-  background: var(--hp-ink-50);
-  color: var(--hp-ink-500);
+  border: none;
+  background: transparent;
+  color: var(--hp-ink-400);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition: color var(--t-fast), transform var(--t-fast);
   padding: 0;
 }
 
-.plan-card-expand:hover { background: var(--hp-ink-100); color: var(--hp-ink-900); }
-.plan-card-expand--open { transform: rotate(180deg); background: var(--hp-ink-900); color: #fff; border-color: var(--hp-ink-900); }
+.plan-card-expand:hover { color: var(--hp-ink-700); }
+.plan-card-expand--open { transform: rotate(180deg); color: var(--hp-ink-600); }
 
 /* Remove button */
 .plan-card-remove {
@@ -395,7 +395,6 @@
 .plan-card-side-indent { width: 4px; flex-shrink: 0; }
 
 .plan-card-side-name {
-  flex: 1;
   font-size: 13px;
   font-weight: 400;
   color: var(--hp-ink-600);
@@ -403,6 +402,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .plan-card-side-name:hover { color: var(--hp-ink-900); }
@@ -621,5 +621,5 @@
 
 .picker-item-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .picker-item-name { flex: 1; font-size: 14px; font-weight: 500; color: var(--hp-ink-900); }
-.picker-item-rory { font-size: 12px; font-weight: 600; color: var(--hp-green-600); }
+.picker-item-approval { font-size: 11px; font-weight: 700; }
 .picker-item-cat  { font-size: 12px; color: var(--hp-ink-400); flex-shrink: 0; }

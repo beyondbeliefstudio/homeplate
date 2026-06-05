@@ -147,22 +147,40 @@
   max-width: 320px;
 }
 
-/* ─── Rory filter chip ──────────────────────────────────────────────── */
-.recipes-filter-chip--rory {
-  background: var(--hp-green-50);
-  color: var(--hp-green-700);
-  border-color: var(--hp-green-200);
+/* ─── Approval filter chip (dynamic color via --approval-color) ─────── */
+.recipes-filter-chip--approval {
+  background: color-mix(in srgb, var(--approval-color) 14%, transparent);
+  color: var(--approval-color);
+  border-color: color-mix(in srgb, var(--approval-color) 30%, transparent);
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.recipes-rory-dot {
+.recipes-approval-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--hp-green);
   flex-shrink: 0;
+}
+
+/* ─── Recipe card approval badges ───────────────────────────────────── */
+.recipe-card-approvals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.recipe-card-approval-badge {
+  font-family: var(--hp-font-body);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--r-pill);
+  border: 1px solid;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
 }
 
 /* ─── Recipe list (list view) ───────────────────────────────────────── */
@@ -203,7 +221,7 @@
 
 /* Pastel-tinted header — bg colour set inline via color-mix() */
 .recipe-card-header {
-  height: 160px;
+  aspect-ratio: 3 / 2;
   position: relative;
   overflow: hidden;
   flex-shrink: 0;
@@ -839,6 +857,42 @@ textarea.input-sm { height: auto; }
   border-top: 1px solid var(--border);
 }
 
+/* ─── AI Edit Assistant collapsed trigger ───────────────────────────────── */
+.ai-edit-collapsed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  background: var(--surface);
+  border: 1px solid var(--accent-mid);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+  color: var(--accent);
+}
+
+.ai-edit-collapsed:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+.ai-edit-collapsed span:nth-child(2) {
+  font-family: var(--hp-font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.ai-edit-collapsed-hint {
+  font-size: 12px;
+  color: var(--text-3) !important;
+  font-weight: 400 !important;
+  margin-left: 2px;
+}
+
 /* ─── Recipe Form Header ─────────────────────────────────────────────────── */
 .recipe-form-header {
   display: grid;
@@ -881,12 +935,11 @@ textarea.input-sm { height: auto; }
   border: 1.5px dashed var(--border-mid);
   border-radius: var(--r-xl);
   background: var(--surface);
-  min-height: 180px;
+  aspect-ratio: 3 / 2;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   overflow: hidden;
   transition: border-color var(--t-fast), background var(--t-fast);
 }
@@ -905,7 +958,6 @@ textarea.input-sm { height: auto; }
   cursor: default;
   border-style: solid;
   border-color: var(--border);
-  min-height: 200px;
 }
 
 .recipe-photo-empty {

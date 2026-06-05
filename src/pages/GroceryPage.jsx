@@ -4,7 +4,10 @@ import { getMealPlan, saveMealPlan, getRecipes, getStaples, addStaple, deleteSta
 import { getWeekKey, shiftWeek, formatWeekRange } from '../lib/weeks'
 import { IconChevronL, IconChevronR, IconPlus, IconClose, IconCheck, IconRefresh } from '../components/icons'
 import { EmptyGrocery } from '../components/EmptyStates'
+import { STORE_PALETTES, getStorePalette } from '../lib/storePalettes'
 import './Grocery.css'
+
+export { getStorePalette }
 
 // ─── Pantry check ingredients ─────────────────────────────────────────────────
 // These are cooking fundamentals most kitchens have on hand.
@@ -792,7 +795,7 @@ export default function GroceryPage() {
   function GroupLabel({ group }) {
     const color = group.color || '#8C9189'
     return (
-      <div className="grocery-group-label">
+      <div className="grocery-group-label" style={{ background: 'var(--hp-green-50)' }}>
         <span className="grocery-group-dot" style={{ background: color }} />
         <span className="grocery-group-name">{group.label.toUpperCase()}</span>
         {group.aisle_label && <span className="grocery-group-aisle">{group.aisle_label}</span>}
@@ -915,34 +918,35 @@ export default function GroceryPage() {
                           </button>
                         )}
                       </span>
-                    </div>
-                    <div className="grocery-filter-chips">
-                      <button
-                        className={`grocery-filter-chip${!activeStoreFilter ? ' grocery-filter-chip--on' : ''}`}
-                        onClick={() => setActiveStoreFilter(null)}
-                      >
-                        All <span className="grocery-filter-count">{generated.length}</span>
-                      </button>
-                      {stores.map(store => {
-                        const cnt = storeFilterCounts[store.id] || 0
-                        if (!cnt) return null
-                        return (
-                          <button key={store.id}
-                            className={`grocery-filter-chip${activeStoreFilter === store.id ? ' grocery-filter-chip--on' : ''}`}
-                            onClick={() => setActiveStoreFilter(store.id)}
-                          >
-                            {store.name} <span className="grocery-filter-count">{cnt}</span>
-                          </button>
-                        )
-                      })}
-                      {untaggedCount > 0 && (
+                      {/* Filter chips — right side of the same row */}
+                      <div className="grocery-filter-chips">
                         <button
-                          className={`grocery-filter-chip${activeStoreFilter === 'untagged' ? ' grocery-filter-chip--on' : ''}`}
-                          onClick={() => setActiveStoreFilter('untagged')}
+                          className={`grocery-filter-chip${!activeStoreFilter ? ' grocery-filter-chip--on' : ''}`}
+                          onClick={() => setActiveStoreFilter(null)}
                         >
-                          Untagged <span className="grocery-filter-count">{untaggedCount}</span>
+                          All <span className="grocery-filter-count">{generated.length}</span>
                         </button>
-                      )}
+                        {stores.map(store => {
+                          const cnt = storeFilterCounts[store.id] || 0
+                          if (!cnt) return null
+                          return (
+                            <button key={store.id}
+                              className={`grocery-filter-chip${activeStoreFilter === store.id ? ' grocery-filter-chip--on' : ''}`}
+                              onClick={() => setActiveStoreFilter(store.id)}
+                            >
+                              {store.name} <span className="grocery-filter-count">{cnt}</span>
+                            </button>
+                          )
+                        })}
+                        {untaggedCount > 0 && (
+                          <button
+                            className={`grocery-filter-chip${activeStoreFilter === 'untagged' ? ' grocery-filter-chip--on' : ''}`}
+                            onClick={() => setActiveStoreFilter('untagged')}
+                          >
+                            Untagged <span className="grocery-filter-count">{untaggedCount}</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="grocery-card-body">
@@ -1160,6 +1164,7 @@ function GroceryRow({ item, checked, label, onToggle, onRemove, isStaple, storeI
         {showStores && (
           <button
             className={`grocery-store-badge ${assignedStore ? 'grocery-store-badge--set' : 'grocery-store-badge--unset'} ${pickerOpen ? 'grocery-store-badge--open' : ''}`}
+            style={assignedStore ? (() => { const p = getStorePalette(assignedStore); return { background: p.bg, color: p.color, borderColor: p.border } })() : undefined}
             onClick={e => { e.stopPropagation(); setPickerOpen(p => !p) }}
             title={pickerOpen ? 'Close' : assignedStore ? `${assignedStore.name} — tap to change` : 'Assign to a store'}
           >

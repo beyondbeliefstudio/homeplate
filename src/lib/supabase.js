@@ -73,6 +73,7 @@ export async function saveRecipe(userId, recipe) {
     instructions:   recipe.instructions || [],
     nutrition:      recipe.nutrition || {},
     rory_approved:  recipe.rory_approved ?? false,
+    approved_by:    recipe.approved_by ?? [],
     rating:         recipe.rating ?? null,
   }
 
@@ -124,7 +125,7 @@ export async function saveMealPlan(userId, weekKey, plan) {
 export async function getMealPlanWeeks(userId) {
   const { data, error } = await supabase
     .from('meal_plans')
-    .select('week_key, updated_at')
+    .select('week_key, plan, updated_at')
     .eq('user_id', userId)
     .order('week_key', { ascending: false })
   return { data: data || [], error }
@@ -167,6 +168,7 @@ export async function saveStore(userId, store) {
     user_id: userId,
     name:    store.name,
     aisles:  store.aisles || [],
+    palette: store.palette ?? 0,
   }
   if (store.id) {
     const { data, error } = await supabase
@@ -196,7 +198,7 @@ export async function getHouseholdMembers(userId) {
 }
 
 export async function saveHouseholdMember(userId, member) {
-  const payload = { user_id: userId, name: member.name, color: member.color, sort_order: member.sort_order ?? 0 }
+  const payload = { user_id: userId, name: member.name, color: member.color, sort_order: member.sort_order ?? 0, meal_approval: member.meal_approval ?? false }
   if (member.id) {
     const { data, error } = await supabase.from('household_members').update(payload).eq('id', member.id).select().single()
     return { data, error }

@@ -57,14 +57,11 @@
 
 /* Card-level controls header */
 .grocery-card-controls {
-  padding: 14px 20px 12px;
+  padding: 14px 20px 14px;
   border-bottom: 1px solid var(--hp-ink-100);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
-/* Row 1: FROM YOUR PLAN label + progress bar + count + chips all on one row */
+/* Single row: FROM YOUR PLAN + progress + count on left, filter chips on right */
 .grocery-controls-header {
   display: flex;
   align-items: center;
@@ -96,19 +93,20 @@
   flex-shrink: 0;
 }
 
-/* Row 2: filter chips */
+/* Filter chips — inline on the right of the same row */
 .grocery-filter-chips {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 5px;
+  flex-shrink: 0;
+  margin-left: 16px;
 }
 
 .grocery-filter-chip {
   font-size: 12px;
   font-weight: 500;
-  padding: 4px 12px;
-  border-radius: var(--hp-r-pill);
+  padding: 4px 11px;
+  border-radius: var(--r-md);
   border: 1px solid var(--hp-ink-200);
   background: transparent;
   color: var(--hp-ink-500);
@@ -127,6 +125,7 @@
   background: var(--hp-ink-900);
   border-color: var(--hp-ink-900);
   color: var(--hp-paper);
+  font-weight: 600;
 }
 
 .grocery-filter-chip--on:hover {
@@ -381,10 +380,10 @@
 }
 
 .grocery-card-body {
-  padding: 6px 8px 10px;
+  padding: 0 0 6px;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0;
 }
 
 /* ─── Pantry-check card variant ─────────────────────────────────────── */
@@ -493,17 +492,18 @@
 /* ─── Per-item store badge ────────────────────────────────────────────── */
 .grocery-store-badge {
   flex-shrink: 0;
+  margin-left: auto;
   font-size: 11px;
-  font-weight: 500;
-  padding: 2px 9px;
-  border-radius: var(--hp-r-pill);
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--r-md);
   border: 1px solid var(--hp-ink-200);
   background: var(--hp-ink-50);
   color: var(--hp-ink-500);
   cursor: pointer;
   transition: all 0.12s;
   white-space: nowrap;
-  max-width: 80px;
+  max-width: 90px;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.6;
@@ -566,7 +566,7 @@
   font-size: 12px;
   font-weight: 500;
   padding: 4px 11px;
-  border-radius: 99px;
+  border-radius: var(--r-md);
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-2);
@@ -614,9 +614,8 @@
 }
 
 .grocery-group + .grocery-group {
-  margin-top: 2px;
-  padding-top: 2px;
-  border-top: 1px solid var(--border);
+  margin-top: 0;
+  padding-top: 0;
 }
 
 /* Group label: dot · name · flex spacer · count */
@@ -640,10 +639,10 @@
   flex: 1;
   font-family: var(--hp-font-body);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.10em;
   text-transform: uppercase;
-  color: var(--hp-ink-600);
+  color: var(--hp-ink-500);
 }
 
 .grocery-group-count {
@@ -729,7 +728,7 @@
 .grocery-item-label {
   font-family: var(--hp-font-body);
   font-size: 14px;
-  color: var(--hp-ink-900);
+  color: var(--hp-ink-800);
   line-height: 1.4;
   white-space: normal;
 }
@@ -741,7 +740,7 @@
 }
 
 .grocery-item-qty {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--hp-ink-900);
 }
 
@@ -754,7 +753,7 @@
 }
 
 .grocery-item-source {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--hp-ink-400);
   line-height: 1.3;
   white-space: nowrap;
