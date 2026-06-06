@@ -561,6 +561,14 @@ export default function GroceryPage() {
   const [refinedShopLabels, setRefinedShopLabels] = useState(null) // { [item.id]: cleanedLabel }
   const [pantryRefining, setPantryRefining]       = useState(false)
 
+  // Reset refined state immediately when the week changes so stale items
+  // from the previous week never bleed through to an empty new week.
+  useEffect(() => {
+    setRefinedPantry(null)
+    setRefinedShopLabels(null)
+    setPantryRefining(false)
+  }, [weekKey])
+
   // Stable keys — change when recipe ingredients load, triggering the AI effect
   const pantryKey = useMemo(
     () => pantryCheck.map(i => i.name.toLowerCase()).sort().join('|'),
@@ -573,7 +581,11 @@ export default function GroceryPage() {
 
   useEffect(() => {
     if (!plan) return
-    if (!pantryCheck.length && !generated.length) return
+    if (!pantryCheck.length && !generated.length) {
+      setRefinedPantry(null)
+      setRefinedShopLabels(null)
+      return
+    }
 
     // Use cached AI result if the recipe set hasn't changed
     const cached = plan.groceryAI
