@@ -404,7 +404,7 @@ function RecipeCard({ recipe, onClick, onDoubleClick, approvalMembers = [], adde
         </span>
       </div>
 
-      {/* Title + rating */}
+      {/* Title + rating + approval badges */}
       <div style={{ flex: 1, padding: '14px 16px 10px' }}>
         <h3 className="recipe-card-name">{recipe.name}</h3>
         {recipe.rating && (
@@ -412,11 +412,21 @@ function RecipeCard({ recipe, onClick, onDoubleClick, approvalMembers = [], adde
             <StarRating rating={recipe.rating} size={12} />
           </div>
         )}
+        {approvedBy.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
+            {approvedBy.map(m => (
+              <span key={m.id} className="recipe-card-approval-badge"
+                style={{ background: m.color + '22', color: m.color, borderColor: m.color + '44' }}>
+                {m.name} ✓
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Footer: time · serves · approval badges · add to planner */}
-      <div className="recipe-card-footer" style={{ flexWrap: 'wrap', gap: 6 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, flexWrap: 'wrap' }}>
+      {/* Footer: time · serves · add to planner */}
+      <div className="recipe-card-footer">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
           {totalTime > 0 && (
             <span className="recipe-card-meta-item">
               <IconClock size={12} /> {totalTime}m
@@ -425,16 +435,6 @@ function RecipeCard({ recipe, onClick, onDoubleClick, approvalMembers = [], adde
           {recipe.servings > 0 && (
             <span className="recipe-card-meta-item">
               <IconServes size={12} /> {recipe.servings}
-            </span>
-          )}
-          {approvedBy.length > 0 && (
-            <span className="recipe-card-approvals">
-              {approvedBy.map(m => (
-                <span key={m.id} className="recipe-card-approval-badge"
-                  style={{ background: m.color + '22', color: m.color, borderColor: m.color + '44' }}>
-                  {m.name} ✓
-                </span>
-              ))}
             </span>
           )}
         </div>
