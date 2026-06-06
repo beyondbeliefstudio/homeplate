@@ -256,6 +256,13 @@ const GROCERY_GROUPS = [
       'beer', 'wine', 'spirits', 'alcohol',
     ],
   },
+  {
+    key: 'other',
+    label: 'Other',
+    color: '#9CA3AF',
+    emoji: '🛒',
+    keywords: [],
+  },
 ]
 
 // ─── Category overrides (localStorage) ───────────────────────────────────────
@@ -1142,7 +1149,9 @@ function GroceryRow({ item, checked, label, onToggle, onRemove, isStaple, storeI
   const showStores = stores?.length > 0 && onStoreChange
   const assignedStore = stores?.find(s => s.id === storeId)
 
-  const currentGroup = item ? GROCERY_GROUPS.find(g => g.key === item.group) : null
+  const currentGroup = item
+    ? (GROCERY_GROUPS.find(g => g.key === item.group) ?? GROCERY_GROUPS.find(g => g.key === 'other'))
+    : null
 
   useEffect(() => {
     if (!catPickerOpen) return
