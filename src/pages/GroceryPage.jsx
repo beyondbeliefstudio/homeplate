@@ -379,7 +379,7 @@ export default function GroceryPage() {
   // When a store is active, uses that store's aisle ordering and labels.
   const groupedGenerated = useMemo(() => {
     const groups = {}
-    generated.forEach(item => {
+    visibleGenerated.forEach(item => {
       const g = item.group || 'other'
       if (!groups[g]) groups[g] = []
       groups[g].push(item)
@@ -413,7 +413,7 @@ export default function GroceryPage() {
       ordered.push({ ...otherGroup, items: groups.other })
     }
     return ordered
-  }, [generated, activeStore, groceryGroups])
+  }, [visibleGenerated, activeStore, groceryGroups])
 
   const groceryStoreMap = plan?.groceryStoreMap ?? {}
 
@@ -432,7 +432,7 @@ export default function GroceryPage() {
 
   const untaggedCount = useMemo(() => {
     if (!stores.length) return 0
-    return generated.filter(item => !groceryStoreMap[genKey(item)]).length
+    return visibleGenerated.filter(item => !groceryStoreMap[genKey(item)]).length
   }, [generated, groceryStoreMap, stores]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Filtered grouped list (for filter chips) ──────────────────────────────
@@ -558,6 +558,7 @@ export default function GroceryPage() {
 
   const checkedGenerated  = useMemo(() => new Set(plan?.groceryChecked ?? []),        [plan])
   const checkedPantry     = useMemo(() => new Set(plan?.groceryPantryChecked ?? []), [plan])
+  const removedGenerated  = useMemo(() => new Set(plan?.groceryRemoved ?? []),        [plan])
   const extras            = plan?.groceryExtras ?? []
   const checkedStapleIds  = useMemo(() => new Set(plan?.groceryStaplesChecked ?? []), [plan])
 
@@ -572,6 +573,11 @@ export default function GroceryPage() {
     const next = new Set(checkedGenerated)
     next.has(genKey(item)) ? next.delete(genKey(item)) : next.add(genKey(item))
     updatePlan({ groceryChecked: [...next] })
+  }
+  function removeGenerated(item) {
+    const next = new Set(removedGenerated)
+    next.add(genKey(item))
+    updatePlan({ groceryRemoved: [...next] })
   }
   function togglePantry(item) {
     const next = new Set(checkedPantry)
@@ -695,12 +701,13 @@ export default function GroceryPage() {
     updatePlan({ groceryStaplesChecked: [...next] })
   }
 
-  const genChecked     = generated.filter(i => checkedGenerated.has(genKey(i))).length
+  const visibleGenerated = generated.filter(i => !removedGenerated.has(genKey(i)))
+  const genChecked     = visibleGenerated.filter(i => checkedGenerated.has(genKey(i))).length
   const pantryChecked  = displayPantry.filter(i => checkedPantry.has(genKey(i))).length
   const extrasChecked  = extras.filter(m => m.checked).length
   const staplesChecked = staples.filter(s => checkedStapleIds.has(s.id)).length
   const totalChecked   = genChecked + pantryChecked + extrasChecked + staplesChecked
-  const totalItems     = generated.length + displayPantry.length + extras.length + staples.length
+  const totalItems     = visibleGenerated.length + displayPantry.length + extras.length + staples.length
 
   function uncheckAll() {
     updatePlan({
@@ -708,6 +715,7 @@ export default function GroceryPage() {
       groceryPantryChecked:  [],
       groceryExtras:         extras.map(m => ({ ...m, checked: false })),
       groceryStaplesChecked: [],
+      groceryRemoved:        [],
     })
   }
 
@@ -810,7 +818,7 @@ export default function GroceryPage() {
               </>
             ) : (
               /* All-items view: "From your plan" */
-              generated.length === 0 ? (
+              visibleGenerated.length === 0 && generated.length === 0 ? (
                 <div className="grocery-card">
                   <div className="grocery-card-header">
                     <span className="grocery-card-title">From your plan</span>
@@ -835,7 +843,7 @@ export default function GroceryPage() {
                         <div className="grocery-progress-bar" style={{ '--pct': `${pct}%` }} />
                       </div>
                       <span className="grocery-controls-count">
-                        {genChecked}/{generated.length}
+                        {genChecked}/{visibleGenerated.length}
                         {genChecked > 0 && (
                           <button className="grocery-uncheck-btn" onClick={uncheckAll}>
                             · <IconRefresh size={11} /> reset
@@ -848,7 +856,7 @@ export default function GroceryPage() {
                           className={`grocery-filter-chip${!activeStoreFilter ? ' grocery-filter-chip--on' : ''}`}
                           onClick={() => setActiveStoreFilter(null)}
                         >
-                          All <span className="grocery-filter-count">{generated.length}</span>
+                          All <span className="grocery-filter-count">{visibleGenerated.length}</span>
                         </button>
                         {stores.map(store => {
                           const cnt = storeFilterCounts[store.id] || 0
@@ -886,6 +894,7 @@ export default function GroceryPage() {
                             checked={checked}
                             label={getShopLabel(item)}
                             onToggle={() => toggleGenerated(item)}
+                            onRemove={() => removeGenerated(item)}
                             storeId={groceryStoreMap[genKey(item)]}
                             stores={stores}
                             onStoreChange={sid => setItemStore(item, sid)}
