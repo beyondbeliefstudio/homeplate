@@ -5,6 +5,10 @@ import { getWeekKey, shiftWeek, formatWeekRange } from '../lib/weeks'
 import { IconChevronL, IconChevronR, IconPlus, IconClose, IconCheck, IconRefresh } from '../components/icons'
 import { EmptyGrocery } from '../components/EmptyStates'
 import { STORE_PALETTES, getStorePalette } from '../lib/storePalettes'
+import {
+  loadCategories, saveCategories, assignGroup as assignGroupLib,
+  CATEGORIES_KEY,
+} from '../lib/groceryCategories'
 import './Grocery.css'
 
 export { getStorePalette }
@@ -125,147 +129,13 @@ function checkIsPantry(name) {
   return false
 }
 
-// ─── Grocery category grouping ───────────────────────────────────────────────
-const GROCERY_GROUPS = [
-  {
-    key: 'produce',
-    label: 'Produce',
-    color: '#58CC02',  /* spring */
-    emoji: '🥦',
-    keywords: [
-      'apple', 'banana', 'berry', 'berries', 'blueberr', 'strawberr', 'raspberr', 'grape',
-      'orange', 'lemon', 'lime', 'mango', 'peach', 'plum', 'pear', 'pineapple', 'melon',
-      'watermelon', 'cantaloupe', 'kiwi', 'avocado', 'tomato', 'cherry',
-      'lettuce', 'spinach', 'kale', 'arugula', 'cabbage', 'chard', 'collard',
-      'broccoli', 'cauliflower', 'zucchini', 'squash', 'cucumber', 'celery',
-      'carrot', 'beet', 'radish', 'turnip', 'parsnip',
-      'onion', 'shallot', 'leek', 'scallion', 'green onion',
-      'pepper', 'bell pepper', 'jalapeño', 'jalapeno',
-      'mushroom', 'asparagus', 'artichoke', 'eggplant', 'corn', 'pea',
-      'green bean', 'snap pea', 'edamame', 'sprout',
-      'potato', 'sweet potato', 'yam',
-      'herb', 'cilantro', 'parsley', 'dill', 'mint', 'basil', 'chive',
-      'ginger', 'jalapeño', 'garlic', 'shallot',
-      'fruit', 'vegetable', 'veggie', 'produce',
-    ],
-  },
-  {
-    key: 'meat',
-    label: 'Meat & Seafood',
-    color: '#E63957',  /* cherry */
-    emoji: '🥩',
-    keywords: [
-      'chicken', 'beef', 'pork', 'lamb', 'turkey', 'duck', 'veal', 'bison',
-      'steak', 'ground beef', 'ground turkey', 'ground chicken', 'ground pork',
-      'breast', 'thigh', 'drumstick', 'wing', 'tenderloin', 'loin', 'rib', 'chop',
-      'sausage', 'bacon', 'ham', 'prosciutto', 'salami', 'pepperoni', 'chorizo',
-      'hot dog', 'bratwurst',
-      'salmon', 'tuna', 'shrimp', 'cod', 'tilapia', 'halibut', 'trout',
-      'crab', 'lobster', 'clam', 'oyster', 'mussel', 'scallop', 'squid',
-      'fish', 'seafood', 'meat',
-    ],
-  },
-  {
-    key: 'dairy',
-    label: 'Dairy & Eggs',
-    color: '#FFC228',  /* marigold */
-    emoji: '🥛',
-    keywords: [
-      'milk', 'whole milk', 'skim milk', 'almond milk', 'oat milk', 'soy milk',
-      'cream', 'heavy cream', 'sour cream', 'whipped cream', 'half and half', 'half & half',
-      'butter',
-      'cheese', 'cheddar', 'mozzarella', 'parmesan', 'parmigiano', 'feta', 'brie',
-      'gouda', 'gruyere', 'ricotta', 'cottage cheese', 'cream cheese', 'goat cheese',
-      'yogurt', 'greek yogurt',
-      'egg', 'eggs',
-      'dairy',
-    ],
-  },
-  {
-    key: 'bakery',
-    label: 'Bread & Bakery',
-    color: '#FF7733',  /* tangerine */
-    emoji: '🍞',
-    keywords: [
-      'bread', 'loaf', 'baguette', 'roll', 'bun', 'bagel', 'english muffin',
-      'tortilla', 'wrap', 'pita', 'naan', 'flatbread', 'sourdough', 'rye bread',
-      'croissant', 'muffin', 'donut', 'danish',
-      'breadcrumb', 'crouton',
-    ],
-  },
-  {
-    key: 'frozen',
-    label: 'Frozen',
-    color: '#3DA002',  /* spring-700 */
-    emoji: '🧊',
-    keywords: [
-      'frozen', 'ice cream', 'gelato', 'sorbet', 'popsicle',
-      'frozen pea', 'frozen corn', 'frozen vegetable', 'frozen fruit',
-      'frozen pizza', 'frozen meal', 'frozen waffle',
-    ],
-  },
-  {
-    key: 'canned',
-    label: 'Canned & Jarred',
-    color: '#C99100',  /* marigold-700 */
-    emoji: '🥫',
-    keywords: [
-      'canned', 'can of', 'jar of',
-      'tomato sauce', 'tomato paste', 'diced tomato', 'crushed tomato', 'tomato puree',
-      'coconut milk', 'coconut cream',
-      'bean', 'lentil', 'chickpea', 'garbanzo', 'black bean', 'kidney bean',
-      'white bean', 'cannellini', 'pinto bean',
-      'broth', 'stock', 'chicken broth', 'beef broth', 'vegetable broth',
-      'soup', 'chili',
-      'tuna', 'sardine', 'anchovy',
-      'olive', 'pickle', 'capers', 'artichoke heart',
-      'peanut butter', 'almond butter', 'tahini', 'jam', 'jelly', 'honey', 'maple syrup',
-      'salsa', 'hot sauce',
-    ],
-  },
-  {
-    key: 'pantry',
-    label: 'Pantry & Dry Goods',
-    color: '#8C9189',  /* ink-400 */
-    emoji: '🌾',
-    keywords: [
-      'pasta', 'spaghetti', 'penne', 'linguine', 'fettuccine', 'rigatoni', 'orzo',
-      'rice', 'brown rice', 'white rice', 'quinoa', 'couscous', 'farro', 'barley',
-      'oat', 'oatmeal', 'granola', 'cereal',
-      'noodle', 'ramen', 'udon', 'soba',
-      'flour', 'sugar', 'powdered sugar', 'brown sugar',
-      'baking soda', 'baking powder', 'yeast',
-      'cocoa', 'chocolate', 'chip', 'nuts', 'almond', 'walnut', 'pecan', 'cashew',
-      'dried fruit', 'raisin', 'cranberry', 'apricot',
-      'oil', 'vinegar',
-      'sauce', 'dressing', 'condiment', 'ketchup', 'mustard', 'mayo', 'mayonnaise',
-      'spice', 'seasoning', 'herb',
-      'cracker', 'chip', 'pretzel', 'popcorn',
-      'protein powder', 'supplement',
-      'coffee', 'tea', 'coffee bean', 'ground coffee',
-    ],
-  },
-  {
-    key: 'beverages',
-    label: 'Beverages',
-    color: '#5C625E',  /* ink-500 */
-    emoji: '🥤',
-    keywords: [
-      'juice', 'orange juice', 'apple juice', 'lemonade',
-      'soda', 'sparkling water', 'water', 'sports drink', 'energy drink',
-      'beer', 'wine', 'spirits', 'alcohol',
-    ],
-  },
-  {
-    key: 'other',
-    label: 'Other',
-    color: '#9CA3AF',
-    emoji: '🛒',
-    keywords: [],
-  },
-]
+// ─── Category grouping — loaded from shared lib ───────────────────────────────
+// GROCERY_GROUPS is used in GroupLabel and the by-store view extras fallback.
+// The component uses groceryGroups state (also loaded from lib) so that Settings
+// changes are picked up when this page mounts.
+let GROCERY_GROUPS = loadCategories()
 
-// ─── Category overrides (localStorage) ───────────────────────────────────────
+// ─── Per-item category overrides (localStorage) ───────────────────────────────
 const OVERRIDES_KEY = 'hp-ingredient-categories'
 
 function loadCategoryOverrides() {
@@ -280,19 +150,13 @@ function saveCategoryOverride(name, groupKey) {
   localStorage.setItem(OVERRIDES_KEY, JSON.stringify(map))
 }
 
-function assignGroup(name, overrides = {}) {
-  const key = name.toLowerCase().trim()
-  if (overrides[key]) return overrides[key]
-  const lower = key
-  for (const group of GROCERY_GROUPS) {
-    if (group.keywords.some(kw => lower.includes(kw))) return group.key
-  }
-  return 'other'
+function assignGroup(name, overrides = {}, categories = GROCERY_GROUPS) {
+  return assignGroupLib(name, overrides, categories)
 }
 
 // ─── Consolidation ────────────────────────────────────────────────────────────
 // Returns { shopItems, pantryItems } — both consolidated, pantry separated out
-function consolidate(raw, overrides = {}) {
+function consolidate(raw, overrides = {}, categories = GROCERY_GROUPS) {
   // Deduplicate by core ingredient name so variants like "salt for pasta water"
   // and "salt (for broccoli)" collapse into a single "Salt" pantry entry.
   const map = new Map()
@@ -348,7 +212,7 @@ function consolidate(raw, overrides = {}) {
       ? (numQty % 1 === 0 ? `${numQty}` : numQty.toFixed(2).replace(/\.?0+$/, ''))
       : (isVagueQty(rawQty) ? '' : (rawQty || ''))
 
-    const item = { id: `g-${i}`, name, quantity: qty, unit, group: assignGroup(name, overrides), sources: sources || [] }
+    const item = { id: `g-${i}`, name, quantity: qty, unit, group: assignGroup(name, overrides, categories), sources: sources || [] }
 
     if (isPantryItem) pantryItems.push(item)
     else shopItems.push(item)
@@ -361,7 +225,7 @@ function consolidate(raw, overrides = {}) {
   }
 }
 
-function computeIngredients(plan, recipeMap, overrides = {}) {
+function computeIngredients(plan, recipeMap, overrides = {}, categories = GROCERY_GROUPS) {
   const raw = []
 
   function addRecipe(recipeId, multiplier = 1) {
@@ -402,7 +266,7 @@ function computeIngredients(plan, recipeMap, overrides = {}) {
     if (item.recipeId) addRecipe(item.recipeId, item.multiplier ?? 1)
   })
 
-  const { shopItems, pantryItems } = consolidate(raw, overrides)
+  const { shopItems, pantryItems } = consolidate(raw, overrides, categories)
   return { shopItems, pantryItems }
 }
 
@@ -444,6 +308,23 @@ export default function GroceryPage() {
   const [newExtra, setNewExtra]   = useState('')
   const [newStaple, setNewStaple] = useState('')
   const [categoryOverrides, setCategoryOverrides] = useState(() => loadCategoryOverrides())
+  const [groceryGroups,     setGroceryGroups]     = useState(() => loadCategories())
+
+  // Refresh categories if Settings changed them (storage event = cross-tab;
+  // also re-sync on focus in case user came back from the Settings page)
+  useEffect(() => {
+    function sync() {
+      const fresh = loadCategories()
+      GROCERY_GROUPS = fresh
+      setGroceryGroups(fresh)
+    }
+    window.addEventListener('storage', e => { if (e.key === CATEGORIES_KEY) sync() })
+    window.addEventListener('focus', sync)
+    return () => {
+      window.removeEventListener('storage', sync)
+      window.removeEventListener('focus', sync)
+    }
+  }, [])
 
   useEffect(() => {
     if (!user) return
@@ -485,9 +366,9 @@ export default function GroceryPage() {
 
   const { generated, pantryCheck } = useMemo(() => {
     if (!plan) return { generated: [], pantryCheck: [] }
-    const { shopItems, pantryItems } = computeIngredients(plan, recipeMap, categoryOverrides)
+    const { shopItems, pantryItems } = computeIngredients(plan, recipeMap, categoryOverrides, groceryGroups)
     return { generated: shopItems, pantryCheck: pantryItems }
-  }, [plan, recipeMap, categoryOverrides])
+  }, [plan, recipeMap, categoryOverrides, groceryGroups])
 
   function handleCategoryOverride(itemName, groupKey) {
     saveCategoryOverride(itemName, groupKey)
@@ -515,7 +396,7 @@ export default function GroceryPage() {
           : { key: aisle.group_key, label: aisle.group_key, emoji: '🛒', aisle_label: aisle.aisle_label }
       })
     } else {
-      displayOrder = GROCERY_GROUPS
+      displayOrder = groceryGroups.filter(g => !g.hidden)
     }
 
     const ordered = []
@@ -528,10 +409,11 @@ export default function GroceryPage() {
     }
     // Any items whose category isn't in the store layout fall through to "Other"
     if (groups.other?.length && !seen.has('other')) {
-      ordered.push({ key: 'other', label: 'Other', emoji: '🛒', items: groups.other })
+      const otherGroup = groceryGroups.find(g => g.key === 'other') || { key: 'other', label: 'Other', emoji: '🛒' }
+      ordered.push({ ...otherGroup, items: groups.other })
     }
     return ordered
-  }, [generated, activeStore])
+  }, [generated, activeStore, groceryGroups])
 
   const groceryStoreMap = plan?.groceryStoreMap ?? {}
 
@@ -767,7 +649,7 @@ export default function GroceryPage() {
       })),
       ...extras.map(item => ({
         id: item.id, name: item.name, unit: '', quantity: '',
-        group: assignGroup(item.name, categoryOverrides), checked: item.checked,
+        group: assignGroup(item.name, categoryOverrides, groceryGroups), checked: item.checked,
         _type: 'extra', _storeId: item.storeId || null,
       })),
     ]
@@ -1008,6 +890,7 @@ export default function GroceryPage() {
                             stores={stores}
                             onStoreChange={sid => setItemStore(item, sid)}
                             onCategoryChange={gk => handleCategoryOverride(item.name, gk)}
+                            groceryGroups={groceryGroups}
                           />
                         )
                       })}
@@ -1142,15 +1025,16 @@ function GroceryCard({ title, count, hint, pantry, hintRefining, children }) {
   )
 }
 
-function GroceryRow({ item, checked, label, onToggle, onRemove, isStaple, storeId, stores, onStoreChange, onCategoryChange }) {
+function GroceryRow({ item, checked, label, onToggle, onRemove, isStaple, storeId, stores, onStoreChange, onCategoryChange, groceryGroups: rowGroups }) {
   const [pickerOpen, setPickerOpen]       = useState(false)
   const [catPickerOpen, setCatPickerOpen] = useState(false)
   const catPickerRef = useRef(null)
   const showStores = stores?.length > 0 && onStoreChange
   const assignedStore = stores?.find(s => s.id === storeId)
 
+  const activeGroups = (rowGroups || GROCERY_GROUPS).filter(g => !g.hidden)
   const currentGroup = item
-    ? (GROCERY_GROUPS.find(g => g.key === item.group) ?? GROCERY_GROUPS.find(g => g.key === 'other'))
+    ? (activeGroups.find(g => g.key === item.group) ?? activeGroups.find(g => g.key === 'other') ?? activeGroups[activeGroups.length - 1])
     : null
 
   useEffect(() => {
@@ -1244,7 +1128,7 @@ function GroceryRow({ item, checked, label, onToggle, onRemove, isStaple, storeI
                 <div style={{ padding: '7px 12px 5px', fontFamily: 'var(--hp-font-body)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--hp-ink-400)' }}>
                   Move to category
                 </div>
-                {GROCERY_GROUPS.map(g => (
+                {activeGroups.map(g => (
                   <button
                     key={g.key}
                     onClick={e => { e.stopPropagation(); onCategoryChange(g.key); setCatPickerOpen(false) }}

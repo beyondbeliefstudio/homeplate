@@ -4,6 +4,9 @@ import { useUser } from '../hooks/useAuth.jsx'
 import { signOut, getHouseholdMembers, saveHouseholdMember, deleteHouseholdMember, getStores, saveStore, deleteStore } from '../lib/supabase'
 import { IconPlus, IconTrash, IconClose, IconCheck } from '../components/icons'
 import { STORE_PALETTES, getStorePalette } from '../lib/storePalettes'
+import {
+  loadCategories, saveCategories, DEFAULT_GROCERY_GROUPS, CATEGORY_COLORS,
+} from '../lib/groceryCategories'
 import './Settings.css'
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
@@ -689,14 +692,293 @@ function AccountSection({ user }) {
   )
 }
 
+// ─── Grocery Categories section ───────────────────────────────────────────────
+function GroceryCategoriesSection() {
+  const [cats, setCats]         = useState(() => loadCategories())
+  const [editKey, setEditKey]   = useState(null)  // key of row being edited
+  const [draft, setDraft]       = useState({})     // { label, emoji }
+  const [adding, setAdding]     = useState(false)
+  const [newDraft, setNewDraft] = useState({ label: '', emoji: '🛒', color: CATEGORY_COLORS[0] })
+
+  function persist(updated) {
+    setCats(updated)
+    saveCategories(updated)
+    // Notify same-tab GroceryPage via a synthetic storage event
+    window.dispatchEvent(new StorageEvent('storage', { key: 'hp-grocery-categories' }))
+  }
+
+  function startEdit(cat) {
+    setEditKey(cat.key)
+    setDraft({ label: cat.label, emoji: cat.emoji })
+  }
+
+  function saveEdit(key) {
+    persist(cats.map(c => c.key === key ? { ...c, ...draft } : c))
+    setEditKey(null)
+  }
+
+  function cancelEdit() { setEditKey(null) }
+
+  function toggleHide(key) {
+    // Can't hide "other" — it's the catch-all
+    if (key === 'other') return
+    persist(cats.map(c => c.key === key ? { ...c, hidden: !c.hidden } : c))
+  }
+
+  function moveUp(i) {
+    if (i === 0) return
+    const next = [...cats]
+    ;[next[i - 1], next[i]] = [next[i], next[i - 1]]
+    persist(next)
+  }
+
+  function moveDown(i) {
+    if (i === cats.length - 1) return
+    const next = [...cats]
+    ;[next[i], next[i + 1]] = [next[i + 1], next[i]]
+    persist(next)
+  }
+
+  function addCategory() {
+    const label = newDraft.label.trim()
+    if (!label) return
+    const key = `custom-${Date.now()}`
+    persist([...cats, { key, label, emoji: newDraft.emoji, color: newDraft.color, builtIn: false, hidden: false }])
+    setNewDraft({ label: '', emoji: '🛒', color: CATEGORY_COLORS[0] })
+    setAdding(false)
+  }
+
+  function deleteCategory(key) {
+    persist(cats.filter(c => c.key !== key))
+  }
+
+  function resetToDefaults() {
+    if (!window.confirm('Reset all categories to defaults? Custom categories will be removed.')) return
+    persist(DEFAULT_GROCERY_GROUPS)
+  }
+
+  const rowStyle = (last) => ({
+    display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0',
+    borderBottom: last ? 'none' : '1px solid var(--hp-ink-100)',
+  })
+
+  return (
+    <div>
+      <SHead title="Grocery Categories"
+        desc="Rename, reorder, or hide the sections that appear on your grocery list. Add custom categories for items that don't fit anywhere else." />
+
+      <div style={{
+        background: 'var(--hp-paper)', border: '1px solid var(--hp-ink-100)',
+        borderRadius: 'var(--r-xl)', padding: '4px 24px', marginBottom: 14,
+      }}>
+        {cats.map((cat, i) => {
+          const isEditing = editKey === cat.key
+          const isLast    = i === cats.length - 1
+          return (
+            <div key={cat.key} style={rowStyle(isLast)}>
+
+              {/* Color dot */}
+              <div style={{
+                width: 12, height: 12, borderRadius: '50%',
+                background: cat.hidden ? 'var(--hp-ink-200)' : cat.color,
+                flexShrink: 0, transition: 'background 0.15s',
+              }} />
+
+              {/* Emoji + label — editable inline */}
+              {isEditing ? (
+                <div style={{ display: 'flex', gap: 6, flex: 1, alignItems: 'center' }}>
+                  <input
+                    value={draft.emoji}
+                    onChange={e => setDraft(d => ({ ...d, emoji: e.target.value }))}
+                    style={{
+                      width: 38, textAlign: 'center', fontSize: 18,
+                      border: '1px solid var(--hp-ink-200)', borderRadius: 'var(--r-sm)',
+                      padding: '4px 2px', background: 'var(--hp-bg-app)', outline: 'none',
+                    }}
+                  />
+                  <input
+                    autoFocus
+                    value={draft.label}
+                    onChange={e => setDraft(d => ({ ...d, label: e.target.value }))}
+                    onKeyDown={e => { if (e.key === 'Enter') saveEdit(cat.key); if (e.key === 'Escape') cancelEdit() }}
+                    style={{
+                      flex: 1, fontFamily: 'var(--hp-font-body)', fontWeight: 600, fontSize: 14,
+                      border: '1px solid var(--hp-ink-200)', borderRadius: 'var(--r-sm)',
+                      padding: '5px 10px', outline: 'none', color: 'var(--hp-ink-900)',
+                      background: 'var(--hp-paper)',
+                    }}
+                  />
+                </div>
+              ) : (
+                <span style={{
+                  flex: 1, fontFamily: 'var(--hp-font-body)', fontWeight: 500, fontSize: 14,
+                  color: cat.hidden ? 'var(--hp-ink-300)' : 'var(--hp-ink-900)',
+                  textDecoration: cat.hidden ? 'line-through' : 'none',
+                }}>
+                  {cat.emoji} {cat.label}
+                  {!cat.builtIn && (
+                    <span style={{ marginLeft: 8, fontFamily: 'var(--hp-font-body)', fontSize: 10,
+                      fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                      color: 'var(--hp-ink-300)' }}>custom</span>
+                  )}
+                </span>
+              )}
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexShrink: 0 }}>
+                {isEditing ? (
+                  <>
+                    <button onClick={() => saveEdit(cat.key)}
+                      style={{ height: 28, padding: '0 12px', borderRadius: 'var(--r-sm)',
+                        border: 'none', background: 'var(--hp-ink-900)', color: 'var(--hp-bg-app)',
+                        fontFamily: 'var(--hp-font-body)', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                      Save
+                    </button>
+                    <button onClick={cancelEdit}
+                      style={{ height: 28, padding: '0 10px', borderRadius: 'var(--r-sm)',
+                        border: '1px solid var(--hp-ink-200)', background: 'transparent',
+                        fontFamily: 'var(--hp-font-body)', fontSize: 11, color: 'var(--hp-ink-500)', cursor: 'pointer' }}>
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {/* Up / Down */}
+                    <button onClick={() => moveUp(i)} disabled={i === 0} title="Move up"
+                      style={{ width: 26, height: 26, border: '1px solid var(--hp-ink-150, var(--hp-ink-100))',
+                        borderRadius: 'var(--r-sm)', background: 'var(--hp-ink-50)',
+                        cursor: i === 0 ? 'default' : 'pointer', fontSize: 11, color: i === 0 ? 'var(--hp-ink-200)' : 'var(--hp-ink-500)',
+                        display: 'grid', placeItems: 'center' }}>↑</button>
+                    <button onClick={() => moveDown(i)} disabled={isLast} title="Move down"
+                      style={{ width: 26, height: 26, border: '1px solid var(--hp-ink-150, var(--hp-ink-100))',
+                        borderRadius: 'var(--r-sm)', background: 'var(--hp-ink-50)',
+                        cursor: isLast ? 'default' : 'pointer', fontSize: 11, color: isLast ? 'var(--hp-ink-200)' : 'var(--hp-ink-500)',
+                        display: 'grid', placeItems: 'center' }}>↓</button>
+
+                    {/* Rename */}
+                    <button onClick={() => startEdit(cat)}
+                      style={{ height: 28, padding: '0 10px', borderRadius: 'var(--r-sm)',
+                        border: '1px solid var(--hp-ink-200)', background: 'var(--hp-ink-50)',
+                        fontFamily: 'var(--hp-font-body)', fontSize: 11, fontWeight: 600,
+                        color: 'var(--hp-ink-600)', cursor: 'pointer' }}>
+                      Rename
+                    </button>
+
+                    {/* Hide / Show (built-in only, skip "other") */}
+                    {cat.builtIn && cat.key !== 'other' && (
+                      <button onClick={() => toggleHide(cat.key)}
+                        style={{ height: 28, padding: '0 10px', borderRadius: 'var(--r-sm)',
+                          border: '1px solid var(--hp-ink-200)', background: 'var(--hp-ink-50)',
+                          fontFamily: 'var(--hp-font-body)', fontSize: 11, fontWeight: 600,
+                          color: cat.hidden ? 'var(--hp-green-700, #15803D)' : 'var(--hp-ink-500)', cursor: 'pointer' }}>
+                        {cat.hidden ? 'Show' : 'Hide'}
+                      </button>
+                    )}
+
+                    {/* Delete (custom only) */}
+                    {!cat.builtIn && (
+                      <button onClick={() => deleteCategory(cat.key)} title="Delete category"
+                        style={{ width: 28, height: 28, borderRadius: 'var(--r-sm)',
+                          border: '1px solid var(--hp-ink-200)', background: 'var(--hp-ink-50)',
+                          color: 'var(--hp-ink-400)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+                        <IconTrash size={13} />
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Add custom category */}
+      {adding ? (
+        <div style={{
+          background: 'var(--hp-paper)', border: '1px solid var(--hp-ink-200)',
+          borderRadius: 'var(--r-xl)', padding: '18px 24px', marginBottom: 14,
+        }}>
+          <div style={{ fontFamily: 'var(--hp-font-body)', fontSize: 11, fontWeight: 700,
+            letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--hp-ink-400)',
+            marginBottom: 12 }}>New category</div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14 }}>
+            <input value={newDraft.emoji}
+              onChange={e => setNewDraft(d => ({ ...d, emoji: e.target.value }))}
+              style={{ width: 44, textAlign: 'center', fontSize: 20,
+                border: '1px solid var(--hp-ink-200)', borderRadius: 'var(--r-sm)',
+                padding: '6px 4px', background: 'var(--hp-bg-app)', outline: 'none' }}
+            />
+            <input autoFocus value={newDraft.label}
+              onChange={e => setNewDraft(d => ({ ...d, label: e.target.value }))}
+              onKeyDown={e => { if (e.key === 'Enter') addCategory(); if (e.key === 'Escape') setAdding(false) }}
+              placeholder="Category name…"
+              style={{ flex: 1, fontFamily: 'var(--hp-font-body)', fontWeight: 600, fontSize: 14,
+                border: '1px solid var(--hp-ink-200)', borderRadius: 'var(--r-sm)',
+                padding: '7px 12px', outline: 'none', color: 'var(--hp-ink-900)',
+                background: 'var(--hp-paper)' }}
+            />
+          </div>
+          {/* Color swatches */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontFamily: 'var(--hp-font-body)', fontSize: 11, fontWeight: 700,
+              letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--hp-ink-400)',
+              marginBottom: 8 }}>Color</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {CATEGORY_COLORS.map(c => (
+                <button key={c} onClick={() => setNewDraft(d => ({ ...d, color: c }))}
+                  style={{ width: 22, height: 22, borderRadius: '50%', background: c,
+                    border: 'none', cursor: 'pointer',
+                    outline: newDraft.color === c ? '3px solid var(--hp-ink-900)' : '2px solid transparent',
+                    outlineOffset: 2 }} />
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={addCategory} disabled={!newDraft.label.trim()}
+              style={{ height: 34, padding: '0 18px', borderRadius: 'var(--r-sm)',
+                border: 'none', background: 'var(--hp-ink-900)', color: 'var(--hp-bg-app)',
+                fontFamily: 'var(--hp-font-body)', fontWeight: 600, fontSize: 12,
+                cursor: newDraft.label.trim() ? 'pointer' : 'default', opacity: newDraft.label.trim() ? 1 : 0.4 }}>
+              Add category
+            </button>
+            <button onClick={() => setAdding(false)}
+              style={{ height: 34, padding: '0 14px', borderRadius: 'var(--r-sm)',
+                border: '1px solid var(--hp-ink-200)', background: 'transparent',
+                fontFamily: 'var(--hp-font-body)', fontSize: 12, color: 'var(--hp-ink-500)', cursor: 'pointer' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button onClick={() => setAdding(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, height: 38, padding: '0 16px',
+              borderRadius: 'var(--r-md)', border: '1.5px dashed var(--hp-ink-200)',
+              background: 'transparent', cursor: 'pointer',
+              fontFamily: 'var(--hp-font-body)', fontWeight: 600, fontSize: 12, color: 'var(--hp-ink-500)' }}>
+            <IconPlus size={14} /> Add custom category
+          </button>
+          <button onClick={resetToDefaults}
+            style={{ height: 38, padding: '0 14px', borderRadius: 'var(--r-md)',
+              border: '1px solid var(--hp-ink-200)', background: 'transparent',
+              fontFamily: 'var(--hp-font-body)', fontSize: 12, color: 'var(--hp-ink-400)', cursor: 'pointer' }}>
+            Reset to defaults
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Settings nav sections ────────────────────────────────────────────────────
 const SETTING_SECTIONS = [
-  { id: 'household',  label: 'Household'            },
-  { id: 'tags',       label: 'Tags & Filters'       },
-  { id: 'stores',     label: 'Stores'               },
-  { id: 'ai',         label: 'AI & Recommendations' },
-  { id: 'appearance', label: 'Appearance'           },
-  { id: 'account',    label: 'Account'              },
+  { id: 'household',   label: 'Household'            },
+  { id: 'tags',        label: 'Tags & Filters'       },
+  { id: 'stores',      label: 'Stores'               },
+  { id: 'categories',  label: 'Grocery Categories'   },
+  { id: 'ai',          label: 'AI & Recommendations' },
+  { id: 'appearance',  label: 'Appearance'           },
+  { id: 'account',     label: 'Account'              },
 ]
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -741,6 +1023,7 @@ export default function SettingsPage() {
           {active === 'household'  && <HouseholdSection user={user} members={members} setMembers={setMembers} />}
           {active === 'tags'       && <TagsSection />}
           {active === 'stores'     && <StoresSection user={user} />}
+          {active === 'categories' && <GroceryCategoriesSection />}
           {active === 'ai'         && <AISection />}
           {active === 'appearance' && <AppearanceSection isDark={isDark} toggle={toggle} />}
           {active === 'account'    && <AccountSection user={user} />}
