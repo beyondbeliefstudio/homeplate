@@ -359,6 +359,7 @@
 .recipe-card-footer {
   display: flex;
   flex-direction: column;
+  padding-bottom: 2px;
 }
 
 .recipe-card-footer-meta {
@@ -381,10 +382,13 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  padding: 10px 16px;
+  padding: 10px 12px;
+  margin: 0 0 10px;
+  width: calc(100% - 24px);
+  margin-left: 12px;
+  border-radius: var(--r-md);
   background: var(--hp-green-50, #F0FDF4);
   border: none;
-  border-top: 1px solid var(--hp-green-100, #DCFCE7);
   font-family: var(--hp-font-body);
   font-size: 13px;
   font-weight: 600;
