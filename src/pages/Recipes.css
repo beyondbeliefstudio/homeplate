@@ -388,7 +388,7 @@
   margin-left: 12px;
   border-radius: var(--r-md);
   background: var(--hp-green-50, #F0FDF4);
-  border: none;
+  border: 1px solid rgba(21, 128, 61, 0.35);
   font-family: var(--hp-font-body);
   font-size: 13px;
   font-weight: 600;
