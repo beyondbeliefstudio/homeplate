@@ -375,83 +375,6 @@ export default function GroceryPage() {
     setCategoryOverrides(loadCategoryOverrides())
   }
 
-  const visibleGenerated = generated.filter(i => !removedGenerated.has(genKey(i)))
-
-  // Group generated items by grocery aisle category.
-  // When a store is active, uses that store's aisle ordering and labels.
-  const groupedGenerated = useMemo(() => {
-    const groups = {}
-    visibleGenerated.forEach(item => {
-      const g = item.group || 'other'
-      if (!groups[g]) groups[g] = []
-      groups[g].push(item)
-    })
-
-    // Build ordered display list: store layout if available, otherwise GROCERY_GROUPS default
-    let displayOrder
-    if (activeStore?.aisles?.length) {
-      const sorted = [...activeStore.aisles].sort((a, b) => a.order - b.order)
-      displayOrder = sorted.map(aisle => {
-        const base = GROCERY_GROUPS.find(g => g.key === aisle.group_key)
-        return base
-          ? { ...base, aisle_label: aisle.aisle_label }   // keep emoji/label, add aisle_label
-          : { key: aisle.group_key, label: aisle.group_key, emoji: '🛒', aisle_label: aisle.aisle_label }
-      })
-    } else {
-      displayOrder = groceryGroups.filter(g => !g.hidden)
-    }
-
-    const ordered = []
-    const seen = new Set()
-    for (const group of displayOrder) {
-      if (groups[group.key]?.length) {
-        ordered.push({ ...group, items: groups[group.key] })
-        seen.add(group.key)
-      }
-    }
-    // Any items whose category isn't in the store layout fall through to "Other"
-    if (groups.other?.length && !seen.has('other')) {
-      const otherGroup = groceryGroups.find(g => g.key === 'other') || { key: 'other', label: 'Other', emoji: '🛒' }
-      ordered.push({ ...otherGroup, items: groups.other })
-    }
-    return ordered
-  }, [visibleGenerated, activeStore, groceryGroups])
-
-  const groceryStoreMap = plan?.groceryStoreMap ?? {}
-
-  // ── Store filter chip counts ──────────────────────────────────────────────
-  const storeFilterCounts = useMemo(() => {
-    if (!stores.length) return {}
-    const counts = {}
-    generated.forEach(item => {
-      const sid = groceryStoreMap[genKey(item)]
-      if (sid) {
-        counts[sid] = (counts[sid] || 0) + 1
-      }
-    })
-    return counts
-  }, [generated, groceryStoreMap, stores]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const untaggedCount = useMemo(() => {
-    if (!stores.length) return 0
-    return visibleGenerated.filter(item => !groceryStoreMap[genKey(item)]).length
-  }, [generated, groceryStoreMap, stores]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Filtered grouped list (for filter chips) ──────────────────────────────
-  const filteredGroupedGenerated = useMemo(() => {
-    if (!activeStoreFilter) return groupedGenerated
-    return groupedGenerated
-      .map(group => ({
-        ...group,
-        items: group.items.filter(item => {
-          const sid = groceryStoreMap[genKey(item)]
-          if (activeStoreFilter === 'untagged') return !sid
-          return sid === activeStoreFilter
-        }),
-      }))
-      .filter(group => group.items.length > 0)
-  }, [groupedGenerated, activeStoreFilter, groceryStoreMap]) // eslint-disable-line react-hooks/exhaustive-deps
-
   // ── AI-refined pantry list ────────────────────────────────────────────────
   // Fingerprint = sorted unique recipe IDs in this week's plan
   const planFingerprint = useMemo(() => {
@@ -563,6 +486,75 @@ export default function GroceryPage() {
   const removedGenerated  = useMemo(() => new Set(plan?.groceryRemoved ?? []),        [plan])
   const extras            = plan?.groceryExtras ?? []
   const checkedStapleIds  = useMemo(() => new Set(plan?.groceryStaplesChecked ?? []), [plan])
+  const visibleGenerated  = useMemo(() => generated.filter(i => !removedGenerated.has(genKey(i))), [generated, removedGenerated]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const groceryStoreMap = plan?.groceryStoreMap ?? {}
+
+  // ── Group visible items by grocery aisle category ─────────────────────────
+  const groupedGenerated = useMemo(() => {
+    const groups = {}
+    visibleGenerated.forEach(item => {
+      const g = item.group || 'other'
+      if (!groups[g]) groups[g] = []
+      groups[g].push(item)
+    })
+    let displayOrder
+    if (activeStore?.aisles?.length) {
+      const sorted = [...activeStore.aisles].sort((a, b) => a.order - b.order)
+      displayOrder = sorted.map(aisle => {
+        const base = GROCERY_GROUPS.find(g => g.key === aisle.group_key)
+        return base
+          ? { ...base, aisle_label: aisle.aisle_label }
+          : { key: aisle.group_key, label: aisle.group_key, emoji: '🛒', aisle_label: aisle.aisle_label }
+      })
+    } else {
+      displayOrder = groceryGroups.filter(g => !g.hidden)
+    }
+    const ordered = []
+    const seen = new Set()
+    for (const group of displayOrder) {
+      if (groups[group.key]?.length) {
+        ordered.push({ ...group, items: groups[group.key] })
+        seen.add(group.key)
+      }
+    }
+    if (groups.other?.length && !seen.has('other')) {
+      const otherGroup = groceryGroups.find(g => g.key === 'other') || { key: 'other', label: 'Other', emoji: '🛒' }
+      ordered.push({ ...otherGroup, items: groups.other })
+    }
+    return ordered
+  }, [visibleGenerated, activeStore, groceryGroups]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Store filter chip counts ──────────────────────────────────────────────
+  const storeFilterCounts = useMemo(() => {
+    if (!stores.length) return {}
+    const counts = {}
+    visibleGenerated.forEach(item => {
+      const sid = groceryStoreMap[genKey(item)]
+      if (sid) counts[sid] = (counts[sid] || 0) + 1
+    })
+    return counts
+  }, [visibleGenerated, groceryStoreMap, stores]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const untaggedCount = useMemo(() => {
+    if (!stores.length) return 0
+    return visibleGenerated.filter(item => !groceryStoreMap[genKey(item)]).length
+  }, [visibleGenerated, groceryStoreMap, stores]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Filtered grouped list (for filter chips) ──────────────────────────────
+  const filteredGroupedGenerated = useMemo(() => {
+    if (!activeStoreFilter) return groupedGenerated
+    return groupedGenerated
+      .map(group => ({
+        ...group,
+        items: group.items.filter(item => {
+          const sid = groceryStoreMap[genKey(item)]
+          if (activeStoreFilter === 'untagged') return !sid
+          return sid === activeStoreFilter
+        }),
+      }))
+      .filter(group => group.items.length > 0)
+  }, [groupedGenerated, activeStoreFilter, groceryStoreMap]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function updatePlan(changes) {
     const updated = { ...plan, ...changes }
