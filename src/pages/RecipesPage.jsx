@@ -26,13 +26,13 @@ const CATS_LIST = ['All', ...CATEGORY_LIST.map(c => c.label)]
 
 // ── Star rating ───────────────────────────────────────────────────────────────
 function StarRating({ rating, size = 13, showNumber = true }) {
-  if (!rating) return null
+  const r = rating || 0
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
       <span style={{ display: 'inline-flex', gap: 1 }}>
         {Array.from({ length: 5 }, (_, i) => {
-          const filled = rating >= i + 1
-          const half   = !filled && rating >= i + 0.5
+          const filled = r >= i + 1
+          const half   = !filled && r >= i + 0.5
           return (
             <span key={i} style={{ position: 'relative', fontSize: size, lineHeight: 1,
               color: filled ? '#F5A623' : 'var(--hp-ink-200)' }}>
@@ -47,7 +47,9 @@ function StarRating({ rating, size = 13, showNumber = true }) {
       </span>
       {showNumber && (
         <span style={{ fontFamily: 'var(--hp-font-mono)', fontSize: size - 1, fontWeight: 600,
-          color: 'var(--hp-ink-500)', lineHeight: 1 }}>{Number(rating).toFixed(1)}</span>
+          color: r > 0 ? 'var(--hp-ink-500)' : 'var(--hp-ink-300)', lineHeight: 1 }}>
+          {r > 0 ? Number(r).toFixed(1) : '—'}
+        </span>
       )}
     </span>
   )
@@ -432,11 +434,9 @@ function RecipeCard({ recipe, onClick, onDoubleClick, approvalMembers = [], adde
       {/* Title + rating */}
       <div style={{ flex: 1, padding: '14px 16px 12px' }}>
         <h3 className="recipe-card-name">{recipe.name}</h3>
-        {recipe.rating && (
-          <div style={{ marginTop: 8 }}>
-            <StarRating rating={recipe.rating} size={13} />
-          </div>
-        )}
+        <div style={{ marginTop: 8 }}>
+          <StarRating rating={recipe.rating || 0} size={13} />
+        </div>
       </div>
 
       {/* Footer: meta row + full-width add button */}
