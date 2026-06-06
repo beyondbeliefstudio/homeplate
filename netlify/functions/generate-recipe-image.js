@@ -13,6 +13,66 @@ const DISH_TYPE = {
   other:     'on a plate or in a bowl',
 }
 
+// Props vary by category so every image feels distinct and contextually appropriate
+const PROPS_BY_CATEGORY = {
+  dinner: [
+    'a linen napkin folded beside the plate, a fork and steak knife resting alongside',
+    'a small ramekin of sauce, a sprig of fresh herbs, and a linen napkin in the corner',
+    'a simple candle in a short holder, a folded cloth napkin, and a wine glass slightly out of focus',
+    'a rustic ceramic side dish, a wooden serving spoon, and scattered fresh herbs on the table',
+    'a small olive oil cruet, a pinch bowl of flaky salt, and a folded dark linen napkin',
+  ],
+  breakfast: [
+    'a small pitcher of maple syrup, a pat of butter on a tiny dish, and a folded gingham napkin',
+    'a cup of coffee or orange juice slightly out of frame, and a small jar of jam beside the plate',
+    'a ceramic coffee mug with steam, a small pot of honey, and a simple linen napkin',
+    'a glass of orange juice, a small pot of butter, and a folded white napkin with a spoon',
+    'a tiny crock of jam, a glass of milk, and scattered crumbs suggesting a casual morning table',
+  ],
+  lunch: [
+    'a small glass of sparkling water with lemon, and a folded paper napkin beside the bowl',
+    'a ceramic crock of soup alongside, a crusty bread roll on the side, and a simple spoon',
+    'a small side salad in a bowl, a glass of iced water, and a folded cotton napkin',
+    'a simple fork resting on a cloth napkin, and a small dish of olive oil for dipping nearby',
+    'a pickle jar, a small bowl of chips, and a casual paper napkin tucked beside the plate',
+  ],
+  snack: [
+    'a small bowl of dipping sauce, a casual stack of napkins, and a wooden serving board',
+    'a little jar of honey for drizzling, and a few crackers scattered on a slate board',
+    'a glass of iced tea, a small dish of nuts, and a relaxed cloth napkin underneath',
+    'a wooden skewer resting beside, parchment paper underneath, and a dipping cup of ranch',
+    'a small wire basket lined with parchment, a tiny ramekin of sauce, and a bottle of hot sauce',
+  ],
+  side: [
+    'a wooden serving spoon resting in the bowl, a folded linen towel, and scattered herbs on the table',
+    'a small ramekin of butter, fresh herb sprigs beside the bowl, and a simple cloth napkin',
+    'a ceramic gravy boat slightly out of focus, and a simple serving fork resting on a linen cloth',
+    'a sprinkle of toasted seeds on the table, a simple dish towel, and a small ladle nearby',
+    'a carving fork resting alongside, scattered peppercorns, and a white ceramic dish with a rim',
+  ],
+  dessert: [
+    'a small scoop of vanilla ice cream in a white ramekin beside the plate, and a dessert spoon',
+    'a dusting of powdered sugar on the table, a mint sprig, and a small pitcher of cream',
+    'a little jar of caramel or chocolate sauce, a dessert fork, and a folded white cloth napkin',
+    'a candle stub in a short holder, scattered berries on the table, and a small fork',
+    'a cup of espresso slightly out of focus, and a tiny sifter with powdered sugar beside the plate',
+  ],
+  beverage: [
+    'a few ice cubes on the table, a folded bar cloth, and a small bowl of citrus slices',
+    'a cocktail stirrer resting on the rim, a small bowl of garnishes, and a linen coaster underneath',
+    'a vintage bottle slightly blurred in the background, and a small snack dish on the side',
+    'scattered coffee beans on the surface, a small spoon, and a folded café napkin',
+    'a simple glass straw, a wedge of citrus on the rim, and a casual linen napkin',
+  ],
+  other: [
+    'a simple linen napkin, a classic fork and spoon resting alongside, and warm soft shadows',
+    'a small ceramic dish on the side, a folded cloth, and a light scatter of fresh herbs',
+    'a rustic wooden board underneath, a small ramekin, and a pinch bowl of seasoning',
+    'a simple white side dish, a cloth napkin loosely folded, and a soft natural background',
+    'a small olive oil bottle, scattered spice on the table, and a simple ceramic serving spoon',
+  ],
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' }
@@ -35,6 +95,13 @@ exports.handler = async (event) => {
   }
 
   const dishType    = DISH_TYPE[category] || DISH_TYPE.other
+
+  // Pick props deterministically based on recipe name so the same recipe always
+  // gets the same setting, but different recipes feel visually distinct
+  const propOptions = PROPS_BY_CATEGORY[category] || PROPS_BY_CATEGORY.other
+  const propIndex   = name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % propOptions.length
+  const props       = propOptions[propIndex]
+
   const keyIngreds  = (ingredients || [])
     .slice(0, 6)
     .map(i => i.name)
@@ -64,7 +131,7 @@ Lighting:
 Use warm directional light from the upper left, with broad simple shadows. Highlights should be soft and graphic, not realistic or overly shiny.
 
 Background and props:
-Place the dish on a warm wooden tabletop with simplified wood grain. Add only a few simple non-food props such as a folded cream towel with navy stripes, a spoon, or a small empty bowl. Do not add any food items as props that are not listed in the ingredients above.
+Place the dish on a warm wooden tabletop with simplified wood grain. Add only these specific props: ${props}. Do not add any other props or food items not listed in the ingredients above.
 
 Rendering rules:
 Simplify all food shapes. Use rounded forms, broad shadow blocks, minimal highlights, and gentle texture. Do not make the food look like a real photograph. Do not include people, hands, text, labels, logos, typography, watermarks, or recipe card elements.
