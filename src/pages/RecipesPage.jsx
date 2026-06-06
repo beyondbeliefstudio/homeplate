@@ -381,6 +381,14 @@ function RecipeCard({ recipe, onClick, onDoubleClick, approvalMembers = [], adde
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0)
   const approvedBy = approvalMembers.filter(m => (recipe.approved_by ?? []).includes(m.id))
 
+  const categoryToSlot = { breakfast: 'breakfasts', lunch: 'lunches', dinner: 'dinners', snack: 'snacks', side: 'dinners', dessert: 'snacks', other: 'dinners' }
+  const slot = MEAL_SLOTS.find(s => s.key === (categoryToSlot[recipe.category] || 'dinners'))
+
+  function handleAdd(e) {
+    e.stopPropagation()
+    if (!addedSlot) onAddToPlanner(recipe.id, slot)
+  }
+
   return (
     <div className="recipe-card" onClick={() => onClick(recipe)} onDoubleClick={() => onDoubleClick(recipe)}>
       {/* Photo / food-icon header */}
@@ -395,50 +403,65 @@ function RecipeCard({ recipe, onClick, onDoubleClick, approvalMembers = [], adde
             </div>
           </div>
         )}
-        {/* Category chip — white pill top-left */}
+
+        {/* Category chip — solid dark pill, top-left */}
         <span className="recipe-card-cat-chip">
           <span style={{ fontFamily: 'var(--hp-font-body)', fontSize: 11, fontWeight: 700,
-            color: 'var(--hp-ink-800)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            color: '#fff', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
             {meta.label}
           </span>
         </span>
+
+        {/* Approval avatar cluster — top-right */}
+        {approvedBy.length > 0 && (
+          <div className="recipe-card-approvals-overlay">
+            <div className="recipe-card-avatar-stack">
+              {approvedBy.slice(0, 3).map(m => (
+                <div key={m.id} className="recipe-card-avatar" style={{ background: m.color }}>
+                  {m.name.charAt(0).toUpperCase()}
+                </div>
+              ))}
+            </div>
+            <span className="recipe-card-approvals-label">
+              {approvedBy.length === 1 ? `${approvedBy[0].name} ✓` : `${approvedBy.length} approved ✓`}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Title + rating + approval badges */}
-      <div style={{ flex: 1, padding: '14px 16px 10px' }}>
+      {/* Title + rating */}
+      <div style={{ flex: 1, padding: '14px 16px 12px' }}>
         <h3 className="recipe-card-name">{recipe.name}</h3>
         {recipe.rating && (
-          <div style={{ marginTop: 6 }}>
-            <StarRating rating={recipe.rating} size={12} />
-          </div>
-        )}
-        {approvedBy.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
-            {approvedBy.map(m => (
-              <span key={m.id} className="recipe-card-approval-badge"
-                style={{ background: m.color + '22', color: m.color, borderColor: m.color + '44' }}>
-                {m.name} ✓
-              </span>
-            ))}
+          <div style={{ marginTop: 8 }}>
+            <StarRating rating={recipe.rating} size={13} />
           </div>
         )}
       </div>
 
-      {/* Footer: time · serves · add to planner */}
+      {/* Footer: meta row + full-width add button */}
       <div className="recipe-card-footer">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-          {totalTime > 0 && (
-            <span className="recipe-card-meta-item">
-              <IconClock size={12} /> {totalTime}m
-            </span>
-          )}
-          {recipe.servings > 0 && (
-            <span className="recipe-card-meta-item">
-              <IconServes size={12} /> {recipe.servings}
-            </span>
-          )}
-        </div>
-        <AddToPlannerButton recipeId={recipe.id} addedSlot={addedSlot} onAddToPlanner={onAddToPlanner} compact />
+        {(totalTime > 0 || recipe.servings > 0) && (
+          <div className="recipe-card-footer-meta">
+            {totalTime > 0 && (
+              <span className="recipe-card-meta-item">
+                <IconClock size={12} /> {totalTime} m
+              </span>
+            )}
+            {recipe.servings > 0 && (
+              <span className="recipe-card-meta-item">
+                <IconServes size={12} /> {recipe.servings}
+              </span>
+            )}
+          </div>
+        )}
+        <button
+          className={`recipe-card-add-btn${addedSlot ? ' recipe-card-add-btn--added' : ''}`}
+          onClick={handleAdd}
+          disabled={!!addedSlot}
+        >
+          {addedSlot ? `✓ Added to ${addedSlot}` : <><IconPlus size={13} /> Add to planner</>}
+        </button>
       </div>
     </div>
   )

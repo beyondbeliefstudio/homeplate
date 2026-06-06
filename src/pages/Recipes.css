@@ -227,7 +227,7 @@
   flex-shrink: 0;
 }
 
-/* Category chip overlay (white pill with border) */
+/* Category chip overlay — solid dark pill */
 .recipe-card-cat-chip {
   position: absolute;
   top: 10px;
@@ -237,10 +237,54 @@
   height: 26px;
   padding: 0 10px;
   border-radius: var(--r-sm);
-  background: var(--paper);
-  border: 1px solid var(--hp-ink-100);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  background: var(--hp-ink-900);
+  border: none;
   pointer-events: none;
+}
+
+/* Approval avatar cluster — top-right overlay */
+.recipe-card-approvals-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--paper);
+  border-radius: var(--r-pill);
+  padding: 4px 8px 4px 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+  pointer-events: none;
+}
+
+.recipe-card-avatar-stack {
+  display: inline-flex;
+  flex-direction: row-reverse;
+}
+
+.recipe-card-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--hp-font-body);
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  border: 1.5px solid var(--paper);
+  margin-left: -5px;
+  flex-shrink: 0;
+}
+
+.recipe-card-avatar:last-child { margin-left: 0; }
+
+.recipe-card-approvals-label {
+  font-family: var(--hp-font-body);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--hp-ink-700);
+  white-space: nowrap;
 }
 
 /* Legacy category label — kept for older code */
@@ -311,19 +355,56 @@
   font-family: var(--font-sans);
 }
 
-/* Recipe card footer (time + serves) */
+/* Recipe card footer */
 .recipe-card-footer {
-  border-top: 1px solid var(--hp-ink-100);
-  background: var(--hp-paper-off);
-  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.recipe-card-footer-meta {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 9px 16px;
   color: var(--hp-ink-500);
+  border-top: 1px solid var(--hp-ink-100);
 }
 
-.recipe-card-footer .recipe-card-meta-item {
+.recipe-card-footer-meta .recipe-card-meta-item {
   font-size: 11px;
+}
+
+/* Full-width "Add to planner" strip */
+.recipe-card-add-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 16px;
+  background: var(--hp-green-50, #F0FDF4);
+  border: none;
+  border-top: 1px solid var(--hp-green-100, #DCFCE7);
+  font-family: var(--hp-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hp-green-700, #15803D);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.recipe-card-add-btn:hover {
+  background: var(--hp-green-100, #DCFCE7);
+}
+
+.recipe-card-add-btn--added {
+  background: var(--hp-green-100, #DCFCE7);
+  color: var(--hp-green-700, #15803D);
+  cursor: default;
+}
+
+.recipe-card-add-btn--added:hover {
+  background: var(--hp-green-100, #DCFCE7);
 }
 
 /* ─── Recipe detail ─────────────────────────────────────────────────── */
