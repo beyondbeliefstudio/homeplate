@@ -258,8 +258,25 @@ const GROCERY_GROUPS = [
   },
 ]
 
-function assignGroup(name) {
-  const lower = name.toLowerCase()
+// ─── Category overrides (localStorage) ───────────────────────────────────────
+const OVERRIDES_KEY = 'hp-ingredient-categories'
+
+function loadCategoryOverrides() {
+  try { return JSON.parse(localStorage.getItem(OVERRIDES_KEY) || '{}') } catch { return {} }
+}
+
+function saveCategoryOverride(name, groupKey) {
+  const map = loadCategoryOverrides()
+  const key = name.toLowerCase().trim()
+  if (groupKey === null) delete map[key]
+  else map[key] = groupKey
+  localStorage.setItem(OVERRIDES_KEY, JSON.stringify(map))
+}
+
+function assignGroup(name, overrides = {}) {
+  const key = name.toLowerCase().trim()
+  if (overrides[key]) return overrides[key]
+  const lower = key
   for (const group of GROCERY_GROUPS) {
     if (group.keywords.some(kw => lower.includes(kw))) return group.key
   }
@@ -268,7 +285,7 @@ function assignGroup(name) {
 
 // ─── Consolidation ────────────────────────────────────────────────────────────
 // Returns { shopItems, pantryItems } — both consolidated, pantry separated out
-function consolidate(raw) {
+function consolidate(raw, overrides = {}) {
   // Deduplicate by core ingredient name so variants like "salt for pasta water"
   // and "salt (for broccoli)" collapse into a single "Salt" pantry entry.
   const map = new Map()
@@ -324,7 +341,7 @@ function consolidate(raw) {
       ? (numQty % 1 === 0 ? `${numQty}` : numQty.toFixed(2).replace(/\.?0+$/, ''))
       : (isVagueQty(rawQty) ? '' : (rawQty || ''))
 
-    const item = { id: `g-${i}`, name, quantity: qty, unit, group: assignGroup(name), sources: sources || [] }
+    const item = { id: `g-${i}`, name, quantity: qty, unit, group: assignGroup(name, overrides), sources: sources || [] }
 
     if (isPantryItem) pantryItems.push(item)
     else shopItems.push(item)
@@ -337,7 +354,7 @@ function consolidate(raw) {
   }
 }
 
-function computeIngredients(plan, recipeMap) {
+function computeIngredients(plan, recipeMap, overrides = {}) {
   const raw = []
 
   function addRecipe(recipeId, multiplier = 1) {
@@ -378,7 +395,7 @@ function computeIngredients(plan, recipeMap) {
     if (item.recipeId) addRecipe(item.recipeId, item.multiplier ?? 1)
   })
 
-  const { shopItems, pantryItems } = consolidate(raw)
+  const { shopItems, pantryItems } = consolidate(raw, overrides)
   return { shopItems, pantryItems }
 }
 
@@ -419,6 +436,7 @@ export default function GroceryPage() {
   const [loading, setLoading]     = useState(true)
   const [newExtra, setNewExtra]   = useState('')
   const [newStaple, setNewStaple] = useState('')
+  const [categoryOverrides, setCategoryOverrides] = useState(() => loadCategoryOverrides())
 
   useEffect(() => {
     if (!user) return
@@ -460,9 +478,14 @@ export default function GroceryPage() {
 
   const { generated, pantryCheck } = useMemo(() => {
     if (!plan) return { generated: [], pantryCheck: [] }
-    const { shopItems, pantryItems } = computeIngredients(plan, recipeMap)
+    const { shopItems, pantryItems } = computeIngredients(plan, recipeMap, categoryOverrides)
     return { generated: shopItems, pantryCheck: pantryItems }
-  }, [plan, recipeMap])
+  }, [plan, recipeMap, categoryOverrides])
+
+  function handleCategoryOverride(itemName, groupKey) {
+    saveCategoryOverride(itemName, groupKey)
+    setCategoryOverrides(loadCategoryOverrides())
+  }
 
   // Group generated items by grocery aisle category.
   // When a store is active, uses that store's aisle ordering and labels.
@@ -737,7 +760,7 @@ export default function GroceryPage() {
       })),
       ...extras.map(item => ({
         id: item.id, name: item.name, unit: '', quantity: '',
-        group: assignGroup(item.name), checked: item.checked,
+        group: assignGroup(item.name, categoryOverrides), checked: item.checked,
         _type: 'extra', _storeId: item.storeId || null,
       })),
     ]
@@ -977,6 +1000,7 @@ export default function GroceryPage() {
                             storeId={groceryStoreMap[genKey(item)]}
                             stores={stores}
                             onStoreChange={sid => setItemStore(item, sid)}
+                            onCategoryChange={gk => handleCategoryOverride(item.name, gk)}
                           />
                         )
                       })}
@@ -1111,10 +1135,23 @@ function GroceryCard({ title, count, hint, pantry, hintRefining, children }) {
   )
 }
 
-function GroceryRow({ item, checked, label, onToggle, onRemove, isStaple, storeId, stores, onStoreChange }) {
-  const [pickerOpen, setPickerOpen] = useState(false)
+function GroceryRow({ item, checked, label, onToggle, onRemove, isStaple, storeId, stores, onStoreChange, onCategoryChange }) {
+  const [pickerOpen, setPickerOpen]       = useState(false)
+  const [catPickerOpen, setCatPickerOpen] = useState(false)
+  const catPickerRef = useRef(null)
   const showStores = stores?.length > 0 && onStoreChange
   const assignedStore = stores?.find(s => s.id === storeId)
+
+  const currentGroup = item ? GROCERY_GROUPS.find(g => g.key === item.group) : null
+
+  useEffect(() => {
+    if (!catPickerOpen) return
+    function handler(e) {
+      if (catPickerRef.current && !catPickerRef.current.contains(e.target)) setCatPickerOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [catPickerOpen])
 
   // Parse the label into qty+unit part and name part when item data is available
   const hasSplit = item && (item.quantity || item.unit)
@@ -1171,6 +1208,58 @@ function GroceryRow({ item, checked, label, onToggle, onRemove, isStaple, storeI
             <span className="grocery-item-source">{sourceText}</span>
           )}
         </div>
+
+        {/* Category dot — click to reassign */}
+        {onCategoryChange && currentGroup && (
+          <div ref={catPickerRef} style={{ position: 'relative', flexShrink: 0 }}>
+            <button
+              title={`Category: ${currentGroup.label} — click to change`}
+              onClick={e => { e.stopPropagation(); setCatPickerOpen(o => !o) }}
+              style={{
+                width: 22, height: 22, borderRadius: '50%',
+                background: currentGroup.color + '22',
+                border: `1.5px solid ${currentGroup.color}55`,
+                display: 'grid', placeItems: 'center',
+                cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: currentGroup.color, display: 'block' }} />
+            </button>
+            {catPickerOpen && (
+              <div style={{
+                position: 'absolute', right: 0, bottom: 'calc(100% + 6px)',
+                background: 'var(--hp-paper)', border: '1px solid var(--hp-ink-100)',
+                borderRadius: 'var(--r-md)', boxShadow: '0 8px 24px rgba(14,18,18,0.12)',
+                zIndex: 300, minWidth: 180, padding: '4px 0', overflow: 'hidden',
+              }}>
+                <div style={{ padding: '7px 12px 5px', fontFamily: 'var(--hp-font-body)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--hp-ink-400)' }}>
+                  Move to category
+                </div>
+                {GROCERY_GROUPS.map(g => (
+                  <button
+                    key={g.key}
+                    onClick={e => { e.stopPropagation(); onCategoryChange(g.key); setCatPickerOpen(false) }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 9,
+                      width: '100%', padding: '8px 12px',
+                      background: g.key === item.group ? 'var(--hp-ink-50)' : 'none',
+                      border: 'none', cursor: 'pointer',
+                      fontFamily: 'var(--hp-font-body)', fontSize: 13, fontWeight: g.key === item.group ? 600 : 400,
+                      color: g.key === item.group ? 'var(--hp-ink-900)' : 'var(--hp-ink-700)',
+                      textAlign: 'left', transition: 'background 0.1s',
+                    }}
+                    onMouseEnter={e => { if (g.key !== item.group) e.currentTarget.style.background = 'var(--hp-ink-50)' }}
+                    onMouseLeave={e => { if (g.key !== item.group) e.currentTarget.style.background = 'none' }}
+                  >
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: g.color, flexShrink: 0, display: 'block' }} />
+                    {g.emoji} {g.label}
+                    {g.key === item.group && <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--hp-ink-400)' }}>current</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Store badge — tapping opens the inline pill picker */}
         {showStores && (
