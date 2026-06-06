@@ -425,6 +425,7 @@
 
 .plan-card-pantry-input::placeholder { color: var(--hp-ink-300); font-style: italic; }
 .plan-card-pantry-input:focus { border-bottom-color: var(--hp-ink-400); color: var(--hp-ink-900); }
+.plan-card-pantry-input--main { font-size: 14px; font-weight: 500; }
 
 /* Add side row */
 .plan-card-add-side-row {

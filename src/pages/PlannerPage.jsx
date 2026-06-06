@@ -691,9 +691,12 @@ function GenericMealItem({ item, section, category, recipeMap, removeItem, updat
 
         <div style={{ flex: 1, minWidth: 0 }}>
           {isPantry ? (
-            <span className="plan-card-name" style={{ fontStyle: 'italic', color: 'var(--hp-ink-500)' }}>
-              {item.name || 'Pantry item'}
-            </span>
+            <input
+              className="plan-card-pantry-input plan-card-pantry-input--main"
+              value={item.name || ''}
+              placeholder="What pantry item?"
+              onChange={e => updateItem(section, item.id, { name: e.target.value })}
+            />
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <span className="plan-card-name"
