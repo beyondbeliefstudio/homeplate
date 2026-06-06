@@ -576,9 +576,14 @@ export default function GroceryPage() {
     next.has(genKey(item)) ? next.delete(genKey(item)) : next.add(genKey(item))
     updatePlan({ groceryChecked: [...next] })
   }
-  function removeGenerated(item) {
+  function hideGenerated(item) {
     const next = new Set(removedGenerated)
     next.add(genKey(item))
+    updatePlan({ groceryRemoved: [...next] })
+  }
+  function unhideGenerated(item) {
+    const next = new Set(removedGenerated)
+    next.delete(genKey(item))
     updatePlan({ groceryRemoved: [...next] })
   }
   function togglePantry(item) {
@@ -895,7 +900,7 @@ export default function GroceryPage() {
                             checked={checked}
                             label={getShopLabel(item)}
                             onToggle={() => toggleGenerated(item)}
-                            onRemove={() => removeGenerated(item)}
+                            onHide={() => hideGenerated(item)}
                             storeId={groceryStoreMap[genKey(item)]}
                             stores={stores}
                             onStoreChange={sid => setItemStore(item, sid)}
@@ -909,6 +914,14 @@ export default function GroceryPage() {
                   </div>
                 </div>
               )
+            )}
+            {/* Hidden ingredients */}
+            {removedGenerated.size > 0 && !viewByStore && (
+              <HiddenIngredientsPanel
+                hiddenItems={generated.filter(i => removedGenerated.has(genKey(i)))}
+                getLabel={getShopLabel}
+                onUnhide={unhideGenerated}
+              />
             )}
           </div>
 
@@ -1017,6 +1030,67 @@ export default function GroceryPage() {
   )
 }
 
+// ─── Hidden Ingredients Panel ─────────────────────────────────────────────────
+function HiddenIngredientsPanel({ hiddenItems, getLabel, onUnhide }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div style={{
+      background: 'var(--hp-paper)', border: '1px solid var(--hp-ink-100)',
+      borderRadius: 'var(--r-lg)', overflow: 'hidden', marginTop: 8,
+    }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '11px 16px', background: 'none', border: 'none', cursor: 'pointer',
+          fontFamily: 'var(--hp-font-body)', fontSize: 12, fontWeight: 600,
+          color: 'var(--hp-ink-400)',
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <span style={{ fontSize: 13 }}>👁</span>
+          Hidden ingredients
+          <span style={{
+            background: 'var(--hp-ink-100)', color: 'var(--hp-ink-500)',
+            borderRadius: 99, padding: '1px 7px', fontSize: 11, fontWeight: 700,
+          }}>{hiddenItems.length}</span>
+        </span>
+        <span style={{ fontSize: 11, color: 'var(--hp-ink-300)' }}>{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div style={{ borderTop: '1px solid var(--hp-ink-100)' }}>
+          {hiddenItems.map(item => (
+            <div key={item.id} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '9px 16px', borderBottom: '1px solid var(--hp-ink-50)',
+            }}>
+              <span style={{
+                flex: 1, fontFamily: 'var(--hp-font-body)', fontSize: 13,
+                color: 'var(--hp-ink-400)', textDecoration: 'line-through',
+              }}>
+                {getLabel(item)}
+              </span>
+              <button
+                onClick={() => onUnhide(item)}
+                style={{
+                  flexShrink: 0, fontFamily: 'var(--hp-font-body)', fontSize: 11, fontWeight: 600,
+                  color: 'var(--hp-ink-600)', background: 'var(--hp-ink-50)',
+                  border: '1px solid var(--hp-ink-200)', borderRadius: 'var(--r-sm)',
+                  padding: '3px 10px', cursor: 'pointer',
+                }}
+              >
+                Restore
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Sub-components ────────────────────────────────────────────────────────────
 function GroceryCard({ title, count, hint, pantry, hintRefining, children }) {
   return (
@@ -1035,7 +1109,7 @@ function GroceryCard({ title, count, hint, pantry, hintRefining, children }) {
   )
 }
 
-function GroceryRow({ item, checked, label, onToggle, onRemove, isStaple, storeId, stores, onStoreChange, onCategoryChange, groceryGroups: rowGroups }) {
+function GroceryRow({ item, checked, label, onToggle, onRemove, onHide, isStaple, storeId, stores, onStoreChange, onCategoryChange, groceryGroups: rowGroups }) {
   const [pickerOpen, setPickerOpen]       = useState(false)
   const [catPickerOpen, setCatPickerOpen] = useState(false)
   const catPickerRef = useRef(null)
@@ -1176,6 +1250,11 @@ function GroceryRow({ item, checked, label, onToggle, onRemove, isStaple, storeI
           </button>
         )}
 
+        {onHide && (
+          <button className="grocery-remove" onClick={onHide} title="Hide this ingredient">
+            <IconClose size={13} />
+          </button>
+        )}
         {onRemove && (
           <button className="grocery-remove" onClick={onRemove} title={isStaple ? 'Remove from always list' : 'Remove'}>
             <IconClose size={13} />
