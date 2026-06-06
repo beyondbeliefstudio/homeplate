@@ -601,20 +601,33 @@ function DinnerCard({ item, recipeMap, removeItem, updateItem, setPicker, approv
                   })} />
                 {side.isPantry && <span className="plan-card-type plan-card-type--pantry">Pantry</span>}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }}>
-                  <span className="plan-card-side-name"
-                    onClick={() => sideRecipe
-                      ? openRecipeView(sideRecipe)
-                      : setPicker({ section: 'dinners', itemId: item.id, field: 'sideRecipeId', category: 'side' })
-                    }>
-                    {side.isPantry ? (side.name || 'Pantry item') : (sideRecipe?.name ?? <em className="plan-card-unset">Pick a side…</em>)}
-                  </span>
-                  {!side.isPantry && sideRecipe && (
-                    <button className="plan-card-remove plan-card-remove--sm"
-                      title="Change side"
-                      onClick={() => setPicker({ section: 'dinners', itemId: item.id, field: 'sideRecipeId', category: 'side' })}
-                      style={{ opacity: 0.45, fontSize: 13, flexShrink: 0 }}>
-                      ↺
-                    </button>
+                  {side.isPantry ? (
+                    <input
+                      className="plan-card-pantry-input"
+                      value={side.name || ''}
+                      placeholder="What pantry item?"
+                      onChange={e => updateItem('dinners', item.id, {
+                        sides: sides.map(s => s.id === side.id ? { ...s, name: e.target.value } : s)
+                      })}
+                    />
+                  ) : (
+                    <>
+                      <span className="plan-card-side-name"
+                        onClick={() => sideRecipe
+                          ? openRecipeView(sideRecipe)
+                          : setPicker({ section: 'dinners', itemId: item.id, field: 'sideRecipeId', category: 'side' })
+                        }>
+                        {sideRecipe?.name ?? <em className="plan-card-unset">Pick a side…</em>}
+                      </span>
+                      {sideRecipe && (
+                        <button className="plan-card-remove plan-card-remove--sm"
+                          title="Change side"
+                          onClick={() => setPicker({ section: 'dinners', itemId: item.id, field: 'sideRecipeId', category: 'side' })}
+                          style={{ opacity: 0.45, fontSize: 13, flexShrink: 0 }}>
+                          ↺
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
                 {sideRecipe && approvalMembers.filter(m => (sideRecipe.approved_by ?? []).includes(m.id)).map(m => (

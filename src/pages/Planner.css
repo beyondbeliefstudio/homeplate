@@ -407,6 +407,25 @@
 
 .plan-card-side-name:hover { color: var(--hp-ink-900); }
 
+/* Inline pantry item name input */
+.plan-card-pantry-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--hp-font-body);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--hp-ink-700);
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed var(--hp-ink-200);
+  outline: none;
+  padding: 0 2px 1px;
+  width: 100%;
+}
+
+.plan-card-pantry-input::placeholder { color: var(--hp-ink-300); font-style: italic; }
+.plan-card-pantry-input:focus { border-bottom-color: var(--hp-ink-400); color: var(--hp-ink-900); }
+
 /* Add side row */
 .plan-card-add-side-row {
   display: flex;
