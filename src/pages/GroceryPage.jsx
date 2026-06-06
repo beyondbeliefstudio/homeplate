@@ -375,6 +375,8 @@ export default function GroceryPage() {
     setCategoryOverrides(loadCategoryOverrides())
   }
 
+  const visibleGenerated = generated.filter(i => !removedGenerated.has(genKey(i)))
+
   // Group generated items by grocery aisle category.
   // When a store is active, uses that store's aisle ordering and labels.
   const groupedGenerated = useMemo(() => {
@@ -701,7 +703,6 @@ export default function GroceryPage() {
     updatePlan({ groceryStaplesChecked: [...next] })
   }
 
-  const visibleGenerated = generated.filter(i => !removedGenerated.has(genKey(i)))
   const genChecked     = visibleGenerated.filter(i => checkedGenerated.has(genKey(i))).length
   const pantryChecked  = displayPantry.filter(i => checkedPantry.has(genKey(i))).length
   const extrasChecked  = extras.filter(m => m.checked).length
