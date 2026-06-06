@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '../hooks/useAuth.jsx'
-import { getRecipes, getHouseholdMembers } from '../lib/supabase'
+import { getRecipes, getHouseholdMembers, getMealPlan, saveMealPlan } from '../lib/supabase'
+import { getWeekKey } from '../lib/weeks'
 import { CATEGORY_LIST, getCategoryMeta } from '../lib/categories'
 import {
   IconClock, IconServes, IconSearch, IconPlus, IconClose,
@@ -11,6 +12,15 @@ import { FOOD_ICON_MAP } from '../components/FoodIcons.jsx'
 import { abbreviateUnit } from '../lib/units'
 import { EmptyRecipes } from '../components/EmptyStates'
 import './Recipes.css'
+
+function uid() { return Math.random().toString(36).slice(2, 9) }
+
+const MEAL_SLOTS = [
+  { key: 'dinners',    label: 'Dinner',    emoji: '🍽' },
+  { key: 'lunches',    label: 'Lunch',     emoji: '🥗' },
+  { key: 'breakfasts', label: 'Breakfast', emoji: '🍳' },
+  { key: 'snacks',     label: 'Snack',     emoji: '🍪' },
+]
 
 const CATS_LIST = ['All', ...CATEGORY_LIST.map(c => c.label)]
 
@@ -44,8 +54,9 @@ function StarRating({ rating, size = 13, showNumber = true }) {
 }
 
 export default function RecipesPage() {
-  const user     = useUser()
-  const navigate = useNavigate()
+  const user        = useUser()
+  const navigate    = useNavigate()
+  const currentWeekKey = getWeekKey()
 
   const [recipes,         setRecipes]         = useState([])
   const [members,         setMembers]         = useState([])
@@ -54,6 +65,10 @@ export default function RecipesPage() {
   const [activeCategory,  setActiveCategory]  = useState('all')
   const [approvalFilters, setApprovalFilters] = useState(new Set())
   const [view,            setView]            = useState('grid')
+
+  // Current week's plan (for "Add to planner")
+  const [weekPlan,    setWeekPlan]    = useState({})
+  const [addedMap,    setAddedMap]    = useState({}) // { recipeId: slotLabel }
 
   // Slide-over state
   const [selectedRecipe, setSelectedRecipe] = useState(null)
@@ -66,7 +81,24 @@ export default function RecipesPage() {
       setLoading(false)
     })
     getHouseholdMembers(user.id).then(({ data }) => setMembers(data ?? []))
-  }, [user])
+    getMealPlan(user.id, currentWeekKey).then(({ data }) => setWeekPlan(data || {}))
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function addToPlanner(recipeId, slot) {
+    const updated = { ...weekPlan }
+    if (slot.key === 'dinners') {
+      updated.dinners = [...(updated.dinners || []), { id: uid(), adultRecipeId: recipeId, multiplier: 1, madeCount: 0, kidsRecipeId: null, kidsMade: false, sides: [], memberIds: [], note: '' }]
+    } else if (slot.key === 'breakfasts') {
+      updated.breakfasts = [...(updated.breakfasts || []), { id: uid(), recipeId, isPantry: false, made: false, multiplier: 1, kidsRecipeId: null, kidsMade: false, memberIds: [], note: '' }]
+    } else if (slot.key === 'lunches') {
+      updated.lunches = [...(updated.lunches || []), { id: uid(), recipeId, isPantry: false, made: false, multiplier: 1, kidsRecipeId: null, memberIds: [], note: '' }]
+    } else if (slot.key === 'snacks') {
+      updated.snacks = [...(updated.snacks || []), { id: uid(), recipeId, made: false, multiplier: 1, memberIds: [], note: '' }]
+    }
+    setWeekPlan(updated)
+    setAddedMap(m => ({ ...m, [recipeId]: slot.label }))
+    await saveMealPlan(user.id, currentWeekKey, updated)
+  }
 
   const approvalMembers = members.filter(m => m.meal_approval)
 
@@ -212,13 +244,13 @@ export default function RecipesPage() {
       ) : view === 'grid' ? (
         <div className="recipes-grid">
           {filtered.map(recipe => (
-            <RecipeCard key={recipe.id} recipe={recipe} onClick={openDetail} onDoubleClick={openFullPage} approvalMembers={approvalMembers} />
+            <RecipeCard key={recipe.id} recipe={recipe} onClick={openDetail} onDoubleClick={openFullPage} approvalMembers={approvalMembers} addedSlot={addedMap[recipe.id]} onAddToPlanner={addToPlanner} />
           ))}
         </div>
       ) : (
         <div className="recipes-list">
           {filtered.map(recipe => (
-            <RecipeRow key={recipe.id} recipe={recipe} onClick={openDetail} approvalMembers={approvalMembers} />
+            <RecipeRow key={recipe.id} recipe={recipe} onClick={openDetail} approvalMembers={approvalMembers} addedSlot={addedMap[recipe.id]} onAddToPlanner={addToPlanner} />
           ))}
         </div>
       )}
@@ -253,6 +285,8 @@ export default function RecipesPage() {
             onClose={closeDetail}
             onEdit={() => navigate(`/recipes/${selectedRecipe.id}/edit`)}
             onOpenFull={() => navigate(`/recipes/${selectedRecipe.id}`)}
+            addedSlot={addedMap[selectedRecipe.id]}
+            onAddToPlanner={addToPlanner}
           />
         </div>
       )}
@@ -260,8 +294,88 @@ export default function RecipesPage() {
   )
 }
 
+// ── Add to Planner button with slot dropdown ─────────────────────────────────
+function AddToPlannerButton({ recipeId, addedSlot, onAddToPlanner, compact = false }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  if (addedSlot) {
+    return (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        height: compact ? 26 : 30, padding: compact ? '0 9px' : '0 12px',
+        borderRadius: 'var(--r-sm)', fontSize: compact ? 11 : 12, fontWeight: 600,
+        fontFamily: 'var(--hp-font-body)',
+        background: 'var(--hp-green-50)', color: 'var(--hp-green-600, #15803D)',
+        border: '1px solid var(--hp-green-200, #BBF7D0)',
+        whiteSpace: 'nowrap',
+      }}>
+        ✓ Added to {addedSlot}
+      </span>
+    )
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
+      <button
+        onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          height: compact ? 26 : 30, padding: compact ? '0 9px' : '0 12px',
+          borderRadius: 'var(--r-sm)', fontSize: compact ? 11 : 12, fontWeight: 600,
+          fontFamily: 'var(--hp-font-body)',
+          background: 'transparent', color: 'var(--hp-ink-700)',
+          border: '1px solid var(--hp-ink-300)',
+          cursor: 'pointer', whiteSpace: 'nowrap',
+          transition: 'background 0.12s, border-color 0.12s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--hp-ink-50)'; e.currentTarget.style.borderColor = 'var(--hp-ink-400)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--hp-ink-300)' }}
+      >
+        <IconPlus size={compact ? 11 : 12} /> Add to planner
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', bottom: 'calc(100% + 6px)', left: 0,
+          background: 'var(--hp-paper)', border: '1px solid var(--hp-ink-150, var(--hp-ink-100))',
+          borderRadius: 'var(--r-md)', boxShadow: '0 8px 24px rgba(14,18,18,0.12)',
+          minWidth: 160, zIndex: 200, overflow: 'hidden',
+          padding: '4px 0',
+        }}>
+          {MEAL_SLOTS.map(slot => (
+            <button
+              key={slot.key}
+              onClick={e => { e.stopPropagation(); onAddToPlanner(recipeId, slot); setOpen(false) }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                width: '100%', padding: '9px 14px',
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: 'var(--hp-font-body)', fontSize: 13, fontWeight: 500,
+                color: 'var(--hp-ink-800)', textAlign: 'left',
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--hp-ink-50)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            >
+              <span style={{ fontSize: 15 }}>{slot.emoji}</span> {slot.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Recipe card (grid view) ───────────────────────────────────────────────────
-function RecipeCard({ recipe, onClick, onDoubleClick, approvalMembers = [] }) {
+function RecipeCard({ recipe, onClick, onDoubleClick, approvalMembers = [], addedSlot, onAddToPlanner }) {
   const meta      = getCategoryMeta(recipe.category)
   const FoodIcon  = FOOD_ICON_MAP[recipe.category] ?? FOOD_ICON_MAP.other
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0)
@@ -300,35 +414,38 @@ function RecipeCard({ recipe, onClick, onDoubleClick, approvalMembers = [] }) {
         )}
       </div>
 
-      {/* Footer: time · serves · approval badges */}
-      <div className="recipe-card-footer">
-        {totalTime > 0 && (
-          <span className="recipe-card-meta-item">
-            <IconClock size={12} /> {totalTime}m
-          </span>
-        )}
-        {recipe.servings > 0 && (
-          <span className="recipe-card-meta-item">
-            <IconServes size={12} /> {recipe.servings}
-          </span>
-        )}
-        {approvedBy.length > 0 && (
-          <span className="recipe-card-approvals">
-            {approvedBy.map(m => (
-              <span key={m.id} className="recipe-card-approval-badge"
-                style={{ background: m.color + '22', color: m.color, borderColor: m.color + '44' }}>
-                {m.name} ✓
-              </span>
-            ))}
-          </span>
-        )}
+      {/* Footer: time · serves · approval badges · add to planner */}
+      <div className="recipe-card-footer" style={{ flexWrap: 'wrap', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, flexWrap: 'wrap' }}>
+          {totalTime > 0 && (
+            <span className="recipe-card-meta-item">
+              <IconClock size={12} /> {totalTime}m
+            </span>
+          )}
+          {recipe.servings > 0 && (
+            <span className="recipe-card-meta-item">
+              <IconServes size={12} /> {recipe.servings}
+            </span>
+          )}
+          {approvedBy.length > 0 && (
+            <span className="recipe-card-approvals">
+              {approvedBy.map(m => (
+                <span key={m.id} className="recipe-card-approval-badge"
+                  style={{ background: m.color + '22', color: m.color, borderColor: m.color + '44' }}>
+                  {m.name} ✓
+                </span>
+              ))}
+            </span>
+          )}
+        </div>
+        <AddToPlannerButton recipeId={recipe.id} addedSlot={addedSlot} onAddToPlanner={onAddToPlanner} compact />
       </div>
     </div>
   )
 }
 
 // ── Recipe row (list view) ────────────────────────────────────────────────────
-function RecipeRow({ recipe, onClick, approvalMembers = [] }) {
+function RecipeRow({ recipe, onClick, approvalMembers = [], addedSlot, onAddToPlanner }) {
   const meta      = getCategoryMeta(recipe.category)
   const FoodIcon  = FOOD_ICON_MAP[recipe.category] ?? FOOD_ICON_MAP.other
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0)
@@ -408,6 +525,9 @@ function RecipeRow({ recipe, onClick, approvalMembers = [] }) {
           </span>
         )}
       </div>
+      <div onClick={e => e.stopPropagation()}>
+        <AddToPlannerButton recipeId={recipe.id} addedSlot={addedSlot} onAddToPlanner={onAddToPlanner} compact />
+      </div>
       <div style={{ color: 'var(--hp-ink-300)', flexShrink: 0 }}>
         <IconChevronR size={15} />
       </div>
@@ -416,7 +536,7 @@ function RecipeRow({ recipe, onClick, approvalMembers = [] }) {
 }
 
 // ── Detail slide-over panel ───────────────────────────────────────────────────
-function DetailPanel({ recipe, onClose, onEdit, onOpenFull, approvalMembers = [] }) {
+function DetailPanel({ recipe, onClose, onEdit, onOpenFull, approvalMembers = [], addedSlot, onAddToPlanner }) {
   const meta     = getCategoryMeta(recipe.category)
   const FoodIcon = FOOD_ICON_MAP[recipe.category] ?? FOOD_ICON_MAP.other
   const total    = (recipe.prep_time || 0) + (recipe.cook_time || 0)
@@ -449,6 +569,7 @@ function DetailPanel({ recipe, onClose, onEdit, onOpenFull, approvalMembers = []
             style={{ padding: '0 8px', color: 'var(--hp-ink-400)' }}>
             <IconExternalLink size={14} />
           </button>
+          <AddToPlannerButton recipeId={recipe.id} addedSlot={addedSlot} onAddToPlanner={onAddToPlanner} />
           <button className="btn btn-primary btn-sm" onClick={onEdit}
             style={{ gap: 6, fontSize: 13 }}>
             <IconEdit size={14} /> Edit
