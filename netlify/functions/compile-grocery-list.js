@@ -57,7 +57,8 @@ YOUR RULES:
    - Canned goods: use number of cans, not cup measurements
 3. Only create a question when ingredients GENUINELY CONFLICT in TYPE (e.g., whole milk vs oat milk, salted vs unsalted butter). Do NOT ask about quantity differences of the same item — just combine them. Keep questions to only the most meaningful conflicts (max 3).
 4. For type conflicts, write the question as a natural decision — explain briefly WHY the conflict exists and what each choice means for the cook.
-5. Generate 3–5 helpful suggestions: items likely needed but not listed (e.g., pantry staples the recipes assume, common companions, things often forgotten). Be specific to this week's recipes.
+5. Generate 3–5 helpful suggestions: items likely needed but NOT listed — think specific ingredients, condiments for serving, or commonly forgotten items that are actually purchased at the store. Be specific to this week's recipes (e.g. burger buns for a burger recipe, taco shells or tortillas for tacos, salsa for tacos, specific sauces).
+   DO NOT suggest: salt, pepper, butter, cooking oils, flour, sugar, baking ingredients, basic spices (cumin, paprika, etc.), mustard, ketchup, mayo, soy sauce, or any other dry pantry/condiment staples. Those are assumed to be on hand. Only suggest items someone would actually need to put in their shopping cart.
 
 Return ONLY valid JSON with no markdown formatting:
 {

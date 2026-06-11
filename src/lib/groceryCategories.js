@@ -209,6 +209,13 @@ export function assignGroup(name, overrides = {}, categories = DEFAULT_GROCERY_G
   const key = name.toLowerCase().trim()
   if (overrides[key]) return overrides[key]
   const lower = key
+
+  // Explicit overrides for common misclassifications:
+  // Broth/stock contains meat words ('chicken', 'beef') but belongs in canned goods
+  if (/\b(broth|stock)\b/.test(lower)) return 'canned'
+  // "milk" in recipe phrases like "oat milk" should be dairy not beverages
+  // (beverages keyword 'water' shouldn't match ingredient names containing water)
+
   const active = categories.filter(g => !g.hidden)
   for (const group of active) {
     if (group.key === 'other') continue // never keyword-match to "other"

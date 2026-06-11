@@ -341,7 +341,8 @@
   background: var(--hp-paper);
   border: 1px solid var(--hp-ink-100);
   border-radius: var(--r-lg);
-  overflow: hidden;
+  /* overflow: visible so category dropdowns can escape the card bounds */
+  overflow: visible;
 }
 
 .grocery-card-header {
@@ -351,6 +352,8 @@
   padding: 13px 16px 11px;
   background: var(--green-50);
   border-bottom: 1px solid var(--hp-ink-100);
+  /* clip header to card's top radius */
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
 }
 
 .grocery-card-title {
@@ -1590,6 +1593,95 @@
   transition: color 0.12s, background 0.12s;
 }
 .grocery-suggestion-dismiss:hover {
+  color: var(--hp-ink-600);
+  background: var(--hp-ink-100);
+}
+
+/* ─── Inline item edit mode ──────────────────────────────────────────────── */
+.grocery-row--hidden {
+  display: none;
+}
+
+.grocery-row-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 8px 16px;
+}
+
+.grocery-row-edit-fields {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.grocery-edit-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.grocery-edit-qty {
+  width: 64px;
+  flex-shrink: 0;
+}
+
+.grocery-edit-unit {
+  width: 72px;
+  flex-shrink: 0;
+}
+
+.grocery-row-edit-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.grocery-edit-save,
+.grocery-edit-cancel {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+
+.grocery-edit-save {
+  background: var(--hp-green);
+  color: #fff;
+}
+.grocery-edit-save:hover { background: var(--hp-green-dark, #3a9900); }
+
+.grocery-edit-cancel {
+  background: var(--hp-ink-100);
+  color: var(--hp-ink-600);
+}
+.grocery-edit-cancel:hover { background: var(--hp-ink-200); }
+
+/* Edit trigger button */
+.grocery-edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--hp-ink-300);
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s, background 0.12s;
+}
+.grocery-row-wrap:hover .grocery-edit-btn { opacity: 1; }
+.grocery-edit-btn:hover {
   color: var(--hp-ink-600);
   background: var(--hp-ink-100);
 }

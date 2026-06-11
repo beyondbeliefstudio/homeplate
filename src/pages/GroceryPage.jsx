@@ -35,11 +35,14 @@ function formatItemLabel({ quantity, unit, name }) {
 // These are cooking fundamentals most kitchens always have on hand.
 // They are pulled OUT of recipe cards and shown in their own side panel.
 const PANTRY_STAPLES = new Set([
-  // Salt & pepper
+  // Salt & pepper (including combined recipe phrases)
   'salt','sea salt','kosher salt','table salt','coarse salt','pink salt','himalayan salt',
   'garlic salt','seasoned salt','iodized salt',
   'pepper','black pepper','white pepper','ground pepper','freshly ground pepper',
-  'ground black pepper','cracked black pepper','salt and pepper',
+  'ground black pepper','cracked black pepper',
+  'salt and pepper','salt & pepper','kosher salt and black pepper',
+  'salt and freshly ground pepper','salt and freshly ground black pepper',
+  'salt, pepper','salt to taste','pepper to taste',
   // Spices & dried herbs
   'paprika','smoked paprika','sweet paprika','hot paprika','ground paprika',
   'cumin','ground cumin','cumin seeds',
@@ -92,8 +95,7 @@ const PANTRY_STAPLES = new Set([
   'butter','unsalted butter','salted butter','vegan butter',
   'ghee','clarified butter',
   'lard','shortening',
-  // Basic pantry
-  'water','ice water',
+  // Basic pantry dry goods
   'flour','all purpose flour','all-purpose flour','ap flour',
   'whole wheat flour','bread flour','cake flour',
   'sugar','granulated sugar','white sugar','caster sugar',
@@ -116,7 +118,7 @@ const PANTRY_STAPLES = new Set([
   'maple syrup','pure maple syrup',
   'molasses','blackstrap molasses',
   'oyster sauce','hoisin sauce',
-  // Stocks & broths
+  // Stocks & broths (pantry cupboard staples)
   'chicken broth','chicken stock','vegetable broth','vegetable stock',
   'beef broth','beef stock','fish stock','bone broth',
   'broth','stock',
@@ -127,7 +129,7 @@ const PANTRY_STAPLES = new Set([
   // Citrus juice (commonly on hand)
   'lemon juice','fresh lemon juice',
   'lime juice','fresh lime juice',
-  // Fresh herbs (garnish / optional)
+  // Fresh herbs (optional garnish)
   'fresh parsley','parsley leaves','flat leaf parsley','flat-leaf parsley','italian parsley',
   'fresh cilantro','cilantro','cilantro leaves','fresh coriander','coriander leaves',
   'fresh basil','basil leaves','fresh basil leaves',
@@ -140,22 +142,11 @@ const PANTRY_STAPLES = new Set([
   'fresh oregano','oregano leaves',
   'fresh tarragon',
   'fresh marjoram',
-  // Garnishes & toppings (commonly on hand or optional)
-  'green onion','green onions','scallion','scallions','spring onion','spring onions',
-  'shredded lettuce','lettuce leaves','iceberg lettuce','romaine lettuce',
-  'fresh lemon','lemon wedge','lemon wedges','lemon zest','lemon','lime','lime wedge',
-  'lime zest','orange zest',
+  'fresh herbs','herbs','fresh herb garnish','herb garnish',
+  // Small garnishes (dry, shelf-stable)
   'sesame seeds','white sesame seeds','black sesame seeds',
   'toasted sesame seeds','poppy seeds',
-  'red onion','pickled onion',
-  'jalapeño','sliced jalapeño','pickled jalapeño',
-  'sour cream',
-  'shredded cheese','grated parmesan','parmesan','pecorino','grated cheese',
-  'croutons',
-  'bacon bits',
-  'fresh herbs','herbs','fresh herb garnish','herb garnish',
-  // Water, ice
-  'cold water','ice','ice cubes',
+  'lemon zest','lime zest','orange zest',
 ])
 
 function normalizeName(name) {
@@ -531,6 +522,9 @@ export default function GroceryPage() {
   function removeFinalItem(id) {
     updatePlan({ groceryFinalItems: finalItems.filter(i => i.id !== id) })
   }
+  function editFinalItem(id, changes) {
+    updatePlan({ groceryFinalItems: finalItems.map(i => i.id === id ? { ...i, ...changes } : i) })
+  }
 
   // Add item directly to the main final list with auto-category
   function addItemToList(name) {
@@ -612,6 +606,7 @@ export default function GroceryPage() {
       onSetFinalItemStore={setFinalItemStore}
       onSetFinalItemGroup={setFinalItemGroup}
       onRemoveFinalItem={removeFinalItem}
+      onEditFinalItem={editFinalItem}
       onAddItemToList={addItemToList}
       onAddSuggestion={addSuggestion}
       onDismissSuggestion={dismissSuggestion}
@@ -934,7 +929,7 @@ function QuestionStep({ question, onAnswer, total, current }) {
 // ─── Step 4: Final categorized list ──────────────────────────────────────────
 function FinalStep({
   finalItems, suggestions, stores, groceryGroups, weekNav,
-  onToggleFinalItem, onSetFinalItemStore, onSetFinalItemGroup, onRemoveFinalItem,
+  onToggleFinalItem, onSetFinalItemStore, onSetFinalItemGroup, onRemoveFinalItem, onEditFinalItem,
   onAddItemToList, onAddSuggestion, onDismissSuggestion, onStartOver,
 }) {
   const [activeStoreFilter, setActiveStoreFilter] = useState(null)
@@ -1074,6 +1069,7 @@ function FinalStep({
                         label={formatItemLabel(item)}
                         onToggle={() => onToggleFinalItem(item.id)}
                         onRemove={() => onRemoveFinalItem(item.id)}
+                        onEditItem={onEditFinalItem ? changes => onEditFinalItem(item.id, changes) : undefined}
                         storeId={item.storeId}
                         stores={stores}
                         onStoreChange={sid => onSetFinalItemStore(item.id, sid)}
@@ -1144,10 +1140,15 @@ function FinalStep({
 }
 
 // ─── GroceryRow ───────────────────────────────────────────────────────────────
-function GroceryRow({ item, checked, label, onToggle, onRemove, isStaple, storeId, stores, onStoreChange, onCategoryChange, groceryGroups: rowGroups }) {
+function GroceryRow({ item, checked, label, onToggle, onRemove, onEditItem, isStaple, storeId, stores, onStoreChange, onCategoryChange, groceryGroups: rowGroups }) {
   const [pickerOpen, setPickerOpen]       = useState(false)
   const [catPickerOpen, setCatPickerOpen] = useState(false)
   const [sourcesOpen, setSourcesOpen]     = useState(false)
+  const [editMode, setEditMode]           = useState(false)
+  const [editName, setEditName]           = useState('')
+  const [editQty, setEditQty]             = useState('')
+  const [editUnit, setEditUnit]           = useState('')
+  const editNameRef = useRef(null)
   const catPickerRef = useRef(null)
   const showStores = stores?.length > 0 && onStoreChange
   const assignedStore = stores?.find(s => s.id === storeId)
@@ -1196,9 +1197,64 @@ function GroceryRow({ item, checked, label, onToggle, onRemove, isStaple, storeI
     setPickerOpen(false)
   }
 
+  function openEdit(e) {
+    e.stopPropagation()
+    setEditName(item?.name || '')
+    setEditQty(item?.quantity || '')
+    setEditUnit(item?.unit || '')
+    setEditMode(true)
+    setTimeout(() => editNameRef.current?.focus(), 30)
+  }
+
+  function saveEdit() {
+    if (editName.trim() && onEditItem) {
+      onEditItem({ name: editName.trim(), quantity: editQty.trim(), unit: editUnit.trim() })
+    }
+    setEditMode(false)
+  }
+
+  function cancelEdit() { setEditMode(false) }
+
+  function handleEditKey(e) {
+    if (e.key === 'Enter') saveEdit()
+    if (e.key === 'Escape') cancelEdit()
+  }
+
   return (
     <div className={`grocery-row-wrap ${checked ? 'grocery-row-wrap--checked' : ''}`}>
-      <div className="grocery-row">
+      {editMode ? (
+        <div className="grocery-row-edit">
+          <div className="grocery-row-edit-fields">
+            <input
+              ref={editNameRef}
+              className="input input-sm grocery-edit-name"
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              onKeyDown={handleEditKey}
+              placeholder="Item name"
+            />
+            <input
+              className="input input-sm grocery-edit-qty"
+              value={editQty}
+              onChange={e => setEditQty(e.target.value)}
+              onKeyDown={handleEditKey}
+              placeholder="Qty"
+            />
+            <input
+              className="input input-sm grocery-edit-unit"
+              value={editUnit}
+              onChange={e => setEditUnit(e.target.value)}
+              onKeyDown={handleEditKey}
+              placeholder="Unit"
+            />
+          </div>
+          <div className="grocery-row-edit-actions">
+            <button className="grocery-edit-save" onClick={saveEdit}>✓</button>
+            <button className="grocery-edit-cancel" onClick={cancelEdit}>✕</button>
+          </div>
+        </div>
+      ) : null}
+      <div className={`grocery-row${editMode ? ' grocery-row--hidden' : ''}`}>
         <button className={`grocery-check ${checked ? 'grocery-check--done' : ''}`} onClick={onToggle}>
           {checked && <span style={{ color: '#fff', fontSize: 11, fontWeight: 700, lineHeight: 1 }}>✓</span>}
         </button>
@@ -1290,6 +1346,14 @@ function GroceryRow({ item, checked, label, onToggle, onRemove, isStaple, storeI
           </button>
         )}
 
+        {onEditItem && !editMode && (
+          <button className="grocery-edit-btn" onClick={openEdit} title="Edit item">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+        )}
         {onRemove && (
           <button className="grocery-remove" onClick={onRemove} title={isStaple ? 'Remove from always list' : 'Remove'}>
             <IconClose size={13} />
