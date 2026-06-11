@@ -829,3 +829,456 @@
   .grocery-filter-chips { gap: 5px; }
   .grocery-filter-chip  { font-size: 11px; padding: 3px 10px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   NEW 3-STEP FLOW STYLES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Step 1: Review subtitle ───────────────────────────────────────────── */
+.grocery-review-subtitle {
+  font-size: 14px;
+  color: var(--hp-ink-500);
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+
+/* ─── Step 1: Review layout (single column, max-width) ─────────────────── */
+.grocery-review-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 680px;
+}
+
+/* ─── Recipe ingredient card ────────────────────────────────────────────── */
+.grocery-recipe-card {
+  background: var(--hp-paper);
+  border: 1px solid var(--hp-ink-100);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.grocery-recipe-card--done {
+  border-color: var(--hp-green);
+  background: var(--hp-green-50);
+}
+
+.grocery-recipe-card-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.grocery-recipe-card-header:hover {
+  background: var(--hp-ink-50);
+}
+
+.grocery-recipe-card--done .grocery-recipe-card-header:hover {
+  background: rgba(21, 128, 61, 0.06);
+}
+
+.grocery-recipe-card-badge {
+  flex-shrink: 0;
+  font-family: var(--hp-font-body);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: var(--r-sm);
+}
+
+.grocery-recipe-card-name {
+  flex: 1;
+  font-family: var(--hp-font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--hp-ink-800);
+  line-height: 1.3;
+}
+
+.grocery-recipe-card--done .grocery-recipe-card-name {
+  color: var(--hp-ink-500);
+}
+
+.grocery-recipe-card-count {
+  font-family: var(--hp-font-mono);
+  font-size: 11px;
+  color: var(--hp-ink-400);
+  flex-shrink: 0;
+}
+
+.grocery-recipe-card-chevron {
+  flex-shrink: 0;
+  color: var(--hp-ink-400);
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s;
+}
+
+.grocery-recipe-card-chevron--open {
+  transform: rotate(180deg);
+}
+
+.grocery-recipe-card-body {
+  border-top: 1px solid var(--hp-ink-100);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Ingredient review row ─────────────────────────────────────────────── */
+.grocery-review-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--hp-ink-50);
+  transition: background 0.1s;
+}
+
+.grocery-review-row:last-child {
+  border-bottom: none;
+}
+
+.grocery-review-row:hover {
+  background: var(--hp-ink-50);
+}
+
+.grocery-review-row--checked {
+  background: var(--hp-green-50);
+}
+
+.grocery-review-row--checked:hover {
+  background: var(--hp-green-50);
+}
+
+.grocery-review-ing-label {
+  flex: 1;
+  font-family: var(--hp-font-body);
+  font-size: 14px;
+  color: var(--hp-ink-800);
+  line-height: 1.4;
+}
+
+.grocery-review-row--checked .grocery-review-ing-label {
+  color: var(--hp-ink-400);
+  text-decoration: line-through;
+  text-decoration-color: var(--hp-ink-300);
+}
+
+.grocery-review-ing-have {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--hp-green);
+  letter-spacing: 0.02em;
+}
+
+/* ─── Extra items panel (manual pre-generation) ─────────────────────────── */
+.grocery-review-extras {
+  background: var(--hp-paper);
+  border: 1px dashed var(--hp-ink-200);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.grocery-review-extras-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px 10px;
+  border-bottom: 1px dashed var(--hp-ink-200);
+}
+
+.grocery-review-extras-title {
+  flex: 1;
+  font-family: var(--hp-font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hp-ink-500);
+}
+
+.grocery-review-extras-count {
+  font-size: 11px;
+  color: var(--hp-ink-400);
+}
+
+.grocery-review-extras-body {
+  padding: 8px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.grocery-review-extras-empty {
+  font-size: 13px;
+  color: var(--hp-ink-400);
+  padding: 4px 4px 8px;
+  line-height: 1.5;
+}
+
+.grocery-review-extras-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--hp-ink-50);
+}
+
+.grocery-review-extras-row:last-of-type {
+  border-bottom: none;
+}
+
+.grocery-review-extras-name {
+  flex: 1;
+  font-size: 14px;
+  color: var(--hp-ink-800);
+}
+
+/* ─── Generate button footer ────────────────────────────────────────────── */
+.grocery-review-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0 20px;
+}
+
+.grocery-review-footer-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--hp-ink-500);
+}
+
+.grocery-review-footer-have {
+  color: var(--hp-green);
+  font-weight: 500;
+}
+
+.grocery-review-footer-shop {
+  font-weight: 500;
+  color: var(--hp-ink-700);
+}
+
+.grocery-review-error {
+  font-size: 13px;
+  color: var(--danger);
+  padding: 8px 12px;
+  background: rgba(239, 68, 68, 0.06);
+  border-radius: var(--r-md);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.grocery-generate-btn {
+  width: 100%;
+  justify-content: center;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  padding: 14px 24px;
+}
+
+.grocery-generate-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.25);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ─── Step 2: Compilation loading ───────────────────────────────────────── */
+.grocery-compile-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.grocery-compile-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 360px;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.grocery-compile-spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid var(--hp-ink-100);
+  border-top-color: var(--hp-green);
+  animation: grocery-spin 0.8s linear infinite;
+}
+
+@keyframes grocery-spin {
+  to { transform: rotate(360deg); }
+}
+
+.grocery-compile-title {
+  font-family: var(--hp-font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--hp-ink-900);
+  letter-spacing: -0.02em;
+}
+
+.grocery-compile-sub {
+  font-size: 14px;
+  color: var(--hp-ink-500);
+  line-height: 1.6;
+}
+
+/* ─── Step 3: Question ──────────────────────────────────────────────────── */
+.grocery-question-page {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 48px;
+}
+
+.grocery-question-wrap {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.grocery-question-track {
+  height: 3px;
+  border-radius: 99px;
+  background: var(--hp-ink-100);
+  overflow: hidden;
+  position: relative;
+}
+
+.grocery-question-track-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--hp-green);
+  border-radius: 99px;
+  transition: width 0.35s ease;
+}
+
+.grocery-question-step-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--hp-ink-400);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.grocery-question-card {
+  background: var(--hp-paper);
+  border: 1px solid var(--hp-ink-100);
+  border-radius: var(--r-xl);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.grocery-question-prompt {
+  font-family: var(--hp-font-body);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--hp-ink-900);
+  line-height: 1.55;
+}
+
+.grocery-question-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.grocery-question-option {
+  width: 100%;
+  padding: 13px 18px;
+  border-radius: var(--r-md);
+  border: 1.5px solid var(--hp-ink-200);
+  background: var(--hp-paper);
+  color: var(--hp-ink-800);
+  font-family: var(--hp-font-body);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+
+.grocery-question-option:hover {
+  border-color: var(--hp-green);
+  background: var(--hp-green-50);
+  color: var(--hp-ink-900);
+}
+
+.grocery-question-skip {
+  align-self: center;
+  background: none;
+  border: none;
+  font-family: var(--hp-font-body);
+  font-size: 13px;
+  color: var(--hp-ink-400);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  transition: color 0.12s;
+}
+
+.grocery-question-skip:hover {
+  color: var(--hp-ink-600);
+}
+
+/* ─── Step 4: Final list header row ─────────────────────────────────────── */
+.grocery-final-hero-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  margin-top: 2px;
+}
+
+.grocery-start-over-btn {
+  flex-shrink: 0;
+  font-family: var(--hp-font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--hp-ink-400);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 4px;
+  transition: color 0.12s;
+}
+
+.grocery-start-over-btn:hover {
+  color: var(--hp-ink-700);
+}
+
+/* ─── Filter count inside chip ──────────────────────────────────────────── */
+.grocery-filter-count {
+  opacity: 0.7;
+  margin-left: 2px;
+}
