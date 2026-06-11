@@ -15,12 +15,12 @@ exports.handler = async function (event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON' }) }
   }
 
-  const { ingredients = [] } = body
+  const { ingredients = [], recipeNames = [] } = body
   if (!ingredients.length) {
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ finalItems: [], questions: [] }),
+      body: JSON.stringify({ finalItems: [], questions: [], suggestions: [] }),
     }
   }
 
@@ -36,39 +36,56 @@ exports.handler = async function (event) {
     .map(([recipe, items]) => `${recipe}:\n${items.map(i => `  • ${i}`).join('\n')}`)
     .join('\n\n')
 
-  const prompt = `You are a smart grocery list compiler for a home cook. Compile the following raw ingredients from a week of meals into a clean, ready-to-shop grocery list.
+  const recipeListStr = recipeNames.length ? recipeNames.join(', ') : 'various recipes'
 
-RAW INGREDIENTS:
+  const prompt = `You are a thoughtful grocery list compiler for a home cook. Compile the following raw ingredients from a week of meals into a clean, ready-to-shop list.
+
+This week's recipes: ${recipeListStr}
+
+RAW INGREDIENTS BY RECIPE:
 ${ingredientLines}
 
 YOUR RULES:
-1. Combine identical or very similar ingredients across recipes — sum quantities when units match.
-2. Convert cooking measurements to real-world purchase units. Examples:
-   - "3 cups milk" → "1 quart milk"
+1. Combine identical or very similar ingredients across recipes — sum quantities when units match. Track which recipe(s) each item came from.
+2. Convert cooking measurements to real-world purchase units:
+   - "3 cups milk" → "1 quart milk" (sources: all recipes that used it)
    - "2 cups flour" → "1 lb flour"
    - "half cup olive oil" → "1 small bottle olive oil"
    - "3 tablespoons butter" → "1 stick butter"
-   - "2 large eggs, 1 egg" → "1 dozen eggs"
-   - Keep produce amounts natural: "3 cloves garlic" → "1 head garlic"
+   - "2 large eggs + 1 egg" → "1 dozen eggs"
+   - "3 cloves garlic" → "1 head garlic"
    - Canned goods: use number of cans, not cup measurements
-3. Only create a question when ingredients GENUINELY CONFLICT in TYPE (e.g., whole milk vs oat milk, salted vs unsalted butter). Do NOT ask about quantity differences of the same item — just combine them.
-4. For confidently compiled items, put them in finalItems.
-5. For type conflicts only, create a question with 2–3 options plus an autoResolve.
+3. Only create a question when ingredients GENUINELY CONFLICT in TYPE (e.g., whole milk vs oat milk, salted vs unsalted butter). Do NOT ask about quantity differences of the same item — just combine them. Keep questions to only the most meaningful conflicts (max 3).
+4. For type conflicts, write the question as a natural decision — explain briefly WHY the conflict exists and what each choice means for the cook.
+5. Generate 3–5 helpful suggestions: items likely needed but not listed (e.g., pantry staples the recipes assume, common companions, things often forgotten). Be specific to this week's recipes.
 
 Return ONLY valid JSON with no markdown formatting:
 {
   "finalItems": [
-    { "name": "string", "quantity": "string", "unit": "string", "note": "optional: brief context" }
+    {
+      "name": "string",
+      "quantity": "string",
+      "unit": "string",
+      "sources": ["Recipe A", "Recipe B"]
+    }
   ],
   "questions": [
     {
       "id": "string",
-      "prompt": "string — natural, conversational, explain the conflict briefly",
+      "prompt": "string — conversational, explains the conflict and why it matters",
       "options": [
-        { "label": "string — clear action label", "resolvedItems": [{ "name": "string", "quantity": "string", "unit": "string" }] }
+        {
+          "label": "string — clear action label",
+          "resolvedItems": [{ "name": "string", "quantity": "string", "unit": "string", "sources": ["string"] }]
+        }
       ],
-      "autoResolve": { "resolvedItems": [{ "name": "string", "quantity": "string", "unit": "string" }] }
+      "autoResolve": {
+        "resolvedItems": [{ "name": "string", "quantity": "string", "unit": "string", "sources": ["string"] }]
+      }
     }
+  ],
+  "suggestions": [
+    { "name": "string", "reason": "string — one brief sentence on why you might need this" }
   ]
 }`
 
@@ -82,7 +99,7 @@ Return ONLY valid JSON with no markdown formatting:
       },
       body: JSON.stringify({
         model: 'claude-opus-4-5',
-        max_tokens: 2048,
+        max_tokens: 3000,
         messages: [{ role: 'user', content: prompt }],
       }),
     })
@@ -112,6 +129,7 @@ Return ONLY valid JSON with no markdown formatting:
       body: JSON.stringify({
         finalItems: Array.isArray(result.finalItems) ? result.finalItems : [],
         questions: Array.isArray(result.questions) ? result.questions : [],
+        suggestions: Array.isArray(result.suggestions) ? result.suggestions : [],
       }),
     }
   } catch (err) {

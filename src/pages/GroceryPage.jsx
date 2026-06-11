@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useUser } from '../hooks/useAuth.jsx'
-import { getMealPlan, saveMealPlan, getRecipes, getStaples, addStaple, deleteStaple, getStores } from '../lib/supabase'
+import { getMealPlan, saveMealPlan, getRecipes, getStores } from '../lib/supabase'
 import { getWeekKey, shiftWeek, formatWeekRange } from '../lib/weeks'
 import { IconChevronL, IconChevronR, IconChevronD, IconPlus, IconClose, IconCheck } from '../components/icons'
 import { EmptyGrocery } from '../components/EmptyStates'
@@ -127,6 +127,35 @@ const PANTRY_STAPLES = new Set([
   // Citrus juice (commonly on hand)
   'lemon juice','fresh lemon juice',
   'lime juice','fresh lime juice',
+  // Fresh herbs (garnish / optional)
+  'fresh parsley','parsley leaves','flat leaf parsley','flat-leaf parsley','italian parsley',
+  'fresh cilantro','cilantro','cilantro leaves','fresh coriander','coriander leaves',
+  'fresh basil','basil leaves','fresh basil leaves',
+  'fresh rosemary','rosemary sprigs','fresh rosemary sprig',
+  'fresh thyme','thyme sprigs','fresh thyme sprigs',
+  'fresh dill','dill fronds',
+  'fresh mint','mint leaves',
+  'fresh sage','sage leaves',
+  'fresh chives','chives','chopped chives',
+  'fresh oregano','oregano leaves',
+  'fresh tarragon',
+  'fresh marjoram',
+  // Garnishes & toppings (commonly on hand or optional)
+  'green onion','green onions','scallion','scallions','spring onion','spring onions',
+  'shredded lettuce','lettuce leaves','iceberg lettuce','romaine lettuce',
+  'fresh lemon','lemon wedge','lemon wedges','lemon zest','lemon','lime','lime wedge',
+  'lime zest','orange zest',
+  'sesame seeds','white sesame seeds','black sesame seeds',
+  'toasted sesame seeds','poppy seeds',
+  'red onion','pickled onion',
+  'jalapeño','sliced jalapeño','pickled jalapeño',
+  'sour cream',
+  'shredded cheese','grated parmesan','parmesan','pecorino','grated cheese',
+  'croutons',
+  'bacon bits',
+  'fresh herbs','herbs','fresh herb garnish','herb garnish',
+  // Water, ice
+  'cold water','ice','ice cubes',
 ])
 
 function normalizeName(name) {
@@ -276,20 +305,17 @@ export default function GroceryPage() {
   const [weekKey, setWeekKey]   = useState(() => getWeekKey())
   const [plan, setPlan]         = useState(null)
   const [recipes, setRecipes]   = useState([])
-  const [staples, setStaples]   = useState([])
   const [stores, setStores]     = useState([])
   const [loading, setLoading]   = useState(true)
   const [groceryGroups, setGroceryGroups] = useState(() => loadCategories())
-  const [newStaple, setNewStaple] = useState('')
-  const [newExtra, setNewExtra]   = useState('')
 
   // Compilation transient state (not persisted — restarts on reload)
-  const [compiling, setCompiling]             = useState(false)
+  const [compiling, setCompiling]               = useState(false)
   const [compilationError, setCompilationError] = useState(null)
   const [pendingQuestions, setPendingQuestions] = useState([])
-  const [currentQIdx, setCurrentQIdx]         = useState(0)
-  const [prelimItems, setPrelimItems]         = useState([])
-  const [answeredItems, setAnsweredItems]     = useState([])
+  const [currentQIdx, setCurrentQIdx]           = useState(0)
+  const [prelimItems, setPrelimItems]           = useState([])
+  const [answeredItems, setAnsweredItems]       = useState([])
 
   // Sync grocery groups when Settings changes them
   useEffect(() => {
@@ -303,18 +329,15 @@ export default function GroceryPage() {
     }
   }, [])
 
-  // Load recipes, staples, stores
   useEffect(() => {
     if (!user) return
-    Promise.all([getRecipes(user.id), getStaples(user.id), getStores(user.id)])
-      .then(([{ data: r }, { data: s }, { data: st }]) => {
+    Promise.all([getRecipes(user.id), getStores(user.id)])
+      .then(([{ data: r }, { data: st }]) => {
         setRecipes(r || [])
-        setStaples(s || [])
         setStores(st || [])
       })
   }, [user])
 
-  // Load meal plan
   useEffect(() => {
     if (!user) return
     setLoading(true)
@@ -324,7 +347,6 @@ export default function GroceryPage() {
     })
   }, [user, weekKey])
 
-  // Reset transient compile state when week changes
   useEffect(() => {
     setCompiling(false)
     setCompilationError(null)
@@ -339,20 +361,17 @@ export default function GroceryPage() {
     [recipes]
   )
 
-  // ── Derived plan state ───────────────────────────────────────────────
-  const groceryStep       = plan?.groceryStep || 'review'
-  const reviewCheckedSet  = useMemo(() => new Set(plan?.groceryReviewChecked ?? []), [plan])
-  // pantryUncheck = set of pantry item core-names the user has explicitly UNCHECKED (wants to buy)
-  const pantryUncheckSet  = useMemo(() => new Set(plan?.groceryPantryUncheck ?? []), [plan])
-  const manualPre         = plan?.groceryManualPre ?? []
+  // ── Derived plan state ────────────────────────────────────────────────
+  const groceryStep      = plan?.groceryStep || 'review'
+  const reviewCheckedSet = useMemo(() => new Set(plan?.groceryReviewChecked ?? []), [plan])
+  // pantryHaveSet: core names the user confirmed they HAVE (excluded from shopping list)
+  // Default = not confirmed = need to buy (included in generation)
+  const pantryHaveSet    = useMemo(() => new Set(plan?.groceryPantryHave ?? []), [plan])
+  const manualPre        = plan?.groceryManualPre ?? []
   const finalItems       = plan?.groceryFinalItems ?? []
-  const extras           = plan?.groceryExtras ?? []
-  const checkedStapleIds = useMemo(() => new Set(plan?.groceryStaplesChecked ?? []), [plan])
+  const suggestions      = plan?.grocerySuggestions ?? []
 
-  const recipeGroups = useMemo(
-    () => getRecipeGroups(plan, recipeMap),
-    [plan, recipeMap]
-  )
+  const recipeGroups = useMemo(() => getRecipeGroups(plan, recipeMap), [plan, recipeMap])
 
   async function updatePlan(changes) {
     const updated = { ...plan, ...changes }
@@ -360,7 +379,7 @@ export default function GroceryPage() {
     await saveMealPlan(user.id, weekKey, updated)
   }
 
-  // ── Week nav (shared across all steps) ──────────────────────────────
+  // ── Week nav ──────────────────────────────────────────────────────────
   const weekNav = (
     <div className="week-nav">
       <button className="btn btn-icon btn-ghost btn-sm" onClick={() => setWeekKey(k => shiftWeek(k, -1))}>
@@ -378,7 +397,7 @@ export default function GroceryPage() {
     </div>
   )
 
-  // ── Step 1: Review actions ───────────────────────────────────────────
+  // ── Step 1: Review actions ────────────────────────────────────────────
   function toggleReviewChecked(key) {
     const next = new Set(reviewCheckedSet)
     next.has(key) ? next.delete(key) : next.add(key)
@@ -393,70 +412,63 @@ export default function GroceryPage() {
     updatePlan({ groceryManualPre: manualPre.filter(i => i.id !== id) })
   }
 
-  function togglePantryUncheck(coreKey) {
-    const next = new Set(pantryUncheckSet)
+  // pantryHave: tap to CONFIRM you have it (removes from shopping list)
+  function togglePantryHave(coreKey) {
+    const next = new Set(pantryHaveSet)
     next.has(coreKey) ? next.delete(coreKey) : next.add(coreKey)
-    updatePlan({ groceryPantryUncheck: [...next] })
+    updatePlan({ groceryPantryHave: [...next] })
   }
 
-  // ── Generate final list ──────────────────────────────────────────────
+  // ── Generate final list ───────────────────────────────────────────────
   async function handleGenerateList() {
     setCompiling(true)
     setCompilationError(null)
 
-    // Collect unchecked non-pantry ingredients
     const ingredients = []
+
+    // Non-pantry ingredients the user hasn't checked off
     recipeGroups.forEach(group => {
       group.ingredients.forEach(ing => {
-        if (checkIsPantry(ing.name)) return   // pantry items handled separately below
-        const key = makeReviewKey(group.key, ing)
-        if (!reviewCheckedSet.has(key)) {
-          ingredients.push({
-            recipeName: group.recipeName,
-            name: ing.name,
-            quantity: ing.quantity || '',
-            unit: ing.unit || '',
-          })
+        if (checkIsPantry(ing.name)) return
+        if (!reviewCheckedSet.has(makeReviewKey(group.key, ing))) {
+          ingredients.push({ recipeName: group.recipeName, name: ing.name, quantity: ing.quantity || '', unit: ing.unit || '' })
         }
       })
     })
 
-    // Include pantry items the user explicitly unchecked (wants to buy)
-    if (pantryUncheckSet.size > 0) {
-      const seenPantry = new Set()
-      recipeGroups.forEach(group => {
-        group.ingredients.forEach(ing => {
-          if (!checkIsPantry(ing.name)) return
-          const core = coreIngredient(ing.name) || normalizeName(ing.name)
-          if (pantryUncheckSet.has(core) && !seenPantry.has(core)) {
-            seenPantry.add(core)
-            ingredients.push({
-              recipeName: 'Pantry',
-              name: ing.name,
-              quantity: ing.quantity || '',
-              unit: ing.unit || '',
-            })
-          }
-        })
+    // Pantry items NOT confirmed as "have it" → include in shopping
+    const seenPantry = new Set()
+    recipeGroups.forEach(group => {
+      group.ingredients.forEach(ing => {
+        if (!checkIsPantry(ing.name)) return
+        const core = coreIngredient(ing.name) || normalizeName(ing.name)
+        if (!pantryHaveSet.has(core) && !seenPantry.has(core)) {
+          seenPantry.add(core)
+          ingredients.push({ recipeName: group.recipeName, name: ing.name, quantity: ing.quantity || '', unit: ing.unit || '' })
+        }
       })
-    }
+    })
+
     manualPre.forEach(item => {
       ingredients.push({ recipeName: 'Added manually', name: item.name, quantity: '', unit: '' })
     })
+
+    // Collect recipe names for AI context (for better suggestions)
+    const recipeNames = [...new Set(recipeGroups.map(g => g.recipeName))]
 
     try {
       const res = await fetch('/.netlify/functions/compile-grocery-list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ingredients }),
+        body: JSON.stringify({ ingredients, recipeNames }),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const { finalItems: compiled, questions } = await res.json()
+      const { finalItems: compiled, questions, suggestions: aiSuggestions } = await res.json()
 
       if (!questions || questions.length === 0) {
-        await finalizePlan(compiled, [])
+        await finalizePlan(compiled, [], aiSuggestions || [])
       } else {
-        setPrelimItems(compiled || [])
+        setPrelimItems({ compiled: compiled || [], suggestions: aiSuggestions || [] })
         setPendingQuestions(questions)
         setCurrentQIdx(0)
         setAnsweredItems([])
@@ -464,32 +476,31 @@ export default function GroceryPage() {
       }
     } catch (err) {
       console.error('Compilation error:', err)
-      setCompilationError('Something went wrong compiling your list. Please try again.')
+      setCompilationError('Something went wrong. Please try again.')
       setCompiling(false)
     }
   }
 
-  // ── Step 3: Handle question answers ─────────────────────────────────
+  // ── Step 3: Questions ─────────────────────────────────────────────────
   function handleAnswer(question, option) {
-    // null option = "decide for me" → use autoResolve
     const resolved = option?.resolvedItems ?? question.autoResolve?.resolvedItems ?? []
     const newAnswered = [...answeredItems, ...resolved]
-
     if (currentQIdx < pendingQuestions.length - 1) {
       setCurrentQIdx(i => i + 1)
       setAnsweredItems(newAnswered)
     } else {
-      finalizePlan(prelimItems, newAnswered)
+      const { compiled, suggestions: aiSuggestions } = prelimItems
+      finalizePlan(compiled, newAnswered, aiSuggestions || [])
     }
   }
 
-  async function finalizePlan(compiled, resolved) {
+  async function finalizePlan(compiled, resolved, aiSuggestions) {
     const all = [...compiled, ...resolved].map(item => ({
       id: uid(),
       name: item.name || '',
       quantity: item.quantity || '',
       unit: item.unit || '',
-      sources: item.note ? [item.note] : [],
+      sources: Array.isArray(item.sources) ? item.sources : (item.note ? [item.note] : []),
       group: assignGroupLib(item.name || '', {}, groceryGroups),
       checked: false,
       storeId: null,
@@ -498,7 +509,7 @@ export default function GroceryPage() {
     await updatePlan({
       groceryStep: 'final',
       groceryFinalItems: all,
-      groceryExtras: [],
+      grocerySuggestions: aiSuggestions || [],
     })
 
     setCompiling(false)
@@ -507,7 +518,7 @@ export default function GroceryPage() {
     setPrelimItems([])
   }
 
-  // ── Step 4: Final list actions ───────────────────────────────────────
+  // ── Step 4: Final list actions ────────────────────────────────────────
   function toggleFinalItem(id) {
     updatePlan({ groceryFinalItems: finalItems.map(i => i.id === id ? { ...i, checked: !i.checked } : i) })
   }
@@ -521,46 +532,50 @@ export default function GroceryPage() {
     updatePlan({ groceryFinalItems: finalItems.filter(i => i.id !== id) })
   }
 
-  function toggleExtra(id) {
-    updatePlan({ groceryExtras: extras.map(m => m.id === id ? { ...m, checked: !m.checked } : m) })
-  }
-  function addExtra(name) {
-    updatePlan({ groceryExtras: [...extras, { id: uid(), name, checked: false }] })
-  }
-  function removeExtra(id) {
-    updatePlan({ groceryExtras: extras.filter(m => m.id !== id) })
-  }
-  function setExtraStore(id, storeId) {
-    updatePlan({ groceryExtras: extras.map(m => m.id === id ? { ...m, storeId: storeId || null } : m) })
+  // Add item directly to the main final list with auto-category
+  function addItemToList(name) {
+    if (!name.trim()) return
+    const newItem = {
+      id: uid(),
+      name: name.trim(),
+      quantity: '', unit: '',
+      sources: ['Added manually'],
+      group: assignGroupLib(name.trim(), {}, groceryGroups),
+      checked: false, storeId: null,
+    }
+    updatePlan({ groceryFinalItems: [...finalItems, newItem] })
   }
 
-  function toggleStaple(id) {
-    const next = new Set(checkedStapleIds)
-    next.has(id) ? next.delete(id) : next.add(id)
-    updatePlan({ groceryStaplesChecked: [...next] })
+  // Add an AI suggestion directly to the main list
+  function addSuggestion(suggestion) {
+    const newItem = {
+      id: uid(),
+      name: suggestion.name,
+      quantity: '', unit: '',
+      sources: ['AI suggestion'],
+      group: assignGroupLib(suggestion.name, {}, groceryGroups),
+      checked: false, storeId: null,
+    }
+    updatePlan({
+      groceryFinalItems: [...finalItems, newItem],
+      grocerySuggestions: suggestions.filter(s => s.name !== suggestion.name),
+    })
   }
-  async function handleAddStaple() {
-    const name = newStaple.trim(); if (!name) return
-    const { data } = await addStaple(user.id, name)
-    if (data) setStaples(s => [...s, data])
-    setNewStaple('')
-  }
-  async function handleDeleteStaple(id) {
-    await deleteStaple(id)
-    setStaples(s => s.filter(x => x.id !== id))
-    const next = new Set(checkedStapleIds); next.delete(id)
-    updatePlan({ groceryStaplesChecked: [...next] })
+
+  function dismissSuggestion(name) {
+    updatePlan({ grocerySuggestions: suggestions.filter(s => s.name !== name) })
   }
 
   function handleStartOver() {
     updatePlan({
       groceryStep: 'review',
       groceryFinalItems: [],
-      groceryExtras: [],
+      grocerySuggestions: [],
+      groceryPantryHave: [],
     })
   }
 
-  // ── Render ───────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────
 
   if (loading) return (
     <div className="page grocery-page">
@@ -589,42 +604,31 @@ export default function GroceryPage() {
   if (groceryStep === 'final') return (
     <FinalStep
       finalItems={finalItems}
-      extras={extras}
-      staples={staples}
+      suggestions={suggestions}
       stores={stores}
       groceryGroups={groceryGroups}
-      checkedStapleIds={checkedStapleIds}
-      newStaple={newStaple}
-      setNewStaple={setNewStaple}
-      newExtra={newExtra}
-      setNewExtra={setNewExtra}
       weekNav={weekNav}
       onToggleFinalItem={toggleFinalItem}
       onSetFinalItemStore={setFinalItemStore}
       onSetFinalItemGroup={setFinalItemGroup}
       onRemoveFinalItem={removeFinalItem}
-      onToggleExtra={toggleExtra}
-      onAddExtra={addExtra}
-      onRemoveExtra={removeExtra}
-      onSetExtraStore={setExtraStore}
-      onToggleStaple={toggleStaple}
-      onAddStaple={handleAddStaple}
-      onDeleteStaple={handleDeleteStaple}
+      onAddItemToList={addItemToList}
+      onAddSuggestion={addSuggestion}
+      onDismissSuggestion={dismissSuggestion}
       onStartOver={handleStartOver}
     />
   )
 
-  // Default: step 1 — review by recipe
   return (
     <ReviewStep
       recipeGroups={recipeGroups}
       reviewCheckedSet={reviewCheckedSet}
-      pantryUncheckSet={pantryUncheckSet}
+      pantryHaveSet={pantryHaveSet}
       manualPre={manualPre}
       weekNav={weekNav}
       compilationError={compilationError}
       onToggleReviewChecked={toggleReviewChecked}
-      onTogglePantryUncheck={togglePantryUncheck}
+      onTogglePantryHave={togglePantryHave}
       onAddManualPre={addManualPre}
       onRemoveManualPre={removeManualPre}
       onGenerate={handleGenerateList}
@@ -633,36 +637,32 @@ export default function GroceryPage() {
 }
 
 // ─── Step 1: Review by recipe ──────────────────────────────────────────────────
-function ReviewStep({ recipeGroups, reviewCheckedSet, pantryUncheckSet, manualPre, weekNav, compilationError, onToggleReviewChecked, onTogglePantryUncheck, onAddManualPre, onRemoveManualPre, onGenerate }) {
+function ReviewStep({ recipeGroups, reviewCheckedSet, pantryHaveSet, manualPre, weekNav, compilationError, onToggleReviewChecked, onTogglePantryHave, onAddManualPre, onRemoveManualPre, onGenerate }) {
   const [newItem, setNewItem] = useState('')
 
   // Collect all unique pantry items across all recipe groups
   const allPantryItems = useMemo(() => {
-    const seen = new Map() // core-name → { name, core, count }
+    const seen = new Map()
     recipeGroups.forEach(group => {
       group.ingredients.forEach(ing => {
         if (!checkIsPantry(ing.name)) return
         const core = coreIngredient(ing.name) || normalizeName(ing.name) || ing.name.toLowerCase().trim()
         if (!seen.has(core)) {
           const display = core ? core.charAt(0).toUpperCase() + core.slice(1) : ing.name.trim()
-          seen.set(core, { name: display, core, count: 1 })
-        } else {
-          seen.get(core).count += 1
+          seen.set(core, { name: display, core })
         }
       })
     })
     return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name))
   }, [recipeGroups])
 
-  // Only count non-pantry ingredients (pantry items excluded by default)
   const nonPantryTotal = recipeGroups.reduce((sum, g) =>
     sum + g.ingredients.filter(ing => !checkIsPantry(ing.name)).length, 0)
   const nonPantryChecked = recipeGroups.reduce((sum, g) =>
     sum + g.ingredients.filter(ing => !checkIsPantry(ing.name) && reviewCheckedSet.has(makeReviewKey(g.key, ing))).length, 0)
 
-  // Pantry items explicitly unchecked = need to buy
-  const pantryToBuy = pantryUncheckSet.size
-
+  // Pantry items NOT confirmed as "have it" = still need to buy
+  const pantryToBuy = allPantryItems.filter(item => !pantryHaveSet.has(item.core)).length
   const toShopCount = (nonPantryTotal - nonPantryChecked) + pantryToBuy + manualPre.length
   const alreadyHaveCount = nonPantryChecked
 
@@ -745,25 +745,25 @@ function ReviewStep({ recipeGroups, reviewCheckedSet, pantryUncheckSet, manualPr
                 <div className="grocery-pantry-panel-header">
                   <span className="grocery-pantry-panel-icon">🧂</span>
                   <span className="grocery-pantry-panel-title">Pantry Staples</span>
-                  <span className="grocery-pantry-panel-count">{allPantryItems.length}</span>
+                  <span className="grocery-pantry-panel-count">{pantryHaveSet.size}/{allPantryItems.length} confirmed</span>
                 </div>
                 <p className="grocery-pantry-panel-hint">
-                  Assumed you have these. Tap any item you need to buy.
+                  Tap each one you already have. Unconfirmed items will be added to your list.
                 </p>
                 <div className="grocery-pantry-panel-body">
                   {allPantryItems.map(item => {
-                    const needToBuy = pantryUncheckSet.has(item.core)
+                    const haveIt = pantryHaveSet.has(item.core)
                     return (
                       <button
                         key={item.core}
-                        className={`grocery-pantry-row ${needToBuy ? 'grocery-pantry-row--buy' : 'grocery-pantry-row--have'}`}
-                        onClick={() => onTogglePantryUncheck(item.core)}
+                        className={`grocery-pantry-row ${haveIt ? 'grocery-pantry-row--have' : 'grocery-pantry-row--buy'}`}
+                        onClick={() => onTogglePantryHave(item.core)}
                       >
-                        <span className={`grocery-pantry-dot ${needToBuy ? 'grocery-pantry-dot--buy' : ''}`} />
+                        <span className={`grocery-pantry-dot ${haveIt ? '' : 'grocery-pantry-dot--buy'}`} />
                         <span className="grocery-pantry-name">{item.name}</span>
-                        {needToBuy
-                          ? <span className="grocery-pantry-tag grocery-pantry-tag--buy">add to list</span>
-                          : <span className="grocery-pantry-tag grocery-pantry-tag--have">have it</span>
+                        {haveIt
+                          ? <span className="grocery-pantry-tag grocery-pantry-tag--have">✓ have it</span>
+                          : <span className="grocery-pantry-tag grocery-pantry-tag--buy">need it</span>
                         }
                       </button>
                     )
@@ -933,13 +933,12 @@ function QuestionStep({ question, onAnswer, total, current }) {
 
 // ─── Step 4: Final categorized list ──────────────────────────────────────────
 function FinalStep({
-  finalItems, extras, staples, stores, groceryGroups, checkedStapleIds,
-  newStaple, setNewStaple, newExtra, setNewExtra, weekNav,
+  finalItems, suggestions, stores, groceryGroups, weekNav,
   onToggleFinalItem, onSetFinalItemStore, onSetFinalItemGroup, onRemoveFinalItem,
-  onToggleExtra, onAddExtra, onRemoveExtra, onSetExtraStore,
-  onToggleStaple, onAddStaple, onDeleteStaple, onStartOver,
+  onAddItemToList, onAddSuggestion, onDismissSuggestion, onStartOver,
 }) {
   const [activeStoreFilter, setActiveStoreFilter] = useState(null)
+  const [newItem, setNewItem] = useState('')
 
   const activeGroups = groceryGroups.filter(g => !g.hidden)
 
@@ -967,9 +966,7 @@ function FinalStep({
 
   const storeFilterCounts = useMemo(() => {
     const counts = {}
-    finalItems.forEach(item => {
-      if (item.storeId) counts[item.storeId] = (counts[item.storeId] || 0) + 1
-    })
+    finalItems.forEach(item => { if (item.storeId) counts[item.storeId] = (counts[item.storeId] || 0) + 1 })
     return counts
   }, [finalItems])
 
@@ -981,21 +978,18 @@ function FinalStep({
   const filteredGrouped = useMemo(() => {
     if (!activeStoreFilter) return groupedFinal
     return groupedFinal
-      .map(g => ({
-        ...g,
-        items: g.items.filter(item =>
-          activeStoreFilter === 'untagged' ? !item.storeId : item.storeId === activeStoreFilter
-        ),
-      }))
+      .map(g => ({ ...g, items: g.items.filter(item => activeStoreFilter === 'untagged' ? !item.storeId : item.storeId === activeStoreFilter) }))
       .filter(g => g.items.length > 0)
   }, [groupedFinal, activeStoreFilter])
 
-  const checkedFinalCount  = finalItems.filter(i => i.checked).length
-  const checkedExtrasCount = extras.filter(e => e.checked).length
-  const checkedStapleCount = staples.filter(s => checkedStapleIds.has(s.id)).length
-  const totalItems  = finalItems.length + extras.length + staples.length
-  const totalDone   = checkedFinalCount + checkedExtrasCount + checkedStapleCount
-  const pct = totalItems > 0 ? Math.round((totalDone / totalItems) * 100) : 0
+  const checkedCount = finalItems.filter(i => i.checked).length
+  const pct = finalItems.length > 0 ? Math.round((checkedCount / finalItems.length) * 100) : 0
+
+  function handleAddItem() {
+    if (!newItem.trim()) return
+    onAddItemToList(newItem.trim())
+    setNewItem('')
+  }
 
   function GroupLabel({ group }) {
     return (
@@ -1017,20 +1011,18 @@ function FinalStep({
         </div>
         <div className="grocery-final-hero-row">
           <h1 className="page-hero-title" style={{ margin: 0 }}>The list.</h1>
-          <button className="grocery-start-over-btn" onClick={onStartOver}>
-            ← Start over
-          </button>
+          <button className="grocery-start-over-btn" onClick={onStartOver}>← Start over</button>
         </div>
       </div>
 
       <div className="grocery-body">
-        {/* Main column: compiled items */}
+        {/* Main column */}
         <div className="grocery-main">
           {finalItems.length === 0 ? (
             <div className="grocery-card">
               <div className="grocery-empty-state" style={{ padding: '24px 20px' }}>
                 <p style={{ color: 'var(--hp-ink-400)', fontSize: 14 }}>
-                  Your compiled list is empty. <button className="btn btn-ghost btn-sm" onClick={onStartOver}>Start over</button>
+                  Your list is empty. <button className="btn btn-ghost btn-sm" onClick={onStartOver}>Start over</button>
                 </p>
               </div>
             </div>
@@ -1042,12 +1034,9 @@ function FinalStep({
                   <div className="grocery-controls-progress">
                     <div className="grocery-progress-bar" style={{ '--pct': `${pct}%` }} />
                   </div>
-                  <span className="grocery-controls-count">{checkedFinalCount}/{finalItems.length}</span>
+                  <span className="grocery-controls-count">{checkedCount}/{finalItems.length}</span>
                   <div className="grocery-filter-chips">
-                    <button
-                      className={`grocery-filter-chip${!activeStoreFilter ? ' grocery-filter-chip--on' : ''}`}
-                      onClick={() => setActiveStoreFilter(null)}
-                    >
+                    <button className={`grocery-filter-chip${!activeStoreFilter ? ' grocery-filter-chip--on' : ''}`} onClick={() => setActiveStoreFilter(null)}>
                       All <span className="grocery-filter-count">{finalItems.length}</span>
                     </button>
                     {stores.map(store => {
@@ -1101,79 +1090,53 @@ function FinalStep({
 
         {/* Side column */}
         <div className="grocery-side">
-          {/* Extra items (added after generation) */}
+
+          {/* Add item → goes directly into main list */}
           <div className="grocery-side-panel">
             <div className="grocery-side-panel-header">
-              <span className="grocery-side-panel-title">Added items</span>
-              {extras.length > 0 && <span className="grocery-side-panel-count">{extras.length}</span>}
+              <span className="grocery-side-panel-title">Add to list</span>
             </div>
             <div className="grocery-side-panel-body">
-              {extras.length === 0 && (
-                <p className="grocery-side-panel-empty">Anything you forgot? Add it here.</p>
-              )}
-              {extras.map(item => (
-                <GroceryRow
-                  key={item.id}
-                  checked={item.checked}
-                  label={item.name}
-                  onToggle={() => onToggleExtra(item.id)}
-                  onRemove={() => onRemoveExtra(item.id)}
-                  storeId={item.storeId}
-                  stores={stores}
-                  onStoreChange={sid => onSetExtraStore(item.id, sid)}
-                />
-              ))}
+              <p className="grocery-side-panel-empty" style={{ paddingBottom: 4 }}>
+                Items are auto-categorized and added to the main list.
+              </p>
               <AddItemRow
-                value={newExtra}
-                onChange={setNewExtra}
-                onAdd={() => {
-                  if (newExtra.trim()) { onAddExtra(newExtra.trim()); setNewExtra('') }
-                }}
-                placeholder="e.g. Paper towels…"
+                value={newItem}
+                onChange={setNewItem}
+                onAdd={handleAddItem}
+                placeholder="e.g. Paper towels, sparkling water…"
               />
             </div>
           </div>
 
-          {/* Always on my list */}
-          <div className="grocery-side-panel">
-            <div className="grocery-side-panel-header">
-              <span className="grocery-side-panel-title">Always on my list</span>
-              {staples.length > 0 && <span className="grocery-side-panel-count">{staples.length}</span>}
-            </div>
-            <div className="grocery-side-panel-body">
-              {staples.length === 0 && (
-                <p className="grocery-side-panel-empty">Staples you buy every week.</p>
-              )}
-              <div className="grocery-staples-list">
-                {staples.map(s => (
-                  <div key={s.id} className={`grocery-staple-row ${checkedStapleIds.has(s.id) ? 'grocery-staple-row--checked' : ''}`}>
-                    <button
-                      className={`grocery-check grocery-staple-check ${checkedStapleIds.has(s.id) ? 'grocery-check--done' : ''}`}
-                      onClick={() => onToggleStaple(s.id)}
-                    >
-                      {checkedStapleIds.has(s.id) && <IconCheck size={12} />}
-                    </button>
-                    <span className="grocery-staple-label">{s.name}</span>
-                    <button className="grocery-staple-remove" onClick={() => onDeleteStaple(s.id)}>
-                      <IconClose size={12} />
-                    </button>
+          {/* AI suggestions */}
+          {suggestions.length > 0 && (
+            <div className="grocery-suggestions-panel">
+              <div className="grocery-suggestions-header">
+                <span className="grocery-suggestions-icon">✦</span>
+                <span className="grocery-suggestions-title">You might need</span>
+              </div>
+              <div className="grocery-suggestions-body">
+                {suggestions.map(s => (
+                  <div key={s.name} className="grocery-suggestion-row">
+                    <div className="grocery-suggestion-info">
+                      <span className="grocery-suggestion-name">{s.name}</span>
+                      {s.reason && <span className="grocery-suggestion-reason">{s.reason}</span>}
+                    </div>
+                    <div className="grocery-suggestion-actions">
+                      <button className="grocery-suggestion-add" onClick={() => onAddSuggestion(s)}>
+                        Add
+                      </button>
+                      <button className="grocery-suggestion-dismiss" onClick={() => onDismissSuggestion(s.name)}>
+                        <IconClose size={11} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
-              <div className="grocery-add-row grocery-staples-add">
-                <input
-                  className="input input-sm grocery-add-input"
-                  placeholder="e.g. Eggs, milk, bread…"
-                  value={newStaple}
-                  onChange={e => setNewStaple(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && onAddStaple()}
-                />
-                <button className="btn btn-sm grocery-add-btn" onClick={onAddStaple}>
-                  <IconPlus size={14} />
-                </button>
-              </div>
             </div>
-          </div>
+          )}
+
         </div>
       </div>
     </div>
@@ -1184,6 +1147,7 @@ function FinalStep({
 function GroceryRow({ item, checked, label, onToggle, onRemove, isStaple, storeId, stores, onStoreChange, onCategoryChange, groceryGroups: rowGroups }) {
   const [pickerOpen, setPickerOpen]       = useState(false)
   const [catPickerOpen, setCatPickerOpen] = useState(false)
+  const [sourcesOpen, setSourcesOpen]     = useState(false)
   const catPickerRef = useRef(null)
   const showStores = stores?.length > 0 && onStoreChange
   const assignedStore = stores?.find(s => s.id === storeId)
@@ -1251,7 +1215,20 @@ function GroceryRow({ item, checked, label, onToggle, onRemove, isStaple, storeI
               label
             )}
           </span>
-          {sourceText && <span className="grocery-item-source">{sourceText}</span>}
+          {sources.length > 0 && (
+            <button
+              className="grocery-item-sources-toggle"
+              onClick={e => { e.stopPropagation(); setSourcesOpen(o => !o) }}
+            >
+              {sources.length === 1 ? sources[0] : `${sources.length} recipes`}
+              <span className={`grocery-item-sources-chevron ${sourcesOpen ? 'grocery-item-sources-chevron--open' : ''}`}>▾</span>
+            </button>
+          )}
+          {sourcesOpen && sources.length > 1 && (
+            <div className="grocery-item-sources-list">
+              {sources.map((s, i) => <span key={i} className="grocery-item-source-pill">{s}</span>)}
+            </div>
+          )}
         </div>
 
         {onCategoryChange && currentGroup && (

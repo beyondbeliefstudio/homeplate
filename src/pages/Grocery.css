@@ -1441,3 +1441,155 @@
   opacity: 0.7;
   margin-left: 2px;
 }
+
+/* ─── Sources dropdown on final list items ───────────────────────────────── */
+.grocery-item-sources-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--hp-font-body);
+  font-size: 11px;
+  color: var(--hp-ink-400);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.12s;
+  line-height: 1.3;
+}
+.grocery-item-sources-toggle:hover { color: var(--hp-ink-600); }
+
+.grocery-item-sources-chevron {
+  font-size: 10px;
+  line-height: 1;
+  transition: transform 0.15s;
+  display: inline-block;
+}
+.grocery-item-sources-chevron--open { transform: rotate(180deg); }
+
+.grocery-item-sources-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.grocery-item-source-pill {
+  font-family: var(--hp-font-body);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--hp-ink-500);
+  background: var(--hp-ink-50);
+  border: 1px solid var(--hp-ink-100);
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+/* ─── AI Suggestions panel (step 4 side column) ─────────────────────────── */
+.grocery-suggestions-panel {
+  background: var(--hp-paper);
+  border: 1px solid var(--hp-ink-100);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.grocery-suggestions-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--hp-ink-100);
+}
+
+.grocery-suggestions-icon {
+  font-size: 13px;
+  color: var(--hp-green);
+  flex-shrink: 0;
+}
+
+.grocery-suggestions-title {
+  font-family: var(--hp-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hp-ink-700);
+}
+
+.grocery-suggestions-body {
+  padding: 4px 0;
+}
+
+.grocery-suggestion-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--hp-ink-50);
+  transition: background 0.1s;
+}
+.grocery-suggestion-row:last-child { border-bottom: none; }
+.grocery-suggestion-row:hover { background: var(--hp-ink-50); }
+
+.grocery-suggestion-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.grocery-suggestion-name {
+  font-family: var(--hp-font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--hp-ink-800);
+}
+
+.grocery-suggestion-reason {
+  font-family: var(--hp-font-body);
+  font-size: 11px;
+  color: var(--hp-ink-400);
+  line-height: 1.35;
+}
+
+.grocery-suggestion-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.grocery-suggestion-add {
+  font-family: var(--hp-font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--hp-green);
+  background: none;
+  border: 1px solid var(--hp-green);
+  border-radius: var(--r-sm);
+  padding: 3px 9px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.grocery-suggestion-add:hover {
+  background: var(--hp-green);
+  color: #fff;
+}
+
+.grocery-suggestion-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: none;
+  border: none;
+  color: var(--hp-ink-300);
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  transition: color 0.12s, background 0.12s;
+}
+.grocery-suggestion-dismiss:hover {
+  color: var(--hp-ink-600);
+  background: var(--hp-ink-100);
+}
