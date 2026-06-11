@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { getMealPlan, saveMealPlan, getRecipes, getHouseholdMembers } from '../lib/supabase'
 import { RecipeSlideOver } from '../components/RecipePanel'
 import { getCategoryMeta } from '../lib/categories'
-import { getWeekKey, shiftWeek, formatWeekRange } from '../lib/weeks'
+import { getWeekKey, shiftWeek, formatWeekRange, getWeekDates, DAY_LABELS } from '../lib/weeks'
 import {
   IconChevronL, IconChevronR, IconChevronD, IconPlus, IconClose, IconCheck, IconSearch, IconShare,
 } from '../components/icons'
@@ -174,7 +174,7 @@ export default function PlannerPage() {
     setTimeout(() => setViewRecipe(null), 300)
   }
 
-  const sharedProps = { plan, recipeMap, recipes, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker, updatePlan, approvalMembers, openRecipeView }
+  const sharedProps = { plan, recipeMap, recipes, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker, updatePlan, approvalMembers, openRecipeView, weekKey }
 
   return (
     <div className="page planner-page">
@@ -343,23 +343,30 @@ function NotableNoteItem({ note, onEdit, onDelete }) {
 }
 
 // ─── Section shell ────────────────────────────────────────────────────────────
-function SectionShell({ label, totalCount, madeCount, diningOutCount, collapsed, onToggle, children, addActions }) {
+function SectionShell({ label, totalCount, madeCount, diningOutCount, collapsed, onToggle, children, addActions, headerActions }) {
   const madeLabel = madeCount > 0 ? `${madeCount}/${totalCount} made` : totalCount > 0 ? `${totalCount} planned` : null
   return (
     <div className="planner-section">
-      <button className="planner-section-header" onClick={onToggle}>
-        <span className="planner-section-title">{label}</span>
-        <div className="planner-section-badges">
-          {diningOutCount > 0 && (
-            <span className="planner-section-badge planner-section-badge--out">{diningOutCount}× out</span>
-          )}
-          {madeLabel && (
-            <span className="planner-section-badge planner-section-badge--made">{madeLabel}</span>
-          )}
-        </div>
-        <IconChevronD size={14}
-          className={`planner-section-chevron${collapsed ? '' : ' planner-section-chevron--open'}`} />
-      </button>
+      <div className="planner-section-header-wrap">
+        <button className="planner-section-header" onClick={onToggle}>
+          <span className="planner-section-title">{label}</span>
+          <div className="planner-section-badges">
+            {diningOutCount > 0 && (
+              <span className="planner-section-badge planner-section-badge--out">{diningOutCount}× out</span>
+            )}
+            {madeLabel && (
+              <span className="planner-section-badge planner-section-badge--made">{madeLabel}</span>
+            )}
+          </div>
+          <IconChevronD size={14}
+            className={`planner-section-chevron${collapsed ? '' : ' planner-section-chevron--open'}`} />
+        </button>
+        {headerActions && (
+          <div className="planner-section-header-actions" onClick={e => e.stopPropagation()}>
+            {headerActions}
+          </div>
+        )}
+      </div>
 
       {!collapsed && (
         <div className="planner-section-body">
@@ -389,17 +396,36 @@ function AddActions({ onRecipe, onPantry, onDiningOut }) {
 }
 
 // ─── Dinners ──────────────────────────────────────────────────────────────────
-function DinnersSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker, updatePlan, approvalMembers = [], openRecipeView }) {
+function DinnersSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker, updatePlan, approvalMembers = [], openRecipeView, weekKey }) {
   const items        = plan.dinners ?? []
   const totalNights  = items.reduce((s, i) => s + (i.multiplier ?? 1), 0)
   const doneNights   = items.reduce((s, i) => s + (i.isDiningOut ? (i.made ? (i.multiplier ?? 1) : 0) : (i.madeCount ?? 0)), 0)
   const diningOutCnt = items.filter(i => i.isDiningOut).length
+  const [sortByDay, setSortByDay] = useState(false)
   const { getDragProps } = useDragOrder(items, 'dinners', plan, updatePlan)
+
+  const displayItems = sortByDay
+    ? [...items].sort((a, b) => {
+        const da = a.day ?? 99; const db = b.day ?? 99
+        return da - db
+      })
+    : items
 
   return (
     <SectionShell label="Dinners"
       totalCount={totalNights} madeCount={doneNights} diningOutCount={diningOutCnt}
       collapsed={collapsed.dinners} onToggle={() => toggleCollapsed('dinners')}
+      headerActions={
+        items.some(i => i.day != null) || sortByDay ? (
+          <button
+            className={`planner-sort-day-btn${sortByDay ? ' planner-sort-day-btn--on' : ''}`}
+            onClick={() => setSortByDay(v => !v)}
+            title={sortByDay ? 'Stop sorting by day' : 'Sort by scheduled day'}
+          >
+            {sortByDay ? '↕ By day' : '↕ By day'}
+          </button>
+        ) : null
+      }
       addActions={
         <AddActions
           onRecipe={() => setPicker({ section: 'dinners', field: 'adultRecipeId', category: 'dinner' })}
@@ -407,13 +433,13 @@ function DinnersSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, 
           onDiningOut={() => addItem('dinners', { id: uid(), isDiningOut: true, restaurant: '', made: false, multiplier: 1, note: '' })}
         />
       }>
-      {items.map((item, i) => (
-        <div key={item.id} {...getDragProps(i)}>
+      {displayItems.map((item, i) => (
+        <div key={item.id} {...(!sortByDay ? getDragProps(i) : { className: 'plan-drag-row' })}>
           {item.isDiningOut
-            ? <DiningOutCard item={item} section="dinners" removeItem={removeItem} updateItem={updateItem} />
+            ? <DiningOutCard item={item} section="dinners" removeItem={removeItem} updateItem={updateItem} weekKey={weekKey} />
             : item.isPantry
-              ? <GenericMealItem item={item} section="dinners" category="dinner" recipeMap={recipeMap} removeItem={removeItem} updateItem={updateItem} setPicker={setPicker} approvalMembers={approvalMembers} openRecipeView={openRecipeView} />
-              : <DinnerCard item={item} recipeMap={recipeMap} removeItem={removeItem} updateItem={updateItem} setPicker={setPicker} approvalMembers={approvalMembers} openRecipeView={openRecipeView} />}
+              ? <GenericMealItem item={item} section="dinners" category="dinner" recipeMap={recipeMap} removeItem={removeItem} updateItem={updateItem} setPicker={setPicker} approvalMembers={approvalMembers} openRecipeView={openRecipeView} weekKey={weekKey} />
+              : <DinnerCard item={item} recipeMap={recipeMap} removeItem={removeItem} updateItem={updateItem} setPicker={setPicker} approvalMembers={approvalMembers} openRecipeView={openRecipeView} weekKey={weekKey} />}
         </div>
       ))}
     </SectionShell>
@@ -421,15 +447,26 @@ function DinnersSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, 
 }
 
 // ─── Breakfasts ───────────────────────────────────────────────────────────────
-function BreakfastsSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker, updatePlan, approvalMembers = [], openRecipeView }) {
+function BreakfastsSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker, updatePlan, approvalMembers = [], openRecipeView, weekKey }) {
   const items        = plan.breakfasts ?? []
   const diningOutCnt = items.filter(i => i.isDiningOut).length
+  const [sortByDay, setSortByDay] = useState(false)
   const { getDragProps } = useDragOrder(items, 'breakfasts', plan, updatePlan)
+
+  const displayItems = sortByDay
+    ? [...items].sort((a, b) => (a.day ?? 99) - (b.day ?? 99))
+    : items
 
   return (
     <SectionShell label="Breakfasts"
       totalCount={items.length} madeCount={items.filter(i => i.made).length} diningOutCount={diningOutCnt}
       collapsed={collapsed.breakfasts} onToggle={() => toggleCollapsed('breakfasts')}
+      headerActions={
+        items.some(i => i.day != null) || sortByDay ? (
+          <button className={`planner-sort-day-btn${sortByDay ? ' planner-sort-day-btn--on' : ''}`}
+            onClick={() => setSortByDay(v => !v)}>↕ By day</button>
+        ) : null
+      }
       addActions={
         <AddActions
           onRecipe={() => setPicker({ section: 'breakfasts', field: 'recipeId', category: 'breakfast' })}
@@ -437,11 +474,11 @@ function BreakfastsSection({ plan, recipeMap, collapsed, toggleCollapsed, addIte
           onDiningOut={() => addItem('breakfasts', { id: uid(), isDiningOut: true, restaurant: '', made: false, multiplier: 1, note: '' })}
         />
       }>
-      {items.map((item, i) => (
-        <div key={item.id} {...getDragProps(i)}>
+      {displayItems.map((item, i) => (
+        <div key={item.id} {...(!sortByDay ? getDragProps(i) : { className: 'plan-drag-row' })}>
           {item.isDiningOut
-            ? <DiningOutCard item={item} section="breakfasts" removeItem={removeItem} updateItem={updateItem} />
-            : <GenericMealItem item={item} section="breakfasts" category="breakfast" recipeMap={recipeMap} removeItem={removeItem} updateItem={updateItem} setPicker={setPicker} approvalMembers={approvalMembers} openRecipeView={openRecipeView} />}
+            ? <DiningOutCard item={item} section="breakfasts" removeItem={removeItem} updateItem={updateItem} weekKey={weekKey} />
+            : <GenericMealItem item={item} section="breakfasts" category="breakfast" recipeMap={recipeMap} removeItem={removeItem} updateItem={updateItem} setPicker={setPicker} approvalMembers={approvalMembers} openRecipeView={openRecipeView} weekKey={weekKey} />}
         </div>
       ))}
     </SectionShell>
@@ -449,15 +486,26 @@ function BreakfastsSection({ plan, recipeMap, collapsed, toggleCollapsed, addIte
 }
 
 // ─── Lunches ──────────────────────────────────────────────────────────────────
-function LunchesSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker, updatePlan, approvalMembers = [], openRecipeView }) {
+function LunchesSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, removeItem, updateItem, setPicker, updatePlan, approvalMembers = [], openRecipeView, weekKey }) {
   const items        = plan.lunches ?? []
   const diningOutCnt = items.filter(i => i.isDiningOut).length
+  const [sortByDay, setSortByDay] = useState(false)
   const { getDragProps } = useDragOrder(items, 'lunches', plan, updatePlan)
+
+  const displayItems = sortByDay
+    ? [...items].sort((a, b) => (a.day ?? 99) - (b.day ?? 99))
+    : items
 
   return (
     <SectionShell label="Lunches"
       totalCount={items.length} madeCount={items.filter(i => i.made).length} diningOutCount={diningOutCnt}
       collapsed={collapsed.lunches} onToggle={() => toggleCollapsed('lunches')}
+      headerActions={
+        items.some(i => i.day != null) || sortByDay ? (
+          <button className={`planner-sort-day-btn${sortByDay ? ' planner-sort-day-btn--on' : ''}`}
+            onClick={() => setSortByDay(v => !v)}>↕ By day</button>
+        ) : null
+      }
       addActions={
         <AddActions
           onRecipe={() => setPicker({ section: 'lunches', field: 'recipeId', category: 'lunch' })}
@@ -465,11 +513,11 @@ function LunchesSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem, 
           onDiningOut={() => addItem('lunches', { id: uid(), isDiningOut: true, restaurant: '', made: false, multiplier: 1, note: '' })}
         />
       }>
-      {items.map((item, i) => (
-        <div key={item.id} {...getDragProps(i)}>
+      {displayItems.map((item, i) => (
+        <div key={item.id} {...(!sortByDay ? getDragProps(i) : { className: 'plan-drag-row' })}>
           {item.isDiningOut
-            ? <DiningOutCard item={item} section="lunches" removeItem={removeItem} updateItem={updateItem} />
-            : <GenericMealItem item={item} section="lunches" category="lunch" recipeMap={recipeMap} removeItem={removeItem} updateItem={updateItem} setPicker={setPicker} approvalMembers={approvalMembers} openRecipeView={openRecipeView} />}
+            ? <DiningOutCard item={item} section="lunches" removeItem={removeItem} updateItem={updateItem} weekKey={weekKey} />
+            : <GenericMealItem item={item} section="lunches" category="lunch" recipeMap={recipeMap} removeItem={removeItem} updateItem={updateItem} setPicker={setPicker} approvalMembers={approvalMembers} openRecipeView={openRecipeView} weekKey={weekKey} />}
         </div>
       ))}
     </SectionShell>
@@ -525,7 +573,7 @@ function BeveragesSection({ plan, recipeMap, collapsed, toggleCollapsed, addItem
 }
 
 // ─── Dinner card ──────────────────────────────────────────────────────────────
-function DinnerCard({ item, recipeMap, removeItem, updateItem, setPicker, approvalMembers = [], openRecipeView }) {
+function DinnerCard({ item, recipeMap, removeItem, updateItem, setPicker, approvalMembers = [], openRecipeView, weekKey }) {
   const [expanded, setExpanded] = useState(false)
 
   const recipe   = recipeMap[item.adultRecipeId]
@@ -577,6 +625,11 @@ function DinnerCard({ item, recipeMap, removeItem, updateItem, setPicker, approv
         {approvedBy.map(m => (
           <span key={m.id} className="plan-card-approval" style={{ background: m.color + '22', color: m.color }}>{m.name} ✓</span>
         ))}
+
+        <span onClick={e => e.stopPropagation()}>
+          <DayPickerPill day={item.day ?? null} weekKey={weekKey}
+            onChange={day => updateItem('dinners', item.id, { day })} />
+        </span>
 
         <button className={`plan-card-expand${expanded ? ' plan-card-expand--open' : ''}`}
           onClick={e => { e.stopPropagation(); setExpanded(v => !v) }}>
@@ -671,7 +724,7 @@ function DinnerCard({ item, recipeMap, removeItem, updateItem, setPicker, approv
 }
 
 // ─── Generic meal item (Breakfasts / Lunches / Snacks / Beverages) ────────────
-function GenericMealItem({ item, section, category, recipeMap, removeItem, updateItem, setPicker, approvalMembers = [], openRecipeView }) {
+function GenericMealItem({ item, section, category, recipeMap, removeItem, updateItem, setPicker, approvalMembers = [], openRecipeView, weekKey }) {
   const [expanded, setExpanded] = useState(false)
   const [hov, setHov] = useState(false)
 
@@ -722,6 +775,9 @@ function GenericMealItem({ item, section, category, recipeMap, removeItem, updat
           <span key={m.id} className="plan-card-approval" style={{ background: m.color + '22', color: m.color }}>{m.name} ✓</span>
         ))}
 
+        <DayPickerPill day={item.day ?? null} weekKey={weekKey}
+          onChange={day => updateItem(section, item.id, { day })} />
+
         <button className={`plan-card-expand${expanded ? ' plan-card-expand--open' : ''}`}
           onClick={() => setExpanded(e => !e)}
           style={{ opacity: hov || expanded || item.kidsRecipeId ? 1 : 0, transition: 'opacity 0.15s' }}>
@@ -745,7 +801,7 @@ function GenericMealItem({ item, section, category, recipeMap, removeItem, updat
 }
 
 // ─── Dining-out card ──────────────────────────────────────────────────────────
-function DiningOutCard({ item, section, removeItem, updateItem }) {
+function DiningOutCard({ item, section, removeItem, updateItem, weekKey }) {
   return (
     <div className={`plan-card${item.made ? ' plan-card--made' : ''}`}>
       <div className="plan-card-row">
@@ -758,10 +814,72 @@ function DiningOutCard({ item, section, removeItem, updateItem }) {
           onChange={e => updateItem(section, item.id, { restaurant: e.target.value })}
           placeholder="Restaurant name…"
         />
+        <DayPickerPill day={item.day ?? null} weekKey={weekKey}
+          onChange={day => updateItem(section, item.id, { day })} />
         <button className="plan-card-remove" onClick={() => removeItem(section, item.id)}>
           <IconClose size={13} />
         </button>
       </div>
+    </div>
+  )
+}
+
+// ─── Day picker pill ──────────────────────────────────────────────────────────
+function DayPickerPill({ day, weekKey, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const dates = weekKey ? getWeekDates(weekKey) : []
+
+  useEffect(() => {
+    if (!open) return
+    function handler(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const hasDay = day != null
+  const label  = hasDay ? DAY_LABELS[day] : '—'
+
+  return (
+    <div ref={ref} className="plan-day-picker">
+      <button
+        className={`plan-day-pill${hasDay ? ' plan-day-pill--set' : ''}`}
+        onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
+        title={hasDay ? `Scheduled: ${DAY_LABELS[day]}` : 'Assign a day'}
+      >
+        {label}
+      </button>
+
+      {open && (
+        <div className="plan-day-dropdown">
+          <div className="plan-day-dropdown-label">Schedule for</div>
+          {dates.map((date, i) => {
+            const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            const active  = day === i
+            return (
+              <button
+                key={i}
+                className={`plan-day-option${active ? ' plan-day-option--active' : ''}`}
+                onClick={e => { e.stopPropagation(); onChange(active ? null : i); setOpen(false) }}
+              >
+                <span className="plan-day-option-name">{DAY_LABELS[i]}</span>
+                <span className="plan-day-option-date">{dateStr}</span>
+                {active && <span className="plan-day-option-check">✓</span>}
+              </button>
+            )
+          })}
+          {hasDay && (
+            <button
+              className="plan-day-option plan-day-option--clear"
+              onClick={e => { e.stopPropagation(); onChange(null); setOpen(false) }}
+            >
+              Clear day
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

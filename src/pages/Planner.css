@@ -643,3 +643,161 @@
 .picker-item-name { flex: 1; font-size: 14px; font-weight: 500; color: var(--hp-ink-900); }
 .picker-item-approval { font-size: 11px; font-weight: 700; }
 .picker-item-cat  { font-size: 12px; color: var(--hp-ink-400); flex-shrink: 0; }
+
+/* ─── Section header wrapper (allows headerActions beside the header btn) ── */
+.planner-section-header-wrap {
+  display: flex;
+  align-items: stretch;
+}
+
+.planner-section-header-wrap .planner-section-header {
+  flex: 1;
+}
+
+.planner-section-header-actions {
+  display: flex;
+  align-items: center;
+  padding: 0 12px 0 0;
+  flex-shrink: 0;
+  background: var(--hp-green);
+}
+
+/* ─── Sort-by-day toggle button ─────────────────────────────────────────── */
+.planner-sort-day-btn {
+  font-family: var(--hp-font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.65);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+  transition: color 0.12s, background 0.12s;
+}
+.planner-sort-day-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+.planner-sort-day-btn--on   { color: #fff; }
+
+/* ─── Day picker pill ───────────────────────────────────────────────────── */
+.plan-day-picker {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.plan-day-pill {
+  font-family: var(--hp-font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 3px 7px;
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  /* default: unset — very subtle */
+  background: transparent;
+  color: var(--hp-ink-300);
+  border-color: var(--hp-ink-100);
+  opacity: 0;
+}
+
+/* Show pill on row hover or when a day is set */
+.plan-drag-row:hover .plan-day-pill,
+.plan-card:hover .plan-day-pill,
+.plan-day-pill--set {
+  opacity: 1 !important;
+}
+
+.plan-day-pill--set {
+  background: var(--hp-ink-100);
+  color: var(--hp-ink-700);
+  border-color: var(--hp-ink-200);
+}
+.plan-day-pill--set:hover {
+  background: var(--hp-ink-200);
+  border-color: var(--hp-ink-300);
+}
+.plan-day-pill:not(.plan-day-pill--set):hover {
+  background: var(--hp-ink-50);
+  color: var(--hp-ink-500);
+  border-color: var(--hp-ink-200);
+}
+
+/* ─── Day picker dropdown ───────────────────────────────────────────────── */
+.plan-day-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: var(--hp-paper);
+  border: 1px solid var(--hp-ink-150, var(--hp-ink-100));
+  border-radius: var(--r-md);
+  box-shadow: 0 8px 24px rgba(14,18,18,0.10), 0 2px 6px rgba(14,18,18,0.06);
+  z-index: 400;
+  min-width: 164px;
+  padding: 4px 0;
+  overflow: hidden;
+}
+
+.plan-day-dropdown-label {
+  font-family: var(--hp-font-body);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hp-ink-400);
+  padding: 7px 12px 5px;
+}
+
+.plan-day-option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 7px 12px;
+  gap: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+.plan-day-option:hover { background: var(--hp-ink-50); }
+.plan-day-option--active { background: var(--hp-green-50); }
+.plan-day-option--active:hover { background: var(--hp-green-50); }
+
+.plan-day-option-name {
+  font-family: var(--hp-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hp-ink-800);
+  width: 36px;
+  flex-shrink: 0;
+}
+.plan-day-option--active .plan-day-option-name { color: var(--hp-green-700, var(--hp-green)); }
+
+.plan-day-option-date {
+  font-family: var(--hp-font-body);
+  font-size: 12px;
+  color: var(--hp-ink-400);
+  flex: 1;
+}
+
+.plan-day-option-check {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--hp-green);
+  margin-left: 4px;
+}
+
+.plan-day-option--clear {
+  font-family: var(--hp-font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--hp-ink-400);
+  border-top: 1px solid var(--hp-ink-100);
+  margin-top: 2px;
+  padding: 8px 12px;
+}
+.plan-day-option--clear:hover { color: var(--hp-ink-700); background: var(--hp-ink-50); }
