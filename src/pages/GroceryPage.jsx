@@ -31,6 +31,136 @@ function formatItemLabel({ quantity, unit, name }) {
   return [qty, showUnit ? unitStr : '', name].filter(Boolean).join(' ')
 }
 
+// ─── Pantry staples detection ─────────────────────────────────────────────────
+// These are cooking fundamentals most kitchens always have on hand.
+// They are pulled OUT of recipe cards and shown in their own side panel.
+const PANTRY_STAPLES = new Set([
+  // Salt & pepper
+  'salt','sea salt','kosher salt','table salt','coarse salt','pink salt','himalayan salt',
+  'garlic salt','seasoned salt','iodized salt',
+  'pepper','black pepper','white pepper','ground pepper','freshly ground pepper',
+  'ground black pepper','cracked black pepper','salt and pepper',
+  // Spices & dried herbs
+  'paprika','smoked paprika','sweet paprika','hot paprika','ground paprika',
+  'cumin','ground cumin','cumin seeds',
+  'coriander','ground coriander','coriander seeds',
+  'turmeric','ground turmeric',
+  'cinnamon','ground cinnamon','cinnamon sticks',
+  'nutmeg','ground nutmeg',
+  'ginger','ground ginger','ginger powder',
+  'allspice','ground allspice',
+  'cloves','ground cloves','whole cloves',
+  'cardamom','ground cardamom',
+  'cayenne','cayenne pepper','ground cayenne',
+  'chili powder','chile powder','ancho chili powder',
+  'red pepper flakes','crushed red pepper','dried chili flakes',
+  'garlic powder','onion powder','garlic granules',
+  'oregano','dried oregano','mexican oregano',
+  'basil','dried basil',
+  'thyme','dried thyme',
+  'rosemary','dried rosemary',
+  'parsley','dried parsley',
+  'bay leaf','bay leaves','dried bay leaves',
+  'dill','dried dill','dill weed',
+  'sage','dried sage',
+  'marjoram','dried marjoram',
+  'tarragon','dried tarragon',
+  'celery seed','celery salt',
+  'mustard powder','dry mustard',
+  'curry powder','curry',
+  'garam masala',
+  'italian seasoning','mixed herbs','dried herbs','herbes de provence',
+  'chinese five spice','five spice','five-spice',
+  'za\'atar','za atar',
+  'old bay','old bay seasoning',
+  'cajun seasoning','creole seasoning',
+  // Oils
+  'olive oil','extra virgin olive oil','extra-virgin olive oil','evoo',
+  'vegetable oil','canola oil','corn oil','sunflower oil','safflower oil',
+  'avocado oil','grapeseed oil','peanut oil','walnut oil',
+  'sesame oil','toasted sesame oil',
+  'coconut oil','refined coconut oil',
+  'cooking oil','cooking spray','nonstick spray',
+  // Vinegars
+  'vinegar','white vinegar','distilled white vinegar',
+  'apple cider vinegar','cider vinegar',
+  'red wine vinegar','white wine vinegar',
+  'balsamic vinegar','balsamic glaze',
+  'rice vinegar','rice wine vinegar',
+  'sherry vinegar','champagne vinegar',
+  // Fats
+  'butter','unsalted butter','salted butter','vegan butter',
+  'ghee','clarified butter',
+  'lard','shortening',
+  // Basic pantry
+  'water','ice water',
+  'flour','all purpose flour','all-purpose flour','ap flour',
+  'whole wheat flour','bread flour','cake flour',
+  'sugar','granulated sugar','white sugar','caster sugar',
+  'brown sugar','light brown sugar','dark brown sugar',
+  'powdered sugar','confectioners sugar','icing sugar',
+  'baking soda','bicarbonate of soda',
+  'baking powder',
+  'cornstarch','corn starch','cornflour',
+  'arrowroot','arrowroot powder',
+  'vanilla','vanilla extract','pure vanilla extract','vanilla bean',
+  // Condiments & sauces always on hand
+  'soy sauce','tamari','liquid aminos','coconut aminos',
+  'fish sauce',
+  'worcestershire sauce','worchestershire sauce',
+  'hot sauce','tabasco','sriracha',
+  'dijon mustard','mustard','yellow mustard','whole grain mustard',
+  'ketchup','tomato ketchup',
+  'mayonnaise','mayo',
+  'honey','raw honey',
+  'maple syrup','pure maple syrup',
+  'molasses','blackstrap molasses',
+  'oyster sauce','hoisin sauce',
+  // Stocks & broths
+  'chicken broth','chicken stock','vegetable broth','vegetable stock',
+  'beef broth','beef stock','fish stock','bone broth',
+  'broth','stock',
+  // Aromatics
+  'garlic','garlic clove','garlic cloves','minced garlic','fresh garlic',
+  'ginger','fresh ginger','minced ginger',
+  'onion','yellow onion','white onion','onion powder',
+  // Citrus juice (commonly on hand)
+  'lemon juice','fresh lemon juice',
+  'lime juice','fresh lime juice',
+])
+
+function normalizeName(name) {
+  return name.toLowerCase().trim()
+    .replace(/^(a|an|the)\s+/i, '')
+    .replace(/\s+/g, ' ')
+    .replace(/s$/, '')
+}
+
+function coreIngredient(name) {
+  if (!name?.trim()) return ''
+  let s = name.toLowerCase().trim()
+  s = s.replace(/^[\d¼½¾⅓⅔⅛⅜⅝⅞.,\/ ]+\s*(tablespoons?|tbsps?|teaspoons?|tsps?|cups?|ounces?|oz|pounds?|lbs?|grams?|g\b|ml|liters?|l\b|fl\s*oz|packages?|pkgs?|cans?|jars?|bunches?|heads?|cloves?|slices?|pieces?|strips?|dashes?|pinches?|sprigs?|stalks?|large|medium|small)(\s+of)?\s*/i, '')
+  s = s.replace(/^(a\s+)?(pinch|dash)(\s+of)?\s+/i, '')
+  s = s.replace(/\s*\([^)]*\)\s*/g, ' ')
+  s = s.replace(/,\s*.+$/, '')
+  s = s.replace(/\s+for\s+(the\s+)?\w+(\s+\w+){0,3}$/i, '')
+  s = s.replace(/,?\s*(to\s+taste|as\s+needed|if\s+desired|optional|to\s+season|as\s+desired)\s*$/i, '')
+  s = s.replace(/\s+or\s+other\s+\w+(\s+\w+){0,2}$/i, '')
+  return s.replace(/\s+/g, ' ').trim()
+}
+
+function checkIsPantry(name) {
+  const lower = name.toLowerCase().trim()
+  if (PANTRY_STAPLES.has(lower)) return true
+  const norm = normalizeName(name)
+  if (PANTRY_STAPLES.has(norm)) return true
+  const core = coreIngredient(name)
+  if (core && PANTRY_STAPLES.has(core)) return true
+  const coreNorm = normalizeName(core)
+  if (coreNorm && PANTRY_STAPLES.has(coreNorm)) return true
+  return false
+}
+
 // ─── Meal type metadata ───────────────────────────────────────────────────────
 const MEAL_TYPE_LABELS = {
   breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner',
@@ -210,9 +340,11 @@ export default function GroceryPage() {
   )
 
   // ── Derived plan state ───────────────────────────────────────────────
-  const groceryStep      = plan?.groceryStep || 'review'
-  const reviewCheckedSet = useMemo(() => new Set(plan?.groceryReviewChecked ?? []), [plan])
-  const manualPre        = plan?.groceryManualPre ?? []
+  const groceryStep       = plan?.groceryStep || 'review'
+  const reviewCheckedSet  = useMemo(() => new Set(plan?.groceryReviewChecked ?? []), [plan])
+  // pantryUncheck = set of pantry item core-names the user has explicitly UNCHECKED (wants to buy)
+  const pantryUncheckSet  = useMemo(() => new Set(plan?.groceryPantryUncheck ?? []), [plan])
+  const manualPre         = plan?.groceryManualPre ?? []
   const finalItems       = plan?.groceryFinalItems ?? []
   const extras           = plan?.groceryExtras ?? []
   const checkedStapleIds = useMemo(() => new Set(plan?.groceryStaplesChecked ?? []), [plan])
@@ -261,15 +393,22 @@ export default function GroceryPage() {
     updatePlan({ groceryManualPre: manualPre.filter(i => i.id !== id) })
   }
 
+  function togglePantryUncheck(coreKey) {
+    const next = new Set(pantryUncheckSet)
+    next.has(coreKey) ? next.delete(coreKey) : next.add(coreKey)
+    updatePlan({ groceryPantryUncheck: [...next] })
+  }
+
   // ── Generate final list ──────────────────────────────────────────────
   async function handleGenerateList() {
     setCompiling(true)
     setCompilationError(null)
 
-    // Collect all unchecked ingredients
+    // Collect unchecked non-pantry ingredients
     const ingredients = []
     recipeGroups.forEach(group => {
       group.ingredients.forEach(ing => {
+        if (checkIsPantry(ing.name)) return   // pantry items handled separately below
         const key = makeReviewKey(group.key, ing)
         if (!reviewCheckedSet.has(key)) {
           ingredients.push({
@@ -281,6 +420,26 @@ export default function GroceryPage() {
         }
       })
     })
+
+    // Include pantry items the user explicitly unchecked (wants to buy)
+    if (pantryUncheckSet.size > 0) {
+      const seenPantry = new Set()
+      recipeGroups.forEach(group => {
+        group.ingredients.forEach(ing => {
+          if (!checkIsPantry(ing.name)) return
+          const core = coreIngredient(ing.name) || normalizeName(ing.name)
+          if (pantryUncheckSet.has(core) && !seenPantry.has(core)) {
+            seenPantry.add(core)
+            ingredients.push({
+              recipeName: 'Pantry',
+              name: ing.name,
+              quantity: ing.quantity || '',
+              unit: ing.unit || '',
+            })
+          }
+        })
+      })
+    }
     manualPre.forEach(item => {
       ingredients.push({ recipeName: 'Added manually', name: item.name, quantity: '', unit: '' })
     })
@@ -460,10 +619,12 @@ export default function GroceryPage() {
     <ReviewStep
       recipeGroups={recipeGroups}
       reviewCheckedSet={reviewCheckedSet}
+      pantryUncheckSet={pantryUncheckSet}
       manualPre={manualPre}
       weekNav={weekNav}
       compilationError={compilationError}
       onToggleReviewChecked={toggleReviewChecked}
+      onTogglePantryUncheck={togglePantryUncheck}
       onAddManualPre={addManualPre}
       onRemoveManualPre={removeManualPre}
       onGenerate={handleGenerateList}
@@ -472,14 +633,38 @@ export default function GroceryPage() {
 }
 
 // ─── Step 1: Review by recipe ──────────────────────────────────────────────────
-function ReviewStep({ recipeGroups, reviewCheckedSet, manualPre, weekNav, compilationError, onToggleReviewChecked, onAddManualPre, onRemoveManualPre, onGenerate }) {
+function ReviewStep({ recipeGroups, reviewCheckedSet, pantryUncheckSet, manualPre, weekNav, compilationError, onToggleReviewChecked, onTogglePantryUncheck, onAddManualPre, onRemoveManualPre, onGenerate }) {
   const [newItem, setNewItem] = useState('')
 
-  const totalIngredients = recipeGroups.reduce((sum, g) => sum + g.ingredients.length, 0)
-  const alreadyHaveCount = recipeGroups.reduce((sum, g) => {
-    return sum + g.ingredients.filter(ing => reviewCheckedSet.has(makeReviewKey(g.key, ing))).length
-  }, 0)
-  const toShopCount = (totalIngredients - alreadyHaveCount) + manualPre.length
+  // Collect all unique pantry items across all recipe groups
+  const allPantryItems = useMemo(() => {
+    const seen = new Map() // core-name → { name, core, count }
+    recipeGroups.forEach(group => {
+      group.ingredients.forEach(ing => {
+        if (!checkIsPantry(ing.name)) return
+        const core = coreIngredient(ing.name) || normalizeName(ing.name) || ing.name.toLowerCase().trim()
+        if (!seen.has(core)) {
+          const display = core ? core.charAt(0).toUpperCase() + core.slice(1) : ing.name.trim()
+          seen.set(core, { name: display, core, count: 1 })
+        } else {
+          seen.get(core).count += 1
+        }
+      })
+    })
+    return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name))
+  }, [recipeGroups])
+
+  // Only count non-pantry ingredients (pantry items excluded by default)
+  const nonPantryTotal = recipeGroups.reduce((sum, g) =>
+    sum + g.ingredients.filter(ing => !checkIsPantry(ing.name)).length, 0)
+  const nonPantryChecked = recipeGroups.reduce((sum, g) =>
+    sum + g.ingredients.filter(ing => !checkIsPantry(ing.name) && reviewCheckedSet.has(makeReviewKey(g.key, ing))).length, 0)
+
+  // Pantry items explicitly unchecked = need to buy
+  const pantryToBuy = pantryUncheckSet.size
+
+  const toShopCount = (nonPantryTotal - nonPantryChecked) + pantryToBuy + manualPre.length
+  const alreadyHaveCount = nonPantryChecked
 
   function handleAdd() {
     const name = newItem.trim()
@@ -516,71 +701,112 @@ function ReviewStep({ recipeGroups, reviewCheckedSet, manualPre, weekNav, compil
           </div>
         </div>
       ) : (
-        <div className="grocery-review-layout">
-          {/* Recipe ingredient cards */}
-          {recipeGroups.map(group => (
-            <RecipeIngredientCard
-              key={group.key}
-              group={group}
-              reviewCheckedSet={reviewCheckedSet}
-              onToggle={onToggleReviewChecked}
-            />
-          ))}
+        <div className="grocery-review-body">
 
-          {/* Extra items (manual pre-generation adds) */}
-          <div className="grocery-review-extras">
-            <div className="grocery-review-extras-header">
-              <span className="grocery-review-extras-title">Extra items</span>
-              {manualPre.length > 0 && <span className="grocery-review-extras-count">{manualPre.length}</span>}
-            </div>
-            <div className="grocery-review-extras-body">
-              {manualPre.length === 0 && (
-                <p className="grocery-review-extras-empty">
-                  Anything else you need this week? Add it here before generating.
-                </p>
+          {/* ── Left: recipe cards + generate button ── */}
+          <div className="grocery-review-main">
+            {recipeGroups.map(group => (
+              <RecipeIngredientCard
+                key={group.key}
+                group={group}
+                reviewCheckedSet={reviewCheckedSet}
+                onToggle={onToggleReviewChecked}
+              />
+            ))}
+
+            {/* Generate CTA */}
+            <div className="grocery-review-footer">
+              {compilationError && (
+                <p className="grocery-review-error">{compilationError}</p>
               )}
-              {manualPre.map(item => (
-                <div key={item.id} className="grocery-review-extras-row">
-                  <span className="grocery-review-extras-name">{item.name}</span>
-                  <button className="grocery-remove" style={{ opacity: 1 }} onClick={() => onRemoveManualPre(item.id)}>
-                    <IconClose size={13} />
-                  </button>
-                </div>
-              ))}
-              <div className="grocery-add-row" style={{ padding: '6px 0 0' }}>
-                <input
-                  className="input input-sm grocery-add-input"
-                  placeholder="e.g. Paper towels, sparkling water…"
-                  value={newItem}
-                  onChange={e => setNewItem(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
-                />
-                <button className="btn btn-sm grocery-add-btn" onClick={handleAdd} disabled={!newItem.trim()}>
-                  <IconPlus size={14} />
-                </button>
+              <div className="grocery-review-footer-meta">
+                {alreadyHaveCount > 0 && (
+                  <span className="grocery-review-footer-have">{alreadyHaveCount} already at home</span>
+                )}
+                <span className="grocery-review-footer-shop">{toShopCount} item{toShopCount !== 1 ? 's' : ''} to shop for</span>
               </div>
+              <button
+                className="btn btn-primary grocery-generate-btn"
+                onClick={onGenerate}
+                disabled={toShopCount === 0}
+              >
+                Generate Final Grocery List
+                {toShopCount > 0 && <span className="grocery-generate-badge">{toShopCount}</span>}
+              </button>
             </div>
           </div>
 
-          {/* Generate CTA */}
-          <div className="grocery-review-footer">
-            {compilationError && (
-              <p className="grocery-review-error">{compilationError}</p>
+          {/* ── Right: pantry staples + extra items ── */}
+          <div className="grocery-review-side">
+
+            {/* Pantry staples */}
+            {allPantryItems.length > 0 && (
+              <div className="grocery-pantry-panel">
+                <div className="grocery-pantry-panel-header">
+                  <span className="grocery-pantry-panel-icon">🧂</span>
+                  <span className="grocery-pantry-panel-title">Pantry Staples</span>
+                  <span className="grocery-pantry-panel-count">{allPantryItems.length}</span>
+                </div>
+                <p className="grocery-pantry-panel-hint">
+                  Assumed you have these. Tap any item you need to buy.
+                </p>
+                <div className="grocery-pantry-panel-body">
+                  {allPantryItems.map(item => {
+                    const needToBuy = pantryUncheckSet.has(item.core)
+                    return (
+                      <button
+                        key={item.core}
+                        className={`grocery-pantry-row ${needToBuy ? 'grocery-pantry-row--buy' : 'grocery-pantry-row--have'}`}
+                        onClick={() => onTogglePantryUncheck(item.core)}
+                      >
+                        <span className={`grocery-pantry-dot ${needToBuy ? 'grocery-pantry-dot--buy' : ''}`} />
+                        <span className="grocery-pantry-name">{item.name}</span>
+                        {needToBuy
+                          ? <span className="grocery-pantry-tag grocery-pantry-tag--buy">add to list</span>
+                          : <span className="grocery-pantry-tag grocery-pantry-tag--have">have it</span>
+                        }
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
             )}
-            <div className="grocery-review-footer-meta">
-              {alreadyHaveCount > 0 && (
-                <span className="grocery-review-footer-have">{alreadyHaveCount} already at home</span>
-              )}
-              <span className="grocery-review-footer-shop">{toShopCount} item{toShopCount !== 1 ? 's' : ''} to shop for</span>
+
+            {/* Extra items (manual pre-generation adds) */}
+            <div className="grocery-review-extras">
+              <div className="grocery-review-extras-header">
+                <span className="grocery-review-extras-title">Extra items</span>
+                {manualPre.length > 0 && <span className="grocery-review-extras-count">{manualPre.length}</span>}
+              </div>
+              <div className="grocery-review-extras-body">
+                {manualPre.length === 0 && (
+                  <p className="grocery-review-extras-empty">
+                    Anything else you need this week?
+                  </p>
+                )}
+                {manualPre.map(item => (
+                  <div key={item.id} className="grocery-review-extras-row">
+                    <span className="grocery-review-extras-name">{item.name}</span>
+                    <button className="grocery-remove" style={{ opacity: 1 }} onClick={() => onRemoveManualPre(item.id)}>
+                      <IconClose size={13} />
+                    </button>
+                  </div>
+                ))}
+                <div className="grocery-add-row" style={{ padding: '6px 0 0' }}>
+                  <input
+                    className="input input-sm grocery-add-input"
+                    placeholder="e.g. Paper towels, sparkling water…"
+                    value={newItem}
+                    onChange={e => setNewItem(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
+                  />
+                  <button className="btn btn-sm grocery-add-btn" onClick={handleAdd} disabled={!newItem.trim()}>
+                    <IconPlus size={14} />
+                  </button>
+                </div>
+              </div>
             </div>
-            <button
-              className="btn btn-primary grocery-generate-btn"
-              onClick={onGenerate}
-              disabled={toShopCount === 0}
-            >
-              Generate Final Grocery List
-              {toShopCount > 0 && <span className="grocery-generate-badge">{toShopCount}</span>}
-            </button>
+
           </div>
         </div>
       )}
@@ -591,11 +817,28 @@ function ReviewStep({ recipeGroups, reviewCheckedSet, manualPre, weekNav, compil
 // ─── Recipe ingredient accordion card ────────────────────────────────────────
 function RecipeIngredientCard({ group, reviewCheckedSet, onToggle }) {
   const [open, setOpen] = useState(true)
-  const ingCount = group.ingredients.length
-  const checkedCount = group.ingredients.filter(ing =>
+  // Filter out pantry items — they're shown in the side panel
+  const visibleIngredients = group.ingredients.filter(ing => !checkIsPantry(ing.name))
+  const ingCount = visibleIngredients.length
+  const checkedCount = visibleIngredients.filter(ing =>
     reviewCheckedSet.has(makeReviewKey(group.key, ing))
   ).length
   const allChecked = ingCount > 0 && checkedCount === ingCount
+
+  // If all ingredients are pantry items, show a minimal placeholder card
+  if (ingCount === 0) {
+    return (
+      <div className="grocery-recipe-card grocery-recipe-card--pantry-only">
+        <div className="grocery-recipe-card-header" style={{ cursor: 'default' }}>
+          <span className="grocery-recipe-card-badge" style={{ background: (MEAL_TYPE_COLORS[group.mealType] || '#8C9189') + '22', color: MEAL_TYPE_COLORS[group.mealType] || '#8C9189' }}>
+            {MEAL_TYPE_LABELS[group.mealType] || group.mealType}
+          </span>
+          <span className="grocery-recipe-card-name">{group.recipeName}</span>
+          <span className="grocery-recipe-card-count" style={{ color: 'var(--hp-green)', fontSize: 11 }}>pantry only ✓</span>
+        </div>
+      </div>
+    )
+  }
   const color = MEAL_TYPE_COLORS[group.mealType] || '#8C9189'
 
   return (
@@ -613,7 +856,7 @@ function RecipeIngredientCard({ group, reviewCheckedSet, onToggle }) {
 
       {open && (
         <div className="grocery-recipe-card-body">
-          {group.ingredients.map((ing, idx) => {
+          {visibleIngredients.map((ing, idx) => {
             const key = makeReviewKey(group.key, ing)
             const checked = reviewCheckedSet.has(key)
             const label = formatItemLabel({ quantity: ing.quantity, unit: ing.unit, name: ing.name })
