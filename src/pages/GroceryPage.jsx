@@ -447,11 +447,24 @@ export default function GroceryPage() {
     // Collect recipe names for AI context (for better suggestions)
     const recipeNames = [...new Set(recipeGroups.map(g => g.recipeName))]
 
+    // Items already accounted for — the AI should not suggest these
+    // 1. Every ingredient already going onto the compiled list
+    const alreadyOnList = ingredients.map(i => i.name.toLowerCase().trim())
+    // 2. Pantry items the user confirmed they have
+    const alreadyHave = [...pantryHaveSet]
+    // 3. Ingredients the user checked off as already at home (reviewCheckedSet)
+    const checkedOffNames = recipeGroups.flatMap(group =>
+      group.ingredients
+        .filter(ing => reviewCheckedSet.has(makeReviewKey(group.key, ing)))
+        .map(ing => ing.name.toLowerCase().trim())
+    )
+    const alreadyAccountedFor = [...new Set([...alreadyOnList, ...alreadyHave, ...checkedOffNames])]
+
     try {
       const res = await fetch('/.netlify/functions/compile-grocery-list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ingredients, recipeNames }),
+        body: JSON.stringify({ ingredients, recipeNames, alreadyAccountedFor }),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const { finalItems: compiled, questions, suggestions: aiSuggestions } = await res.json()

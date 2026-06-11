@@ -15,7 +15,7 @@ exports.handler = async function (event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON' }) }
   }
 
-  const { ingredients = [], recipeNames = [] } = body
+  const { ingredients = [], recipeNames = [], alreadyAccountedFor = [] } = body
   if (!ingredients.length) {
     return {
       statusCode: 200,
@@ -57,8 +57,9 @@ YOUR RULES:
    - Canned goods: use number of cans, not cup measurements
 3. Only create a question when ingredients GENUINELY CONFLICT in TYPE (e.g., whole milk vs oat milk, salted vs unsalted butter). Do NOT ask about quantity differences of the same item — just combine them. Keep questions to only the most meaningful conflicts (max 3).
 4. For type conflicts, write the question as a natural decision — explain briefly WHY the conflict exists and what each choice means for the cook.
-5. Generate 3–5 helpful suggestions: items likely needed but NOT listed — think specific ingredients, condiments for serving, or commonly forgotten items that are actually purchased at the store. Be specific to this week's recipes (e.g. burger buns for a burger recipe, taco shells or tortillas for tacos, salsa for tacos, specific sauces).
-   DO NOT suggest: salt, pepper, butter, cooking oils, flour, sugar, baking ingredients, basic spices (cumin, paprika, etc.), mustard, ketchup, mayo, soy sauce, or any other dry pantry/condiment staples. Those are assumed to be on hand. Only suggest items someone would actually need to put in their shopping cart.
+5. Generate 3–5 helpful suggestions for items likely needed but NOT already on the list. Think: specific ingredients the recipe assumes but didn't list, condiments for serving, or commonly forgotten items you'd buy at the store. Be specific to this week's recipes (e.g. burger buns for a burger recipe, taco shells for tacos, specific sauces).
+   DO NOT suggest: salt, pepper, butter, cooking oils, flour, sugar, baking ingredients, basic spices (cumin, paprika, etc.), mustard, ketchup, mayo, soy sauce, or any other dry pantry/condiment staples.
+   ALSO DO NOT suggest anything already accounted for — the user already has or is already buying these items: ${alreadyAccountedFor.length ? alreadyAccountedFor.join(', ') : 'none listed'}. Do not suggest any of these or close variations of them.
 
 Return ONLY valid JSON with no markdown formatting:
 {
